@@ -1,0 +1,496 @@
+/* Reserve both intro and status content so the departure boards never move. */
+.hero {
+  --hero-logo-width: 440px;
+  --hero-logo-hold: 0.9s;
+  --hero-copy-exit-duration: 0.25s;
+  --hero-status-delay: calc(var(--hero-logo-hold) + var(--hero-copy-exit-duration));
+  position: relative;
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  background: #19323a;
+  color: #f1f3f4;
+}
+.hero-inner {
+  width: 100%;
+  max-width: 1280px;
+  margin: auto;
+  padding: 39px 48px 20px;
+}
+.hero-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+.hero-stage {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.hero-stage > * {
+  grid-area: 1 / 1;
+  align-self: center;
+}
+.hero-copy,
+.hero-clock {
+  position: relative;
+  z-index: 1;
+}
+.hero-stage[data-logo-complete] .hero-copy {
+  animation: hero-copy-exit var(--hero-copy-exit-duration) var(--hero-logo-hold) ease forwards;
+}
+.hero-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px 0;
+  font-family: var(--font-bold);
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.hero-tagline {
+  font-size: clamp(18px, 2.3vw, 27px);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  animation: hero-tagline-enter var(--hero-tagline-duration) var(--hero-tagline-delay)
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.hero-logo {
+  /* Keep the completed symbol aligned with the Hero content edge. */
+  transform: translateX(calc(-1 * var(--logo-left-inset, 0%)));
+}
+.hero-rails {
+  position: absolute;
+  inset: 0 0 0 auto;
+  height: 100%;
+  width: 57%;
+  color: #8ab4f8;
+  opacity: 0.17;
+  pointer-events: none;
+  mask-image: linear-gradient(to right, #0002, #000 75%);
+}
+.hero-clock {
+  padding: 0 4px 10px 34px;
+  min-width: 300px;
+}
+.hero-clock > p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 5px;
+  font-size: 11px;
+  color: #bdc1c6;
+}
+.clock-timezone {
+  border: 1px solid #ffffff59;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 0.85em;
+  line-height: 1.3;
+  letter-spacing: 0.05em;
+}
+.clock-service-day {
+  white-space: nowrap;
+}
+.clock-digits {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-bold);
+  font-size: 69px;
+  font-weight: 700;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  letter-spacing: -2.5px;
+  white-space: nowrap;
+}
+.clock-digits small {
+  font-family: var(--font-regular);
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: -0.5px;
+  color: #8ab4f8;
+}
+.clock-colon {
+  margin: 0 3px;
+  position: relative;
+  top: -3px;
+}
+.clock-date {
+  margin-top: 5px;
+  font-size: 12px;
+  letter-spacing: 1.3px;
+  color: #bdc1c6;
+}
+.hero-operations {
+  container: hero-status / inline-size;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+.hero-stage[data-logo-complete] .hero-operations {
+  animation: hero-status-enter 0.5s var(--hero-status-delay) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hero-operations-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.hero-operations-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-family: var(--font-regular);
+  font-size: 11px;
+  font-weight: 400;
+}
+.hero-operations-heading > span {
+  font-size: 9px;
+  color: #bdc1c6;
+}
+.hero-updated {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 6px;
+  margin-left: auto;
+}
+.hero-updated time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.hero-company-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.hero-company {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-height: 52px;
+  align-items: center;
+  gap: 5px 8px;
+  padding: 14px 12px;
+  background: #304148;
+  font-size: 12px;
+}
+.hero-company .rail-mark {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+  color: #f1f3f4;
+  font-size: 12px;
+}
+.hero-line-name {
+  min-width: 0;
+}
+.hero-stage[data-logo-complete] .hero-company {
+  animation: hero-status-enter 0.4s
+    calc(var(--hero-status-delay) + 0.05s + var(--company-index) * 0.035s) both;
+}
+.hero-company .operation-badge {
+  grid-column: 1 / -1;
+  justify-self: end;
+  padding: 0;
+  background: transparent;
+  color: #bdc1c6;
+  font-size: 11px;
+}
+@container hero-status (width < 340px) {
+  .hero-company-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hero-company {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+  }
+  .hero-company .operation-badge {
+    grid-column: auto;
+  }
+}
+@container hero-status (width >= 620px) {
+  .hero-company {
+    grid-template-columns: 24px max-content minmax(0, 1fr);
+  }
+  .hero-company .operation-badge {
+    grid-column: auto;
+  }
+}
+.hero-company .operation-normal {
+  color: #78d99a;
+}
+.hero-company .operation-delayed,
+.hero-company .operation-other,
+.hero-operation-text[data-state='delayed'],
+.hero-operation-text[data-state='other'] {
+  color: #fdd663;
+}
+.hero-company .operation-suspended,
+.hero-operation-text[data-state='suspended'] {
+  color: #f28b82;
+}
+.hero-bottom {
+  position: relative;
+  display: block;
+  margin-top: 22px;
+  border-top: 1px solid #ffffff26;
+  padding-top: 12px;
+  color: #bdc1c6;
+}
+.hero-operation-text {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 11px;
+  /* Keep long notices at the same text scale as short summaries on iOS. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+  color: #bdc1c6;
+}
+.hero-operation-text span {
+  font-size: inherit;
+  letter-spacing: inherit;
+}
+.hero-operation-text[data-state='normal'] {
+  color: #f1f3f4;
+}
+.hero-operation-track {
+  display: flex;
+  width: max-content;
+}
+.hero-operation-track > span {
+  flex: none;
+}
+.hero-operation-text[data-scrolling] .hero-operation-track {
+  gap: 48px;
+  padding-right: 48px;
+  animation: hero-operation-scroll var(--operation-scroll-duration) linear 1.5s infinite;
+  will-change: transform;
+}
+.hero-operation-text:hover .hero-operation-track,
+.hero-operation-text:focus .hero-operation-track {
+  animation-play-state: paused;
+}
+.hero a:focus-visible,
+.hero-operation-text:focus-visible {
+  outline-color: #8ab4f8;
+}
+
+@keyframes hero-tagline-enter {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hero-copy-exit {
+  from {
+    opacity: 1;
+    transform: none;
+    visibility: visible;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+    visibility: hidden;
+  }
+}
+@keyframes hero-status-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    visibility: hidden;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    visibility: visible;
+  }
+}
+@keyframes hero-operation-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (min-width: 1200px) {
+  .hero-clock {
+    min-width: 330px;
+  }
+  .clock-digits {
+    font-size: 76px;
+  }
+}
+@media (max-width: 1050px) {
+  .hero-inner {
+    padding: 32px 32px 20px;
+  }
+  .hero-clock {
+    min-width: 265px;
+    padding-left: 15px;
+  }
+  .clock-digits {
+    font-size: 60px;
+  }
+}
+@media (max-width: 800px) {
+  .hero {
+    --hero-logo-width: 340px;
+  }
+  .hero-main {
+    gap: 15px;
+  }
+  .hero-company {
+    padding: 12px 10px;
+  }
+}
+@media (max-width: 760px) {
+  .hero-inner {
+    padding: 27px 24px 20px;
+  }
+  .hero-clock {
+    min-width: 220px;
+    padding: 0 0 8px 10px;
+  }
+  .hero-clock > p {
+    font-size: 10px;
+  }
+  .clock-digits {
+    font-size: 51px;
+    letter-spacing: -2px;
+    gap: 6px;
+  }
+  .clock-digits small {
+    font-size: 21px;
+  }
+  .clock-date {
+    font-size: 10px;
+    letter-spacing: 0.8px;
+  }
+}
+@media (max-width: 560px) {
+  .hero {
+    --hero-logo-width: clamp(250px, 80vw, 380px);
+  }
+  .hero-inner {
+    padding: 20px 20px 16px;
+  }
+  .hero-main {
+    display: block;
+  }
+  .hero-headline {
+    gap: 4px;
+    margin: 12px 0;
+  }
+  .hero-tagline {
+    font-size: clamp(16px, 4.2vw, 18px);
+  }
+  .hero-rails {
+    top: 20px;
+    width: 100%;
+    height: 75%;
+    opacity: 0.13;
+    mask-image: linear-gradient(to bottom, #0002 15%, #0005 60%, #000);
+  }
+  .hero-clock {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    min-width: 0;
+    margin-top: 14px;
+    padding: 12px 0 4px;
+  }
+  .hero-clock > p {
+    grid-column: 1;
+    margin: 0;
+    font-size: 9px;
+  }
+  .hero-clock > p svg {
+    width: 12px;
+  }
+  .clock-digits {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    font-size: 49px;
+    gap: 6px;
+    line-height: 1.1;
+  }
+  .clock-digits small {
+    font-size: 19px;
+  }
+  .clock-date {
+    font-size: 9px;
+    letter-spacing: 0.1px;
+  }
+  .hero-bottom {
+    margin-top: 14px;
+    padding-top: 10px;
+  }
+  .hero-company {
+    font-size: 11px;
+  }
+  .hero-company .operation-badge {
+    font-size: 10px;
+    gap: 4px;
+  }
+  .hero-company .operation-badge .operation-mark {
+    width: 10px;
+    height: 10px;
+  }
+}
+@media (max-width: 360px) {
+  .clock-digits {
+    font-size: 43px;
+  }
+  .hero-clock {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .hero-clock > p {
+    gap: 4px 6px;
+  }
+  .clock-service-day {
+    flex-basis: 100%;
+  }
+  .clock-date {
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-operation-text {
+    overflow-x: auto;
+  }
+  .hero-operation-text[data-scrolling] .hero-operation-track {
+    gap: 0;
+    padding-right: 0;
+    will-change: auto;
+  }
+  .hero-operation-copy {
+    display: none;
+  }
+  .hero-copy {
+    /* SVG descendants explicitly set visibility; hide the composed intro too. */
+    visibility: hidden;
+    opacity: 0;
+  }
+  .hero-operations {
+    opacity: 1;
+    visibility: visible;
+  }
+}

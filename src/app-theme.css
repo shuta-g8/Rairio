@@ -1,0 +1,189 @@
+/* App surfaces share neutral colors. Header and departure board tokens stay intact. */
+:root {
+  --app-background: #f5f5f5;
+  --app-surface: #fff;
+  --app-ink: #202124;
+  --app-muted: #5f6368;
+  --app-border: #dadce0;
+  --app-hover: #f1f3f4;
+  --app-accent: #1967d2;
+  --app-accent-hover: #174ea6;
+  --app-selected: #e8f0fe;
+  --app-selected-hover: #d2e3fc;
+  background: var(--app-background);
+}
+
+.page-shell {
+  color: var(--app-ink);
+}
+
+/* Station selection and search. */
+.station-picker,
+.station-results,
+.directory-stations a {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.station-search > label,
+.station-search-field,
+.station-results button > span:last-child,
+.station-results p,
+.station-english {
+  color: var(--app-muted);
+}
+.station-search-field {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.station-search-field input {
+  color: var(--app-ink);
+}
+.station-search-field input::placeholder {
+  color: var(--app-muted);
+}
+.station-search-field:focus-within {
+  outline-color: var(--app-accent);
+}
+.station-results {
+  box-shadow: 0 8px 24px #2021241a;
+}
+.station-search-field button:enabled:hover,
+.station-results button:enabled:hover,
+.station-results button:focus-visible,
+.directory-line > summary:hover {
+  background: var(--app-hover);
+}
+
+/* Controls around the departure cards; the cards retain their original styles. */
+.line-filters button {
+  color: var(--app-ink);
+  background: var(--app-surface);
+}
+.line-filters button:hover {
+  background: var(--app-hover);
+}
+.updated-at,
+.updated-at time,
+.schedule-note,
+.source-line {
+  color: var(--app-muted);
+}
+.line-filters .selected,
+.line-filters .selected:hover {
+  color: #fff;
+  background: var(--app-accent);
+}
+.line-filters .selected:hover {
+  background: var(--app-accent-hover);
+}
+.line-filters .line-filter-count {
+  color: var(--app-muted);
+}
+.line-filters .selected .line-filter-count {
+  color: #fff;
+}
+.source-line a,
+.about-source a,
+.modal-footer a {
+  color: var(--app-accent);
+}
+.source-line a:hover,
+.modal-footer a:hover {
+  color: var(--app-accent-hover);
+}
+
+.stale {
+  color: #8c4b00;
+  background: #fef7e0;
+  border-color: #f2d795;
+}
+.connection-status {
+  color: #8c4b00;
+}
+
+/* Station directory and footer. */
+.footer-brand {
+  color: var(--app-ink);
+}
+.directory-stations a small,
+.site-footer {
+  color: var(--app-muted);
+}
+.directory-stations a:hover {
+  background: var(--app-hover);
+  border-color: #9aa0a6;
+}
+.directory-stations a[aria-current] {
+  color: var(--app-accent);
+  background: var(--app-selected);
+  border-color: #aecbfa;
+}
+.directory-stations a[aria-current]:hover {
+  background: var(--app-selected-hover);
+}
+.directory-stations a[aria-current] small {
+  color: var(--app-accent);
+}
+.site-footer {
+  border-top-color: var(--app-border);
+}
+
+/* About and timetable dialogs. */
+.modal {
+  color: var(--app-ink);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  box-shadow: 0 16px 64px #20212433;
+}
+.modal::backdrop {
+  background: #2021248c;
+}
+.modal-header,
+.modal-mobile-actions,
+.about-feature {
+  border-color: var(--app-border);
+}
+.about-brand,
+.modal .rail-mark {
+  color: var(--app-ink);
+}
+.icon-button,
+.about-content > p,
+.about-feature p,
+.modal-footer {
+  color: var(--app-muted);
+}
+.about-feature > svg {
+  color: var(--app-accent);
+}
+.icon-button:hover,
+.modal-close-button {
+  background: var(--app-hover);
+}
+.modal-close-button:hover {
+  background: var(--app-border);
+}
+
+.error-state {
+  color: var(--app-muted);
+  border-color: var(--app-border);
+}
+.error-state > svg {
+  color: #b3261e;
+}
+.error-state h3 {
+  color: var(--app-ink);
+}
+.error-state button {
+  background: var(--app-accent);
+}
+.error-state button:hover {
+  background: var(--app-accent-hover);
+}
+
+.station-picker :is(button, select):focus-visible,
+.line-filters button:focus-visible,
+.station-directory a:focus-visible,
+.modal :is(button, a):focus-visible {
+  outline-color: var(--app-accent);
+}

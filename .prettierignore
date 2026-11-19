@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.cache/
+public/data/
+public/journey/
+public/timetables/
+src/generated/kanto-network.json
+package-lock.json
+*.tsbuildinfo

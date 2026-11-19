@@ -1,0 +1,149 @@
+import type { Route, Train } from '../types.ts';
+import { STATION_RAILWAYS } from './stations.ts';
+
+export interface ToeiStop {
+  id: string;
+  name: string;
+  code: string;
+  kind: 'current' | 'stop' | 'pass' | 'past';
+}
+export interface ToeiStopGuide {
+  stations: ToeiStop[];
+  through: boolean;
+  preceding: ToeiStop[];
+}
+
+// Scheduled stopping patterns within Toei only, not real-time train positions.
+// https://www.kotsu.metro.tokyo.jp/subway/map/index.html
+// https://www.kotsu.metro.tokyo.jp/about/koukai/vehicle_outline/asakusa_5500_announce.pdf
+// https://www.kotsu.metro.tokyo.jp/pickup_information/news/subway/2021/sub_i_202102059553_h.html
+const airportStops = new Set([7, 8, 9, 10, 13, 15, 18, 20]);
+const expressStops = new Set([1, 4, 6, 9, 11, 15, 17, 21]);
+const localTypes = new Set(['普通', '各駅停車', '各停']);
+const asakusaTypes = new Set([
+  ...localTypes,
+  'アクセス特急',
+  '快速',
+  '特急',
+  '通勤特急',
+  '快特',
+  '快速特急',
+  '急行',
+  'エアポート快特',
+]);
+const throughDestinations: Record<string, readonly string[]> = {
+  'Asakusa.Northbound': [
+    '印旛日本医大',
+    '印西牧の原',
+    '青砥',
+    '京成高砂',
+    '成田空港(鉄道)',
+    '京成成田',
+    '京成佐倉',
+    '芝山千代田',
+    '宗吾参道',
+  ],
+  'Asakusa.Southbound': [
+    '羽田空港第１・第２ターミナル(京急)',
+    '三崎口',
+    '京急久里浜',
+    '三浦海岸',
+    '逗子・葉山',
+    '品川',
+    '金沢文庫',
+    '神奈川新町',
+    '京急川崎',
+    '浦賀',
+  ],
+  'Mita.Southbound': ['新横浜', '日吉', '海老名', '西谷', '湘南台', '武蔵小杉', '大和'],
+  'Shinjuku.Westbound': ['笹塚', '橋本', '若葉台', '京王多摩センター'],
+};
+
+// Immutable fetched routes can be collected when their station is no longer displayed.
+const routeOrders = new WeakMap<Route, ReturnType<typeof orderedRouteStations>>();
+
+/** Station order in the direction of travel, independent of a train's destination. */
+export function toeiRouteStations(route: Route) {
+  if (!routeOrders.has(route)) routeOrders.set(route, orderedRouteStations(route));
+  return routeOrders.get(route);
+}
+
+function orderedRouteStations(route: Route) {
+  const railway = STATION_RAILWAYS.find((line) => line.id === route.railwayId);
+  if (!railway || !route.sourceStationId?.startsWith(`odpt.Station:Toei.${railway.id}.`)) return;
+  const direction = route.id.replace(`Toei.${route.railwayId}.`, '');
+  const ordered = railway.stations
+    .map((station) => {
+      const code = station.memberships!.find((member) => member.railwayId === railway.id)!.code;
+      return { id: station.id, name: station.name, code, number: Number(code.split('-')[1]) };
+    })
+    .sort((a, b) => a.number - b.number);
+  let order = ordered;
+  if (railway.id === 'Oedo') {
+    // E-28 is visited at both ends of the loop, then E-29…E-38 form the branch.
+    const junction = ordered.find((station) => station.number === 28)!;
+    order = [junction, ...ordered];
+    if (direction === 'InnerLoop') order = [...order].reverse();
+    else if (direction === 'Toei.Hikarigaoka')
+      order = ordered.filter((station) => station.number >= 28);
+    else if (direction !== 'OuterLoop') return;
+  } else if (['Southbound', 'Westbound'].includes(direction)) order = [...order].reverse();
+  else if (!(railway.id === 'Shinjuku' ? direction === 'Eastbound' : direction === 'Northbound'))
+    return;
+
+  return order;
+}
+
+/** Return nothing when the route, destination or stopping pattern cannot be established. */
+export function toeiStopGuide(
+  route: Route,
+  train: Pick<Train, 'destination' | 'type'>,
+): ToeiStopGuide | undefined {
+  const order = toeiRouteStations(route);
+  if (!order) return;
+  const railwayId = route.railwayId!;
+  const direction = route.id.replace(`Toei.${route.railwayId}.`, '');
+  const local = localTypes.has(train.type);
+  if (
+    railwayId === 'Asakusa'
+      ? !asakusaTypes.has(train.type)
+      : railwayId === 'Oedo'
+        ? !local
+        : !local && train.type !== '急行'
+  )
+    return;
+  const origin = route.sourceStationId!.split('.').at(-1)!.toLowerCase();
+  const start = order.findIndex((station) => station.id === origin);
+  if (start < 0) return;
+  const through =
+    throughDestinations[`${railwayId}.${direction}`]?.includes(train.destination) ?? false;
+  const boundary =
+    railwayId === 'Asakusa' && direction === 'Southbound' ? '泉岳寺' : order.at(-1)!.name;
+  const end = order.findIndex(
+    (station, index) => index > start && station.name === (through ? boundary : train.destination),
+  );
+  if (end <= start) return;
+  const stops =
+    railwayId === 'Asakusa' && train.type === 'エアポート快特'
+      ? airportStops
+      : railwayId === 'Shinjuku' && train.type === '急行'
+        ? expressStops
+        : undefined;
+  // A departure from a normally passed station needs train-specific evidence.
+  if (stops && (!stops.has(order[start].number) || !stops.has(order[end].number))) return;
+  return {
+    through,
+    preceding: order.slice(Math.max(0, start - 3), start).map((station) => ({
+      id: station.id,
+      name: station.name,
+      code: station.code,
+      kind: 'past',
+    })),
+    stations: order.slice(start, end + 1).map((station, index) => ({
+      id: station.id,
+      name: station.name,
+      code: station.code,
+      kind: index === 0 ? 'current' : !stops || stops.has(station.number) ? 'stop' : 'pass',
+    })),
+  };
+}

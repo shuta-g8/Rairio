@@ -1,0 +1,538 @@
+/* Departure cards use F+UD New Rodin at the existing regular and bold weights. */
+.route-card {
+  min-width: 0;
+  --font-regular: var(--font-board-regular);
+  --font-bold: var(--font-board-bold);
+  font-family: var(--font-regular);
+  color: #f0f5ec;
+  background: #050706;
+  border-color: #24312a;
+  box-shadow: 0 4px 12px #13231a14;
+}
+.route-card-heading {
+  background: #090d0b;
+}
+.route-card .rail-mark {
+  color: #fff;
+}
+.route-card .line-title {
+  color: #fff;
+}
+.route-card-heading h3 {
+  color: #fff;
+}
+.route-card-heading h3 > span {
+  color: #fff;
+}
+.departures {
+  background-color: #030504;
+  background-image: radial-gradient(#ffffff10 0.65px, transparent 0.65px);
+  background-size: 4px 4px;
+}
+.route-card {
+  --board-columns: minmax(64px, 0.9fr) minmax(0, 1.6fr) 88px minmax(112px, 1.15fr);
+  --board-gap: 12px;
+  --approximate-label-size: 14px;
+  --approximate-first-label-size: 16px;
+  color: #fff;
+}
+.route-card .departure-row,
+.departure-columns {
+  display: grid;
+  grid-template-columns: var(--board-columns);
+  gap: var(--board-gap);
+  align-items: center;
+}
+.departure-columns {
+  padding: 13px 0 12px;
+  font-size: 9px;
+  color: #fff;
+  border-top: 1px solid #273229;
+}
+.departure-columns > span:last-child {
+  text-align: center;
+}
+.route-card .departure-row {
+  padding: 21px 0;
+  border-top: 1px solid #273229;
+  min-height: 116px;
+}
+.route-card .departure-row.first {
+  min-height: 140px;
+  padding: 27px 0;
+}
+.route-card .first .departure-rank {
+  font-size: 11px;
+  font-family: var(--font-bold);
+  font-weight: 700;
+}
+.route-card .first .train-type {
+  font-size: 13px;
+  padding: 6px 10px;
+}
+.route-card .first .destination-name {
+  font-size: 17px;
+}
+.route-card .first .departure-time time {
+  font-size: 34px;
+}
+.route-card .first .countdown strong {
+  font-size: 27px;
+}
+.route-card .first .countdown .countdown-seconds {
+  font-size: 18px;
+}
+.route-card .first .arrival-announcement,
+.route-card .first .departure-announcement {
+  font-size: 14px;
+}
+.route-card .departure-type {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.route-card .departure-rank {
+  display: block;
+  padding: 0;
+  min-width: 0;
+  color: #fff;
+  font-size: 9px;
+  font-family: var(--font-regular);
+  font-weight: 400;
+  line-height: 1.5;
+}
+.route-card .train-type {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-family: var(--font-bold);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.route-card:not(.toei-board) .train-type[data-unfilled='true'] {
+  box-shadow: inset 0 0 0 1px #fff;
+}
+.departure-destination {
+  min-width: 0;
+}
+.yamanote-destination {
+  grid-column: 2 / 4;
+}
+.bilingual-destination {
+  display: grid;
+}
+.destination-language {
+  min-width: 0;
+  grid-area: 1 / 1;
+  align-self: center;
+}
+.bilingual-destination > [lang='ja'] {
+  animation: destination-ja 8s step-end infinite;
+}
+.bilingual-destination > [lang='en'] {
+  visibility: hidden;
+  animation: destination-en 8s step-end infinite;
+}
+.destination-language .platform > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@keyframes destination-ja {
+  0% {
+    visibility: visible;
+  }
+  62.5%,
+  100% {
+    visibility: hidden;
+  }
+}
+@keyframes destination-en {
+  0% {
+    visibility: hidden;
+  }
+  62.5%,
+  100% {
+    visibility: visible;
+  }
+}
+.destination-name {
+  color: #fff;
+  font-size: 14px;
+  font-family: var(--font-bold);
+  font-weight: 700;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.destination-name small {
+  color: #fff;
+  font-size: 10px;
+  font-family: var(--font-regular);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.route-card .platform {
+  color: #fff;
+  font-size: 9px;
+  line-height: 1.7;
+  gap: 3px 8px;
+  flex-wrap: wrap;
+}
+.route-card .conditional {
+  color: #fff;
+}
+.departure-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+.departure-time time {
+  color: #fff;
+  font-size: 29px;
+  font-family: var(--font-bold);
+  font-weight: 700;
+  letter-spacing: -0.7px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+.route-card .next-day {
+  color: #fff;
+  border-color: #617365;
+  font-size: 8px;
+}
+.departure-status {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 46px;
+}
+.route-card .countdown {
+  color: #fff;
+  background: transparent;
+  padding: 9px 0;
+  gap: 3px;
+}
+.route-card .countdown strong {
+  color: #fff;
+  font-size: 23px;
+  font-family: var(--font-bold);
+  font-weight: 700;
+}
+.route-card .countdown > span {
+  color: #fff;
+  font-size: 9px;
+}
+.route-card .countdown .countdown-prefix {
+  display: inline;
+  font-size: 8px;
+  margin-right: 1px;
+}
+.route-card .countdown .countdown-seconds {
+  color: #fff;
+  font-size: 15px;
+  font-family: var(--font-regular);
+  font-weight: 400;
+  margin-left: 3px;
+}
+.route-card .countdown.countdown-approximate {
+  gap: 2px;
+}
+.route-card .countdown.countdown-approximate > span {
+  font-size: var(--approximate-label-size);
+  font-family: var(--font-bold);
+  font-weight: 700;
+}
+.route-card .first .countdown.countdown-approximate > span {
+  font-size: var(--approximate-first-label-size);
+}
+.full-timetable {
+  color: #fff;
+  background: #101610;
+  border-top-color: #29362a;
+}
+.full-timetable:hover {
+  color: #fff;
+  background: #1c2b1b;
+}
+.service-ended {
+  grid-column: 2 / -1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1.8;
+}
+.route-card .empty-message {
+  color: #fff;
+}
+.route-card.skeleton {
+  background: #080d09;
+}
+.route-card.skeleton > div {
+  background: linear-gradient(90deg, #172119, #26362a, #172119);
+  background-size: 200% 100%;
+}
+
+.arrival-announcement,
+.departure-announcement {
+  display: block;
+  align-content: center;
+  text-align: center;
+  min-height: 46px;
+  width: 100%;
+  padding: 5px 0;
+  color: #fff;
+  font-size: 12px;
+  font-family: var(--font-bold);
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: normal;
+  text-shadow: 0 0 10px #ffffff22;
+  animation: arrival-fade 1.8s ease-in-out infinite;
+}
+.arrival-announcement > span,
+.departure-announcement > span {
+  display: inline-block;
+  white-space: nowrap;
+}
+.departure-stopped {
+  animation: none;
+}
+.departure-progress {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+}
+.departure-progress svg {
+  width: 40px;
+  height: 40px;
+  transform: rotate(-90deg);
+}
+.departure-progress circle {
+  fill: none;
+  stroke-width: 3;
+}
+.departure-progress-track {
+  stroke: #ffffff26;
+}
+.departure-progress-fill {
+  stroke: #fff;
+  stroke-linecap: round;
+}
+.page-shell > .site-footer {
+  margin: 32px 0 0;
+  max-width: none;
+}
+.footer-brand {
+  letter-spacing: 1px;
+}
+.site-footer > p {
+  font-size: 10px;
+  white-space: nowrap;
+}
+@keyframes arrival-fade {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.connection-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #986f35;
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 12px 2px -18px;
+}
+.connection-status svg {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.route-card .route-card-heading {
+  min-height: 116px;
+}
+
+@media (max-width: 1050px) {
+  .route-card {
+    --board-columns: minmax(52px, 0.8fr) minmax(0, 1.5fr) 74px minmax(94px, 1.1fr);
+    --board-gap: 8px;
+    --approximate-label-size: 12px;
+    --approximate-first-label-size: 14px;
+  }
+  .route-card .first .destination-name {
+    font-size: 15px;
+  }
+  .route-card .first .departure-time time {
+    font-size: 29px;
+  }
+  .route-card .first .countdown strong {
+    font-size: 24px;
+  }
+  .route-card .first .countdown .countdown-seconds {
+    font-size: 16px;
+  }
+  .departure-time time {
+    font-size: 25px;
+  }
+  .destination-name {
+    font-size: 12px;
+  }
+  .route-card .countdown strong {
+    font-size: 20px;
+  }
+  .route-card .countdown .countdown-prefix {
+    display: none;
+  }
+  .arrival-announcement,
+  .departure-announcement {
+    font-size: 11px;
+  }
+}
+@media (max-width: 760px) {
+  .route-card {
+    --board-columns: minmax(62px, 0.85fr) minmax(0, 1.7fr) 88px minmax(118px, 1.1fr);
+    --board-gap: 12px;
+    --approximate-label-size: 14px;
+    --approximate-first-label-size: 16px;
+  }
+  .route-card .first .destination-name {
+    font-size: 17px;
+  }
+  .route-card .first .departure-time time {
+    font-size: 34px;
+  }
+  .route-card .first .countdown strong {
+    font-size: 27px;
+  }
+  .route-card .first .countdown .countdown-seconds {
+    font-size: 18px;
+  }
+  .departure-time time {
+    font-size: 29px;
+  }
+  .destination-name {
+    font-size: 14px;
+  }
+  .route-card .countdown strong {
+    font-size: 23px;
+  }
+  .route-card .countdown .countdown-prefix {
+    display: inline;
+  }
+  .arrival-announcement,
+  .departure-announcement {
+    font-size: 12px;
+  }
+}
+@media (max-width: 560px) {
+  .route-card {
+    --board-columns: minmax(44px, 0.7fr) minmax(0, 1.4fr) 64px 94px;
+    --board-gap: 7px;
+    --approximate-label-size: 12px;
+    --approximate-first-label-size: 14px;
+  }
+  .route-card .departure-row {
+    padding: 18px 0;
+    min-height: 112px;
+  }
+  .route-card .departure-row.first {
+    min-height: 134px;
+    padding: 24px 0;
+  }
+  .route-card .first .train-type {
+    font-size: 12px;
+    padding: 5px 6px;
+  }
+  .route-card .first .destination-name {
+    font-size: 14px;
+  }
+  .route-card .first .departure-time time {
+    font-size: 25px;
+  }
+  .route-card .first .countdown {
+    gap: 1px;
+  }
+  .route-card .first .countdown strong {
+    font-size: 22px;
+  }
+  .route-card .first .countdown .countdown-seconds {
+    font-size: 14px;
+  }
+  .route-card .train-type {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+  .departure-columns {
+    font-size: 8px;
+  }
+  .departure-time time {
+    font-size: 22px;
+    letter-spacing: -0.4px;
+  }
+  .destination-name {
+    font-size: 11px;
+  }
+  .destination-name small {
+    font-size: 8px;
+  }
+  .route-card .platform {
+    font-size: 8px;
+  }
+  .route-card .countdown {
+    gap: 2px;
+  }
+  .route-card .countdown strong {
+    font-size: 20px;
+  }
+  .route-card .countdown > span {
+    font-size: 8px;
+  }
+  .route-card .countdown .countdown-prefix {
+    display: none;
+  }
+  .route-card .countdown .countdown-seconds {
+    font-size: 13px;
+    margin-left: 2px;
+  }
+  .arrival-announcement,
+  .departure-announcement {
+    font-size: 11px;
+    padding: 5px 0;
+  }
+  .route-card .route-card-heading {
+    min-height: 109px;
+  }
+  .service-ended {
+    font-size: 14px;
+  }
+  .connection-status {
+    font-size: 9px;
+    margin-top: 10px;
+    margin-bottom: -9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrival-announcement,
+  .departure-announcement {
+    animation: none;
+    opacity: 1;
+  }
+}

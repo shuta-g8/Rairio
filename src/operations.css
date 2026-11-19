@@ -1,0 +1,51 @@
+.operation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  font-size: 10px;
+  font-family: var(--font-regular);
+  font-weight: 400;
+  line-height: 1.5;
+  border-radius: 4px;
+  color: #718075;
+  background: #eef1eb;
+}
+.operation-badge .operation-mark {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.operation-normal {
+  color: #fff;
+  background: #3eb66aff;
+}
+.operation-delayed,
+.operation-other {
+  color: #92611e;
+  background: #fff1d9;
+}
+.operation-suspended {
+  color: #aa4537;
+  background: #fcebe5;
+}
+.route-card .operation-badge {
+  margin-top: 8px;
+  font-size: 9px;
+  padding: 2px 6px;
+  background: #303b32;
+  color: #fff;
+}
+.route-card .operation-normal {
+  color: #fff;
+  background: #3eb66aff;
+}
+.route-card .operation-delayed,
+.route-card .operation-other {
+  color: #fff;
+  background: #634713;
+}
+.route-card .operation-suspended {
+  color: #fff;
+  background: #722e26;
+}

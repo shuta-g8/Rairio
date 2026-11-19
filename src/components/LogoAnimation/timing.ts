@@ -1,0 +1,15 @@
+export const LOGO_MOTION = {
+  duration: 2.7,
+  drawDuration: 1.3,
+  drawReferenceDuration: 1.5,
+  drawTailAt: 1.05,
+  shiftAt: 0.58,
+  shiftDuration: 0.7,
+  wordAt: 0.7,
+  wordDuration: 0.6,
+  liftAt: 1.6,
+  liftDuration: 0.4,
+  editionAt: 1.84,
+  editionDuration: 0.45,
+  ease: '0.12,0,0.16,1',
+} as const;

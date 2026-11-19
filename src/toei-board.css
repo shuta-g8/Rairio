@@ -1,0 +1,607 @@
+@import './styles/toei/diagram.css';
+@import './styles/toei/position.css';
+@import './styles/toei/information.css';
+
+/* The physical display is wide; keep its layout separate from the default cards. */
+.toei-viewing-note {
+  display: none;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 20px;
+  color: var(--app-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.toei-viewing-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+[data-board-mode='toei'] > .route-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+}
+.route-card.toei-board {
+  container-type: inline-size;
+  border: 1px solid #333938;
+  border-radius: 3px;
+  background: #252a28;
+  box-shadow: 0 7px 14px #111a1724;
+}
+.toei-board-housing {
+  padding: 1.3cqw 1.6cqw 1.5cqw;
+  background: linear-gradient(#424541, #282c29 12%, #1b201d 85%, #363b37);
+  border-top: 2px solid #666960;
+  border-bottom: 2px solid #0c100e;
+}
+.toei-board-layout {
+  aspect-ratio: 3.9;
+  display: grid;
+  grid-template-rows: 5.2cqw minmax(0, 1fr);
+  border: 2px solid transparent;
+  color: #fff;
+}
+.toei-board-face {
+  min-height: 0;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px #090c0a;
+  background-color: #030504;
+  background-image: radial-gradient(#ffffff0d 0.6px, transparent 0.7px);
+  background-size: 3px 3px;
+  color: #fff;
+}
+.toei-board-heading {
+  display: flex;
+  align-items: center;
+  gap: 1.1cqw;
+  min-height: 0;
+  /* Include the housing's upper padding when centering the bezel label. */
+  margin-top: -1.3cqw;
+  padding: 0.5cqw 0.9cqw;
+}
+.toei-board-heading .rail-mark {
+  width: 3.1cqw;
+  height: 3.1cqw;
+  border-width: 0.35cqw;
+  font-size: 1.4cqw;
+  background: #fff;
+  color: #1c221f;
+}
+.toei-board-direction {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 0 1.3cqw;
+  min-width: 0;
+}
+.toei-board-direction p,
+.toei-board-direction h3 {
+  margin: 0;
+  font-size: 1.65cqw;
+  font-family: var(--font-bold);
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.toei-board-direction p {
+  grid-row: 1 / span 2;
+  color: #fff;
+  font-size: 2.2cqw;
+}
+.toei-board-direction h3 span {
+  margin-left: 0.5cqw;
+  color: #fff;
+  font-size: 1.1cqw;
+}
+.toei-board-direction > small {
+  grid-column: 2;
+  color: #fff;
+  font-size: 0.9cqw;
+  line-height: 1.2;
+}
+.toei-board-heading .operation-badge {
+  flex-shrink: 0;
+  font-size: 1cqw;
+}
+.toei-board-trains {
+  display: grid;
+  grid-template-rows: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  height: 100%;
+  min-height: 0;
+  padding: 0.15cqw 1cqw;
+}
+.route-card.toei-board .departure-row,
+.route-card.toei-board .departure-row.first {
+  display: grid;
+  grid-template-columns: 21% minmax(0, 1fr) 14% 8%;
+  gap: 1.2cqw;
+  min-height: 0;
+  padding: 0.1cqw 0;
+  border: 0;
+}
+.route-card.toei-board .departure-row + .departure-row {
+  border-top: 1px solid #ffffff14;
+}
+.route-card.toei-board .departure-row.first {
+  --toei-name-size: 5.2cqw;
+  --toei-number-size: 4.8cqw;
+  --toei-time-size: 4.4cqw;
+  --toei-type-height: 6cqw;
+}
+.route-card.toei-board .departure-row.second {
+  --toei-name-size: 4.2cqw;
+  --toei-number-size: 4cqw;
+  --toei-time-size: 3.6cqw;
+  --toei-type-height: 4.6cqw;
+}
+.route-card.toei-board[data-railway='Oedo'] .departure-row {
+  grid-template-columns: 7.5% minmax(0, 1fr) 14% 8%;
+}
+.route-card.toei-board .departure-type {
+  display: grid;
+  grid-template-columns: 7cqw minmax(0, 1fr);
+  align-items: center;
+  gap: 0.8cqw;
+}
+.route-card.toei-board[data-railway='Oedo'] .departure-type {
+  display: block;
+}
+.route-card.toei-board .departure-rank,
+.route-card.toei-board .first .departure-rank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25cqw;
+  align-self: center;
+  font-size: 1.9cqw;
+  font-family: var(--font-bold);
+  line-height: 1.25;
+  text-align: center;
+}
+.toei-board .departure-rank > span:first-child {
+  display: block;
+}
+.toei-rank-translation {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-height: 1.32cqw;
+  color: #fff;
+  font-family: var(--font-regular);
+  font-size: 1.1cqw;
+  line-height: 1.2;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.toei-rank-translation[lang='ko'],
+.toei-rank-translation[lang='zh-Hans'] {
+  font-family: 'Microsoft YaHei', 'Malgun Gothic', sans-serif;
+}
+.route-card.toei-board .train-type,
+.route-card.toei-board .first .train-type {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--toei-type-height, 5.6cqw);
+  padding: 0.4cqw;
+  border: 0.3cqw solid #fff;
+  border-radius: 0;
+  font-size: 1.8cqw;
+  line-height: 1.15;
+  text-align: center;
+}
+.toei-destination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.2cqw;
+  overflow: hidden;
+}
+.toei-train-type-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3cqw;
+  width: 100%;
+  min-width: 0;
+}
+.toei-train-type-content[data-layout='side'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4cqw;
+}
+.toei-train-type-content[data-layout='side']:has(.toei-type-airplane) {
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+}
+.toei-type-translation-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+.toei-type-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3cqw;
+  min-width: 0;
+  width: 100%;
+  font-size: 2.6cqw;
+  line-height: 1.2;
+}
+.toei-type-airplane {
+  flex-shrink: 0;
+  width: 0.9em;
+  height: 0.9em;
+  color: #fff;
+}
+.toei-type-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toei-type-prefix {
+  display: inline-block;
+  vertical-align: top;
+  margin-top: 0.12em;
+  font-size: 0.55em;
+}
+.toei-type-translation {
+  align-self: center;
+  overflow: hidden;
+  color: #fff;
+  font-family: var(--font-regular);
+  font-size: 1.1cqw;
+  font-weight: 400;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toei-type-translation > .toei-fit-text {
+  display: block;
+}
+.toei-type-translation[lang='zh-Hans'],
+.toei-type-translation[lang='ko'] {
+  font-family: 'Microsoft YaHei', 'Malgun Gothic', sans-serif;
+}
+.route-card.toei-board .departure-row[data-flip] {
+  backface-visibility: hidden;
+  transform-origin: center;
+}
+.route-card.toei-board .departure-row[data-flip='out'] {
+  animation: toei-row-flip-out var(--toei-flip-half-duration) linear both;
+}
+.route-card.toei-board .departure-row[data-flip='in'] {
+  animation: toei-row-flip-in var(--toei-flip-half-duration) linear both;
+}
+@keyframes toei-row-flip-out {
+  from {
+    transform: perspective(900px) rotateX(0deg);
+  }
+  to {
+    transform: perspective(900px) rotateX(-90deg);
+  }
+}
+@keyframes toei-row-flip-in {
+  from {
+    transform: perspective(900px) rotateX(90deg);
+  }
+  to {
+    transform: perspective(900px) rotateX(0deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-card.toei-board .departure-row[data-flip] {
+    animation: none;
+  }
+}
+.toei-fit-text {
+  display: inline-block;
+  transform: scaleX(var(--toei-text-scale, 1));
+  transform-origin: left center;
+}
+.toei-destination-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45cqw;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.toei-direction-station {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+  flex-shrink: 0;
+  gap: 0.35cqw;
+}
+.toei-station-number {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  flex-shrink: 0;
+  margin: 0.1cqw;
+  width: var(--toei-number-size, 4.3cqw);
+  height: var(--toei-number-size, 4.3cqw);
+  border: 0.32cqw solid var(--line-color);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.1cqw #fff;
+  background: #fff;
+  color: #151515;
+  font-family: var(--font-bold);
+  font-size: 1.2cqw;
+  line-height: 1;
+  text-align: center;
+  text-shadow: none;
+}
+.toei-station-number b {
+  display: block;
+  font-size: 1.6cqw;
+}
+.route-card.toei-board .destination-name,
+.route-card.toei-board .first .destination-name {
+  display: block;
+  color: #fff;
+  font-size: var(--toei-name-size, 4.6cqw);
+  line-height: 1.15;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #ffffff55;
+}
+.toei-destination-heading .destination-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.route-card.toei-board .destination-name[data-lines='2'] {
+  font-size: calc(var(--toei-name-size, 4.6cqw) * 0.55);
+  line-height: 1.05;
+}
+.toei-destination-heading:has(.destination-name[data-lines='2']),
+.toei-direction-station:has(> .destination-name[data-lines='2']) {
+  align-items: center;
+}
+.destination-name[data-lines='2'] .toei-fit-text > span {
+  display: block;
+}
+.toei-destination-via {
+  flex-shrink: 0;
+  color: #dce96e;
+  font-family: var(--font-bold);
+  font-size: 1.65cqw;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.toei-destination-heading[data-terminal] > .toei-destination-via {
+  color: #fff;
+  font-size: 2.6cqw;
+}
+.toei-destination-translations {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  min-height: 4.8cqw;
+  gap: 0.2cqw;
+  color: #fff;
+  font-size: 1.8cqw;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  text-align: left;
+}
+.toei-destination-translations > span > span {
+  display: block;
+}
+.toei-destination-translations > span {
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transform: scaleX(var(--toei-text-scale, 1));
+  transform-origin: left center;
+}
+.toei-destination-translations > span > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toei-destination-translations > [lang='en'] {
+  font-size: 1.6cqw;
+}
+.toei-destination-translations small {
+  font-size: 0.8em;
+}
+.toei-destination-translations > [lang='zh-Hans'],
+.toei-destination-translations > [lang='ko'] {
+  font-family: 'Microsoft YaHei', 'Malgun Gothic', sans-serif;
+}
+.route-card.toei-board .platform {
+  display: inline-flex;
+  gap: 0.4cqw;
+  font-size: 0.85cqw;
+  line-height: 1.1;
+}
+.route-card.toei-board .departure-time {
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.1cqw;
+}
+.route-card.toei-board .departure-time time,
+.route-card.toei-board .first .departure-time time {
+  font-size: var(--toei-time-size, 4cqw);
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-shadow: 0 0 3px #ffffff55;
+}
+.toei-car-count {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.2cqw;
+  min-width: 0;
+  color: #fff;
+  white-space: nowrap;
+}
+.toei-car-count > strong {
+  font-family: var(--font-bold);
+  font-size: 3.1cqw;
+  line-height: 1;
+}
+.toei-car-unit {
+  position: relative;
+  font-size: 1.8cqw;
+  line-height: 1.2;
+}
+.toei-car-unit small {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.15cqw;
+  font-family: 'Microsoft YaHei', 'Malgun Gothic', sans-serif;
+  font-size: 1cqw;
+}
+.route-card.toei-board .next-day {
+  padding: 0;
+  border: 0;
+  font-size: 0.85cqw;
+}
+.toei-board-notice {
+  display: flex;
+  align-items: center;
+  gap: 1cqw;
+  min-width: 0;
+  padding: 0.4cqw 1cqw;
+  border-top: 1px solid #fff;
+  color: #fff;
+}
+.toei-board-notice > div {
+  min-width: 0;
+}
+.toei-board-notice p {
+  overflow: hidden;
+  margin: 0;
+  font-family: var(--font-regular);
+  font-size: 4.4cqw;
+  font-weight: 400;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toei-board-notice small {
+  display: block;
+  font-size: 2cqw;
+  line-height: 1.3;
+}
+.toei-board-notice-languages {
+  display: flex;
+  align-items: baseline;
+  gap: 2cqw;
+  margin-top: 0.2cqw;
+  color: #fff;
+  font-size: 1.35cqw;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.toei-board-notice-languages [lang='zh-Hans'] {
+  font-family: 'Microsoft YaHei', sans-serif;
+}
+.toei-board-notice-languages [lang='ko'] {
+  font-family: 'Malgun Gothic', sans-serif;
+}
+.toei-board-notice-attention {
+  grid-row: 2 / -1;
+  margin-inline: -1cqw;
+  margin-bottom: -0.15cqw;
+  background: #e69a09;
+  color: #fff;
+  animation: toei-attention-background 2.6s ease-in-out infinite;
+}
+@keyframes toei-attention-background {
+  0%,
+  100% {
+    background-color: #e69a09;
+  }
+  50% {
+    background-color: #e69a0900;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toei-board-notice-attention {
+    animation: none;
+  }
+}
+.toei-board-notice-attention > svg {
+  flex-shrink: 0;
+  width: 9cqw;
+  height: 9cqw;
+  padding: 0.5cqw;
+  border: 1px solid #fff;
+  border-radius: 1.2cqw;
+}
+.toei-board-ended {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-size: 2cqw;
+}
+.toei-board-ended:only-child {
+  grid-row: 1 / -1;
+}
+.toei-board-ended-middle {
+  grid-row: 2;
+  margin-inline: -1cqw;
+  border-block: 1px solid #ffffff40;
+}
+.route-card.toei-board .full-timetable {
+  min-height: 34px;
+  padding: 8px 16px;
+  border: 0;
+  border-top: 1px solid #555a52;
+  background: #272e27;
+  color: #fff;
+  font-size: 10px;
+}
+.route-card.toei-board .full-timetable:hover {
+  background: #354032;
+}
+@media (max-width: 767px) {
+  .toei-viewing-note {
+    display: flex;
+  }
+}
+@media (max-width: 600px) {
+  [data-board-mode='toei'] > .route-grid {
+    gap: 18px;
+  }
+  .toei-board-layout {
+    aspect-ratio: 3.15;
+    grid-template-rows: 6.4cqw minmax(0, 1fr);
+  }
+  .toei-board-heading .rail-mark {
+    width: 4.5cqw;
+    height: 4.5cqw;
+    font-size: 2cqw;
+  }
+  .toei-board-direction p {
+    font-size: 2.8cqw;
+  }
+  .toei-board-direction h3 {
+    font-size: 2.3cqw;
+  }
+  .toei-board-direction > small {
+    font-size: 1.5cqw;
+  }
+  .toei-board-notice p {
+    font-size: 4.6cqw;
+  }
+  .toei-board-notice small {
+    font-size: 2cqw;
+  }
+}

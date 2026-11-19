@@ -1,0 +1,18 @@
+.logo {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+  background: transparent;
+  contain: layout style;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo {
+    visibility: visible !important;
+  }
+  .logo [data-final-logo] {
+    visibility: visible !important;
+  }
+}
