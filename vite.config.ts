@@ -1,3 +1,5 @@
+// @ts-expect-error The loopback-only middleware is shared with the standalone Node server.
+import { journeyMiddleware } from './server/journey-middleware.mjs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { offlinePlugin } from './build/offline.ts';
@@ -17,8 +19,10 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use(operationsMiddleware(server.config.base));
         server.middlewares.use(trainPositionsMiddleware(server.config.base));
+        server.middlewares.use(journeyMiddleware(server.config.base));
       },
       configurePreviewServer(server) {
+        server.middlewares.use(journeyMiddleware(server.config.base));
         server.middlewares.use(operationsMiddleware(server.config.base));
         server.middlewares.use(trainPositionsMiddleware(server.config.base));
       },

@@ -181,6 +181,86 @@ test('same estimate holds the displayed train at the station and advances it exa
   assert.equal(first(resolve(r, at(45), forecast(30, 45), undefined, false)), '10:05');
 });
 
+test('三田線の同じ列車を隣接駅で照合し、SSE・HTTPの先読みで定刻前に先発を消さない', () => {
+  const load = (station: string) =>
+    (
+      JSON.parse(readFileSync('public/data/' + station + '.json', 'utf8')) as StationData
+    ).routes.find((r) => r.id === 'Toei.Mita.Northbound')!;
+  const upstream = load('itabashikuyakushomae');
+  const downstream = load('itabashihoncho');
+  const trainId = 'odpt.Train:Toei.Mita.1177T';
+  const departure = upstream.schedules.weekday.find((t) => t.trainId === trainId)!;
+  const nextStop = downstream.schedules.weekday.find((t) => t.trainId === trainId)!;
+  const due = Date.parse('2026-11-20T' + departure.time + ':00+09:00');
+  const before = new Date(due - 1);
+  const prefix = 'odpt.Station:Toei.Mita.';
+  const p = {
+    id: trainId,
+    railwayId: 'Mita' as const,
+    direction: 'Northbound',
+    fromStation: prefix + 'ItabashiKuyakushomae',
+    toStation: null,
+    updatedAt: before.toISOString(),
+    validUntil: new Date(due + 90000).toISOString(),
+    model: {
+      runId: '2026-11-20/' + trainId + '/1',
+      visit: 17,
+      nextVisit: 17.5,
+      lead: 60000 as const,
+      dwellUntil: due,
+    },
+    projection: {
+      at: due - 10000,
+      fromStation: prefix + 'ItabashiKuyakushomae',
+      toStation: prefix + 'Itabashihoncho',
+    },
+  };
+  const data = {
+    fetchedAt: p.updatedAt,
+    trains: [p],
+    collected: { fetchedAt: p.updatedAt, trains: [p] },
+  };
+  const outgoing = {
+    id: p.id,
+    runId: p.model.runId,
+    visit: p.model.nextVisit,
+    fromStation: p.fromStation,
+    toStation: p.projection.toStation,
+    delaySeconds: 0,
+  };
+  const server = { ...data, serverEstimates: { validUntil: due + 15000, trains: [outgoing] } };
+  for (const positions of [data, server]) {
+    const early = resolve(upstream, before, positions);
+    assert.equal(first(early), departure.time);
+    const onTime = resolve(upstream, new Date(due), positions, early.session);
+    assert.equal(onTime.session.lastTurnover?.reason, 'estimate');
+    const adjacent = resolve(downstream, new Date(due), positions);
+    assert.equal(first(adjacent), nextStop.time);
+    assert.equal(adjacent.estimatedDiagram?.segment, 'second');
+  }
+});
+
+test('HTTPで次発に切り替えたタブは、復帰後に有効なSSEが当駅を示したときだけ先発を復元する', () => {
+  const r = route();
+  const data = forecast(35, 30);
+  const local = resolve(r, at(35), data);
+  assert.equal(first(local), '10:06');
+  const p = data.collected.trains[0];
+  const here = {
+    id,
+    runId: p.model.runId,
+    visit: p.model.visit,
+    fromStation: p.fromStation,
+    toStation: null,
+    delaySeconds: 0,
+  };
+  const server = { ...data, serverEstimates: { validUntil: at(55).getTime(), trains: [here] } };
+  const recovered = resolve(r, at(36), server, local.session);
+  assert.equal(first(recovered), first(resolve(r, at(36), server)));
+  assert.equal(recovered.estimatedDiagram?.stage, 'here');
+  assert.equal(first(resolve(r, at(55), server, local.session)), '10:06');
+});
+
 test('a confirmed 120s delay shifts the projected exit once, survives a missing feed and preserves approach timing', () => {
   const r = route();
   let d = resolve(r, at(-60), forecast(-60, -10, 120));

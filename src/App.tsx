@@ -41,7 +41,6 @@ export default function App() {
     stationId,
     nearby,
     station,
-    setBrowseRailwayId,
     chooseStation,
     selection,
     filter,
@@ -132,7 +131,6 @@ export default function App() {
         onStationSearch={nearby.cancel}
         nearby={nearby}
         changeStation={navigateToStation}
-        onRailwayBrowse={setBrowseRailwayId}
         savedStations={savedStations}
         onAddStation={addStation}
         onRemoveStation={removeStation}

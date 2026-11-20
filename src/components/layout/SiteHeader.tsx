@@ -20,7 +20,6 @@ interface Props {
   onStationSearch: () => void;
   nearby: NearbyStation;
   changeStation: (id: string, railwayId?: string) => void;
-  onRailwayBrowse: (id: string) => void;
   savedStations: string[];
   onAddStation: (id: string) => void;
   onRemoveStation: (id: string) => void;
@@ -31,7 +30,6 @@ export const SiteHeader = memo(function SiteHeader({
   onStationSearch,
   nearby,
   changeStation,
-  onRailwayBrowse,
   savedStations,
   onAddStation,
   onRemoveStation,
@@ -188,11 +186,7 @@ export const SiteHeader = memo(function SiteHeader({
             mobileCloseLabel={panel === 'directory' ? '駅一覧を閉じる' : undefined}
           >
             {panel === 'directory' ? (
-              <StationDirectory
-                stationId={stationId}
-                onRailwayBrowse={onRailwayBrowse}
-                changeStation={chooseStation}
-              />
+              <StationDirectory stationId={stationId} changeStation={chooseStation} />
             ) : panel === 'search' ? (
               picker
             ) : (

@@ -10,8 +10,10 @@ export interface JourneyLcdDeparture {
   departure: Departure;
   stationName: string;
 }
-const destinationKey = (value: string) =>
-  value.normalize('NFKC').replace(/\((?:鉄道|京急)\)|\s/g, '');
+function destinationKey(value: string) {
+  const name = value.normalize('NFKC').replace(/\((?:鉄道|京急)\)|\s/g, '');
+  return name === '羽田空港第1・第2ターミナル' ? '羽田空港' : name;
+}
 
 /** Match the selected trip, not whatever happens to be next at the wall-clock time. */
 export function journeyLcdDeparture(

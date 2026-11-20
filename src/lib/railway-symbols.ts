@@ -34,6 +34,8 @@ export const RAILWAY_SYMBOLS: Record<string, { code: string; color: string }> = 
   'JR-East.Tokaido': { code: 'JT', color: '#f68b1e' },
   'JR-East.Yokosuka': { code: 'JO', color: '#007ac0' },
   'JR-East.JobanRapid': { code: 'JJ', color: '#00b261' },
+  // JR East's published train designation. This is a typeset label, not a logo.
+  'JR-East.NaritaExpress': { code: 'N’EX', color: '#d90411' },
   // Operator website route-symbol assets, reviewed 2026-11-17.
   'TokyoMetro.Ginza': { code: 'G', color: '#ff9500' },
   'TokyoMetro.Marunouchi': { code: 'M', color: '#f62e36' },

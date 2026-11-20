@@ -41,6 +41,12 @@ export function filterPositions(
   return {
     ...snapshot,
     trains: snapshot.trains.filter((p) => selected.has(p.id)),
+    ...(snapshot.serverEstimates && {
+      serverEstimates: {
+        ...snapshot.serverEstimates,
+        trains: snapshot.serverEstimates.trains.filter((p) => selected.has(p.id)),
+      },
+    }),
     ...(snapshot.collected === undefined
       ? {}
       : {
@@ -66,7 +72,7 @@ export class FeedReceiver {
       !['snapshot', 'patch'].includes(f.type) ||
       !Number.isSafeInteger(f.sequence) ||
       f.sequence < 1 ||
-      (f.type === 'patch' && f.sequence !== this.sequence + 1) ||
+      (f.type === 'patch' && (this.sequence === 0 || f.sequence !== this.sequence + 1)) ||
       (f.type === 'snapshot' && this.sequence !== 0) ||
       !Number.isFinite(f.generatedAt) ||
       f.generatedAt < this.generatedAt ||

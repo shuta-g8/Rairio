@@ -20,7 +20,7 @@ export function LegalContent({ section }: { section: LegalSection }) {
     <div className="legal-content">
       {privacy ? (
         <>
-          <p>最終更新：2026年11月19日</p>
+          <p>最終更新：2026年11月20日</p>
           <p>
             Rairioには、氏名・住所などを入力するフォームや、広告・独自のアクセス解析はありません。
             配信サーバーには、ページやデータを表示するための通信情報が届きます。
@@ -48,7 +48,11 @@ export function LegalContent({ section }: { section: LegalSection }) {
             位置情報の利用許可はブラウザーの設定で変更できます。
           </p>
           <h3>Webフォントの配信</h3>
-          <p>LINE Seed JPはアプリと同じサーバーから読み込みます。</p>
+          <p>発車案内掲示板のLINE Seed JPは、このサイトから配信します。</p>
+          <h3>乗換案内の検索</h3>
+          <p>
+            乗換検索では選んだ駅の座標と日時をTransitousに送ります。「運賃を表示」を押した場合は、同じ条件をNAVITIMEのAPIにも送ります。
+          </p>
           <h3>外部サービスでの取り扱い</h3>
           <p>
             外部サービスによる情報の取り扱いや保存期間は、各社のポリシーとサービスの設定によります。

@@ -27,7 +27,7 @@
   color: var(--app-muted);
   min-width: 0;
 }
-.journey-form :is(select, input) {
+.journey-form :is(select, input:where(:not([type='checkbox']))) {
   min-height: 46px;
   width: 100%;
   max-width: 100%;
@@ -42,6 +42,20 @@
 .journey-form input:focus-visible {
   outline: 3px solid var(--app-accent);
   outline-offset: 2px;
+}
+.journey-form .journey-conventional-only {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 4px;
+  cursor: pointer;
+}
+.journey-conventional-only input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--app-accent);
 }
 .journey-stations {
   display: grid;
@@ -190,6 +204,8 @@
 .journey-result-tools {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 12px 0;
 }
 .journey-result-tools label {
@@ -198,7 +214,9 @@
   gap: 10px;
   font-size: 12px;
 }
-.journey-result-tools select {
+.journey-result-tools select,
+.journey-show-fares,
+.journey-more-results {
   min-height: 40px;
   padding: 8px 12px;
   border: 1px solid var(--app-border);
@@ -207,27 +225,50 @@
   color: var(--app-ink);
   font: inherit;
 }
+.journey-show-fares:enabled,
+.journey-more-results {
+  border-color: var(--app-ink);
+  cursor: pointer;
+}
+.journey-more-results {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin: 12px 0 20px;
+}
+.journey-show-fares:disabled {
+  opacity: 0.6;
+}
+.journey-data-note a {
+  text-decoration: underline;
+}
 .journey-result {
-  border: 1px solid var(--app-border);
+  border: 2px solid var(--app-border);
   border-radius: 16px;
   margin: 16px 0;
   overflow: hidden;
   background: #fff;
 }
+.journey-summary-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .journey-summary-lines {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
   gap: 6px;
-  margin-bottom: 8px;
 }
 .journey-summary-lines .rail-mark {
   width: 24px;
   height: 24px;
   border-width: 2px;
   font-size: 11px;
-}
-.journey-summary-external-line {
-  opacity: 0.45;
 }
 .journey-summary {
   padding: 20px 24px;
@@ -262,6 +303,8 @@
   color: var(--app-accent);
 }
 .journey-summary .journey-tag {
+  flex: none;
+  white-space: nowrap;
   font-size: 15px;
 }
 .journey-result-toggle {
@@ -283,6 +326,7 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-width: 0;
 }
 .journey-summary strong {
   font-size: 23px;
@@ -366,9 +410,11 @@
 }
 .journey-table .journey-direction-label {
   font-family: var(--font-bold);
+  font-weight: 700;
   color: var(--app-ink);
-  margin: 8px 0;
-  font-size: 13px;
+  margin: 4px 0 6px;
+  font-size: 18px;
+  line-height: 1.4;
 }
 .journey-planner .rail-mark {
   display: inline-flex;
@@ -404,18 +450,13 @@
 
 .journey-rail-label {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  min-height: 154px;
-  padding: 10px 0;
+  margin-bottom: 4px;
 }
 .journey-rail-label > b {
-  writing-mode: vertical-rl;
-  text-orientation: upright;
+  min-width: 0;
   font-size: 12px;
-  letter-spacing: 0.12em;
   line-height: 1.5;
 }
 .journey-table .journey-station-row td {
@@ -578,6 +619,36 @@
   min-width: 0;
   white-space: nowrap;
 }
+.journey-scheduled-departure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2cqw;
+  padding: 0 2cqw;
+  color: #fff;
+  font-family: var(--font-board);
+  font-size: 5cqw;
+  line-height: 1.15;
+}
+.journey-scheduled-departure > span {
+  min-width: 0;
+}
+.journey-scheduled-departure strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.journey-scheduled-departure small {
+  display: block;
+  margin-top: 0.4cqw;
+  font-size: 2.7cqw;
+}
+.journey-scheduled-departure time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .journey-departure-display .toei-board-notice-attention {
   grid-row: 1;
   justify-content: center;
@@ -620,18 +691,27 @@
 }
 .app-view-tabs {
   display: flex;
-  gap: 8px;
   border-bottom: 1px solid var(--app-border);
-  margin-bottom: 24px;
+  margin: 16px 0 24px;
 }
 .app-view-tabs button {
   padding: 14px 22px;
   font-family: var(--font-bold);
-  border-bottom: 3px solid transparent;
+  border: 1px solid var(--app-border);
+  border-bottom: 0;
+  border-radius: 0;
+  background: var(--app-surface);
+}
+.app-view-tabs button + button {
+  border-inline-start: 0;
+}
+.app-view-tabs button[aria-pressed='false']:hover {
+  background: var(--app-hover);
 }
 .app-view-tabs button[aria-pressed='true'] {
-  border-bottom-color: var(--app-accent);
-  color: var(--app-accent);
+  border-color: var(--app-accent);
+  background: var(--app-accent);
+  color: #fff;
 }
 .app-view-tabs ~ div > .departures-section {
   padding-top: 0;
@@ -665,16 +745,12 @@
   width: 4px;
   background: var(--rail-color, var(--app-border));
 }
-.journey-guidance-row .journey-time-track > span {
+:is(.journey-guidance-row, .journey-untimed-row) .journey-time-track > span {
   background: repeating-linear-gradient(
     to bottom,
     var(--rail-color, var(--app-border)) 0 10px,
     transparent 10px 16px
   );
-}
-.journey-time-track .journey-rail-label {
-  margin-left: calc(var(--journey-track-x) + 12px);
-  width: 38px;
 }
 @media (max-width: 720px) {
   .journey-table .journey-station-times {

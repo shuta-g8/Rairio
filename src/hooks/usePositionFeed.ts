@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FeedReceiver, FEED_MAX_IDS } from '../../shared/position-feed';
+import { FeedReceiver, FEED_MAX_IDS, filterPositions } from '../../shared/position-feed';
 import { validTrainPositions, type TrainPositionsSnapshot } from '../../shared/train-positions';
 import { liveDepartureCandidates } from '../lib/time';
 import type { Route } from '../types';
@@ -25,17 +25,32 @@ export function usePositionFeed(enabled: boolean, routes: Route[]) {
   const [mode, setMode] = useState('starting');
   useEffect(() => {
     if (!enabled) return;
-    const timer = window.setInterval(() => setClock(Date.now()), 30000);
-    return () => clearInterval(timer);
+    const update = () => {
+      if (document.visibilityState === 'visible') setClock(Date.now());
+    };
+    const timer = window.setInterval(update, 30000);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', update);
+    };
   }, [enabled]);
   const key = enabled ? positionFeedIds(routes, new Date(clock)).join(',') : '';
   useEffect(() => {
-    setSnapshot(null);
     if (!enabled || !key) {
+      setSnapshot(null);
       setMode('idle');
       return;
     }
     const ids = key.split(',');
+    setMode('starting');
+    // Keep a still-valid server frame for overlapping trains while the new
+    // subscription joins the next tick. Never inherit an old local estimate.
+    setSnapshot((last) =>
+      last?.serverEstimates && last.serverEstimates.validUntil > Date.now()
+        ? filterPositions(last, ids)
+        : null,
+    );
     const query = new URLSearchParams(ids.map((id) => ['id', id]));
     const url = `${import.meta.env.BASE_URL}api/position-feed?${query}`;
     const fallbackUrl = `${import.meta.env.BASE_URL}api/train-positions?${query}`;
@@ -75,14 +90,14 @@ export function usePositionFeed(enabled: boolean, routes: Route[]) {
           nextPoll = Math.max(nextPoll, performance.now() + (value.refreshAfterMs ?? 30000));
         }
       } catch {
-        if (!disposed && !healthy) {
+        if (visible() && !source) {
           setSnapshot(null);
           setMode('unavailable');
         }
       } finally {
         clearTimeout(timeout);
         controller = undefined;
-        if (visible() && !healthy)
+        if (visible() && !source)
           poll = window.setTimeout(() => void refresh(), Math.max(0, nextPoll - performance.now()));
       }
     };
@@ -141,8 +156,10 @@ export function usePositionFeed(enabled: boolean, routes: Route[]) {
     };
     const resume = () => {
       if (visible()) {
-        if (!source) connect();
-        if (!healthy) void refresh();
+        if (!source) {
+          setMode('starting');
+          connect();
+        }
       } else {
         stopStream();
         clearTimeout(retry);

@@ -8,7 +8,7 @@ import { RAILWAY_SYMBOLS } from '../lib/railway-symbols';
 import { JourneyRouteRows } from './JourneyRouteRows';
 import { NetworkGuidanceRows } from './NetworkGuidanceRows';
 import { JourneyRailTrack } from './JourneyRailTrack';
-import { JourneyLineMark } from './JourneyLineMark';
+import { JourneyRailLabel, JourneySummaryHeading } from './JourneyLineMark';
 import { AnimatedDetails } from './AnimatedDetails';
 import type { StationData } from '../types';
 import type { TrainPositionsSnapshot } from '../../shared/train-positions';
@@ -24,6 +24,7 @@ export function JourneyResult({
   index,
   boardingStations,
   positions,
+  showFares,
 }: {
   result: RankedJourney;
   data: JourneyData;
@@ -31,10 +32,12 @@ export function JourneyResult({
   index: number;
   boardingStations: ReadonlyMap<string, StationData>;
   positions?: TrainPositionsSnapshot | null;
+  showFares: boolean;
 }) {
   const [expanded, setExpanded] = useState(index === 0);
   const external = Boolean(result.guidance);
   const journey = result.journey;
+  const hasFareColumn = Boolean(journey && showFares);
   const lcds = useMemo(
     () => (journey && !inbound ? journeyLcdDepartures(boardingStations, journey, data) : undefined),
     [journey, inbound, boardingStations, data],
@@ -49,17 +52,14 @@ export function JourneyResult({
       boundary={stationName(result.boundary!)}
       inbound={inbound}
       connectToToei={Boolean(journey)}
+      showFareColumn={hasFareColumn}
     />
   ) : (
     connection && (
       <tr className="journey-guidance-row">
-        <JourneyRailTrack color={lineId ? RAILWAY_SYMBOLS[lineId]?.color : undefined}>
-          <div className="journey-rail-label">
-            {lineId && <JourneyLineMark id={lineId} />}
-            <b>{connection.line}</b>
-          </div>
-        </JourneyRailTrack>
-        <td colSpan={journey ? 2 : 1}>
+        <JourneyRailTrack color={lineId ? RAILWAY_SYMBOLS[lineId]?.color : undefined} />
+        <td colSpan={hasFareColumn ? 2 : 1}>
+          <JourneyRailLabel id={lineId} name={connection.line} />
           <span className="journey-tag">経路のみ</span>
           <p>
             {connection.stops === undefined
@@ -69,9 +69,10 @@ export function JourneyResult({
               : `${connection.from} → ${connection.to}`}
           </p>
           {connection.direction && connection.from !== connection.to && (
-            <small>
-              {connection.direction} · {inbound ? '都営線へ' : 'JR線へ'}乗換（徒歩移動あり）
-            </small>
+            <>
+              <p className="journey-direction-label">{connection.direction}</p>
+              <small>{inbound ? '都営線へ' : 'JR線へ'}乗換（徒歩移動あり）</small>
+            </>
           )}
           <small>この区間の時刻・運賃は未案内</small>
         </td>
@@ -94,22 +95,10 @@ export function JourneyResult({
             {index + 1}
           </strong>
           <div>
-            <span className="journey-summary-lines" role="group" aria-label="利用する路線">
-              {lines.map((line) => (
-                <span
-                  key={line.id}
-                  className={line.external ? 'journey-summary-external-line' : undefined}
-                  title={line.name}
-                  role="img"
-                  aria-label={line.name}
-                >
-                  <JourneyLineMark id={line.id} />
-                </span>
-              ))}
-            </span>
-            <span className="journey-tag">
-              {journey ? (external ? '都営線経由' : '都営線のみ') : '都営線に乗らない経路'}
-            </span>
+            <JourneySummaryHeading
+              lines={lines}
+              label={journey ? (external ? '都営線経由' : '都営線のみ') : '都営線に乗らない経路'}
+            />
             {journey && !external && (
               <strong>
                 {journeyTime(journey.departure)} <span>→</span> {journeyTime(journey.arrival)}
@@ -124,12 +113,14 @@ export function JourneyResult({
         </>
       }
     >
-      <table className={`journey-table${journey ? ' journey-table-has-fare' : ''}`}>
-        <caption className="sr-only">候補{index + 1}の経路と区間運賃</caption>
+      <table className={`journey-table${hasFareColumn ? ' journey-table-has-fare' : ''}`}>
+        <caption className="sr-only">
+          候補{index + 1}の経路{hasFareColumn && 'と区間運賃'}
+        </caption>
         <colgroup>
           <col className="journey-time-column" />
           <col />
-          {journey && <col className="journey-fare-column" />}
+          {hasFareColumn && <col className="journey-fare-column" />}
         </colgroup>
         <tbody>
           {inbound && guidance}
@@ -138,6 +129,7 @@ export function JourneyResult({
               journey={journey}
               data={data}
               showTimes={!inbound}
+              showFares={hasFareColumn}
               lcds={lcds}
               positions={positions}
             />

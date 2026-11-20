@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { operationsMiddleware } from './operations-middleware.mjs';
 import { trainPositionsMiddleware } from './train-positions-middleware.mjs';
+import { journeyMiddleware } from './journey-middleware.mjs';
 import { createStaticHandler, normalizeBasePath } from './static-files.mjs';
 
 const base = normalizeBasePath(process.env.BASE_PATH || '/');
@@ -8,6 +9,7 @@ const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || 4173);
 const operations = operationsMiddleware(base);
 const trainPositions = trainPositionsMiddleware(base);
+const journey = journeyMiddleware(base);
 const serveStatic = createStaticHandler({
   base,
   cacheControl: (relative) =>
@@ -15,8 +17,10 @@ const serveStatic = createStaticHandler({
 });
 
 createServer((request, response) => {
-  operations(request, response, () =>
-    trainPositions(request, response, () => serveStatic(request, response)),
+  journey(request, response, () =>
+    operations(request, response, () =>
+      trainPositions(request, response, () => serveStatic(request, response)),
+    ),
   ).catch(() => {
     if (!response.headersSent) response.writeHead(500);
     response.end();

@@ -103,7 +103,12 @@ export function resolveLiveDepartures(
     let observation = observations.get(key);
     const raw = observedToeiTrainGuidance(route, departure, positions, now);
     let guidance: Guidance | undefined;
-    if (raw.observation && raw.progress !== undefined && raw.coordinate !== undefined) {
+    if (
+      raw.observation &&
+      raw.progress !== undefined &&
+      raw.coordinate !== undefined &&
+      !(raw.progress === 'departed' && timestamp < departure.timestamp)
+    ) {
       const stamp = Date.parse(raw.observation.updatedAt);
       if (!observation || stamp > observation.seenAt) {
         if (

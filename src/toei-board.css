@@ -176,7 +176,7 @@
 }
 .toei-rank-translation[lang='ko'],
 .toei-rank-translation[lang='zh-Hans'] {
-  font-family: 'Microsoft YaHei', 'Malgun Gothic', sans-serif;
+  font-family: var(--font-board);
 }
 .route-card.toei-board .train-type,
 .route-card.toei-board .first .train-type {
@@ -267,7 +267,7 @@
 }
 .toei-type-translation[lang='zh-Hans'],
 .toei-type-translation[lang='ko'] {
-  font-family: 'Microsoft YaHei', 'Malgun Gothic', sans-serif;
+  font-family: var(--font-board);
 }
 .route-card.toei-board .departure-row[data-flip] {
   backface-visibility: hidden;
@@ -420,7 +420,7 @@
 }
 .toei-destination-translations > [lang='zh-Hans'],
 .toei-destination-translations > [lang='ko'] {
-  font-family: 'Microsoft YaHei', 'Malgun Gothic', sans-serif;
+  font-family: var(--font-board);
 }
 .route-card.toei-board .platform {
   display: inline-flex;
@@ -464,7 +464,7 @@
   top: 100%;
   left: 0;
   margin-top: 0.15cqw;
-  font-family: 'Microsoft YaHei', 'Malgun Gothic', sans-serif;
+  font-family: var(--font-board);
   font-size: 1cqw;
 }
 .route-card.toei-board .next-day {
@@ -510,10 +510,10 @@
   white-space: nowrap;
 }
 .toei-board-notice-languages [lang='zh-Hans'] {
-  font-family: 'Microsoft YaHei', sans-serif;
+  font-family: var(--font-board);
 }
 .toei-board-notice-languages [lang='ko'] {
-  font-family: 'Malgun Gothic', sans-serif;
+  font-family: var(--font-board);
 }
 .toei-board-notice-attention {
   grid-row: 2 / -1;

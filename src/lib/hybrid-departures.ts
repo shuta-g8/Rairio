@@ -149,10 +149,9 @@ export function resolveHybridDepartures(
     const key = departureIdentity(departure);
     const state = { ...(trains.get(key) ?? initialState()) };
     const followingFirst = selected.length === 1;
-    if (state.retired && !(state.skippedBeforeFirstResponse && (useCollected || followingFirst)))
-      continue;
-    // A cold page can initially show the timetable before its first collector reply.
-    // Only reconsider skipped rows that were never actively handed off on this page.
+    const reconsiderSkipped = state.skippedBeforeFirstResponse && (useCollected || followingFirst);
+    const serverCanCorrect = useCollected && positions.serverEstimates;
+    if (state.retired && !reconsiderSkipped && !serverCanCorrect) continue;
     const forecast = useCollected
       ? collectedDiagramEstimate(
           route,
@@ -163,7 +162,19 @@ export function resolveHybridDepartures(
           state.estimate,
         )
       : undefined;
-    if (state.retired && !forecast && !followingFirst) {
+    // A background tab or HTTP fallback may have retired this row locally.
+    // Reconcile it only when the current server frame still places this run
+    // at or before the station, within the ordinary hold window.
+    if (
+      state.retired &&
+      !(reconsiderSkipped && (forecast || followingFirst)) &&
+      !(
+        serverCanCorrect &&
+        forecast?.progress &&
+        forecast.progress !== 'departed' &&
+        timestamp < departure.timestamp + HYBRID_LIMITS.maxTrainHoldMs
+      )
+    ) {
       state.skippedBeforeFirstResponse = false;
       trains.set(key, state);
       continue;
@@ -270,10 +281,10 @@ export function resolveHybridDepartures(
     );
     // Clearance is deliberately not inferred from a null toStation, loss,
     // a stale observation or just the scheduled time passing.
-    // The forecast already accounts for delay. Applying another timetable gate
-    // here would keep a departed train on the board after its diagram has moved on.
+    // Projection may lead the source clock. The published departure is a lower
+    // bound for turnover; adding the estimated delay here would count it twice.
     const cleared = collectedMode
-      ? forecast?.progress === 'departed'
+      ? timestamp >= departure.timestamp && forecast?.progress === 'departed'
       : timestamp >= correctedDeparture && state.cleared && fresh;
     // While the first train is held, the timetable alone cannot retire its successor.
     if (cleared || (!followingFirst && timestamp >= switchAt)) {

@@ -64,7 +64,7 @@ export function AboutContent() {
           関東の駅データなど、出典・加工内容・利用条件一覧
         </a>
         <br />
-        フォント：
+        発車案内掲示板のフォント：
         <a href="https://seed.line.me/index_jp.html" target="_blank" rel="noreferrer">
           LINE Seed JP
           <ArrowUpRightIcon size={12} aria-hidden="true" />

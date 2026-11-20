@@ -8,16 +8,27 @@ import { ClockIcon } from '@phosphor-icons/react/dist/csr/Clock';
 import { JourneyPlaceSearch } from './JourneyPlaceSearch';
 import { JourneyResult } from './JourneyResult';
 import { JourneyDetails } from './JourneyDetails';
+import {
+  JourneyMoreResults,
+  journeyResultsPerPage,
+  JourneyResultTools,
+} from './JourneyResultTools';
+import { OnlineJourneyResults } from './OnlineJourneyResults';
 import { LoadingSpinner, LoadingStatus } from './LoadingStatus';
-import { useJourneyData } from '../hooks/useJourneyData';
-import { isExternalJourneyPlace } from '../lib/journey-place-search';
+import { loadJourneyData, useJourneyData } from '../hooks/useJourneyData';
+import { findJourneyPlace, isExternalJourneyPlace, placeName } from '../lib/journey-place-search';
 import { searchJourneyOptions, type JourneySearchState } from '../lib/journey-search';
 import { loadJourneyHistory, rememberJourneyPlace } from '../lib/journey-search-history';
 import type { StationData } from '../types';
 import type { TrainPositionsSnapshot } from '../../shared/train-positions';
 import { useJourneyStationData } from '../hooks/useJourneyStationData';
 import type { NearbyStation } from '../hooks/useNearbyStation';
-import { completeJourneyArrival, sortJourneyOptions, type JourneySort } from '../lib/journey-sort';
+import { sortJourneyOptions, type JourneySort } from '../lib/journey-sort';
+import { requestOnlinePlan } from '../lib/journey-online';
+import type { OnlineJourneyPlan } from '../../shared/journey-online';
+import type { JourneyData } from '../../shared/journey';
+
+type PlannerSearch = JourneySearchState & { online?: OnlineJourneyPlan; timetable?: JourneyData };
 
 const nowFields = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).split('T');
 
@@ -47,29 +58,34 @@ export function JourneyPlanner({
   const [initialDateTime] = useState(nowFields);
   const [date, setDate] = useState(initialDateTime[0]);
   const [time, setTime] = useState(initialDateTime[1]);
+  const [conventionalOnly, setConventionalOnly] = useState(true);
   const { data, error: dataError, reload } = useJourneyData();
   const [searchError, setSearchError] = useState('');
-  const error = dataError || searchError;
+  const error = searchError || dataError;
   const [busy, setBusy] = useState(false);
-  const [search, setSearch] = useState<JourneySearchState>();
+  const [search, setSearch] = useState<PlannerSearch>();
+  const [shown, setShown] = useState(journeyResultsPerPage);
+  const timetable = search?.timetable ?? data;
+  const [showLocalFares, setShowLocalFares] = useState(false);
+  const planRequest = useRef<AbortController | null>(null);
   const [sort, setSort] = useState<JourneySort>('arrival');
   const sortedResults = useMemo(
     () => (search ? sortJourneyOptions(search.results, sort, search.inbound) : []),
     [search, sort],
   );
   const boardingStationIds = useMemo(() => {
-    if (!search || search.inbound || !data) return [];
+    if (!search || search.inbound || !timetable) return [];
     return [
       ...new Set(
         search.results.flatMap(
           (result) =>
             result.journey?.legs.flatMap((leg) =>
-              leg.kind === 'ride' ? [data.stops[leg.from].station] : [],
+              leg.kind === 'ride' ? [timetable.stops[leg.from].station] : [],
             ) ?? [],
         ),
       ),
     ];
-  }, [search, data]);
+  }, [search, timetable]);
   const boardingStations = useJourneyStationData(boardingStationIds, selectedStationData);
   const [recent, setRecent] = useState(loadJourneyHistory);
   const [attempted, setAttempted] = useState(false);
@@ -88,35 +104,79 @@ export function JourneyPlanner({
   function remember(id: string) {
     if (id) setRecent((current) => rememberJourneyPlace(id, current));
   }
-  const inbound = isExternalJourneyPlace(from);
   useEffect(() => {
     setFrom(stationId);
     setSearch(undefined);
+    setBusy(false);
+    return () => planRequest.current?.abort();
   }, [stationId]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!data || busy) return;
+    if (busy) return;
     if (!from || !to) {
       setAttempted(true);
       setSearchError('');
       setSearch(undefined);
       return;
     }
-    if (isExternalJourneyPlace(from) && isExternalJourneyPlace(to)) {
-      setSearchError('出発駅または到着駅の片方に都営地下鉄の駅を選んでください。');
+    if (!findJourneyPlace(from)?.toei && !findJourneyPlace(to)?.toei) {
+      setSearchError('出発駅または到着駅の少なくとも片方に東京都交通局の駅を選んでください。');
+      return;
+    }
+    if (from === to) {
+      setSearchError('出発駅と到着駅に別の駅を選んでください。');
       return;
     }
     setSearchError('');
     setBusy(true);
     setSearch(undefined);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    setShowLocalFares(false);
+    setShown(journeyResultsPerPage);
+    const controller = new AbortController();
+    planRequest.current = controller;
     try {
-      setSearch(searchJourneyOptions(data, { from, to, date, time }));
+      const input = { from, to, date, time, conventionalOnly };
+      const fromExternal = isExternalJourneyPlace(from);
+      const toExternal = isExternalJourneyPlace(to);
+      let local = data;
+      let localResults: JourneySearchState | undefined;
+      if (!fromExternal && !toExternal) {
+        if (!local && !dataError) local = await loadJourneyData().catch(() => undefined);
+        if (controller.signal.aborted) return;
+        if (local) {
+          localResults = searchJourneyOptions(local, input);
+          if (localResults.results.length) {
+            setSearch({ ...localResults, timetable: local });
+            return;
+          }
+        }
+      }
+      const online = navigator.onLine
+        ? await requestOnlinePlan(input, controller.signal)
+        : undefined;
+      if (controller.signal.aborted) return;
+      if (online) {
+        setSearch({
+          from: placeName(from),
+          to: placeName(to),
+          date,
+          time,
+          inbound: false,
+          external: false,
+          results: [],
+          online,
+        });
+      } else if (local && !(fromExternal && toExternal)) {
+        setSearch({ ...(localResults ?? searchJourneyOptions(local, input)), timetable: local });
+      } else {
+        setSearchError('オンライン経路検索に接続してからお試しください。');
+      }
     } catch (e) {
-      setSearchError(e instanceof Error ? e.message : '検索に失敗しました。');
+      if (!controller.signal.aborted)
+        setSearchError(e instanceof Error ? e.message : '検索に失敗しました。');
     } finally {
-      setBusy(false);
+      if (!controller.signal.aborted) setBusy(false);
     }
   }
 
@@ -205,23 +265,24 @@ export function JourneyPlanner({
                 />
               </span>
             </div>
-            <button
-              ref={submitRef}
-              type="submit"
-              className="journey-submit"
-              disabled={!data || busy}
-            >
+            <button ref={submitRef} type="submit" className="journey-submit" disabled={busy}>
               {busy ? <LoadingSpinner /> : <MagnifyingGlassIcon size={19} aria-hidden="true" />}
               {busy ? '検索中…' : '経路を検索'}
             </button>
           </div>
-          {inbound && (
-            <p className="journey-data-note">
-              他社線の所要時間・接続が未確認のため、都営区間も含めて時刻は表示しません。
-            </p>
-          )}
+          <label className="journey-conventional-only">
+            <input
+              type="checkbox"
+              checked={conventionalOnly}
+              onChange={(event) => setConventionalOnly(event.target.checked)}
+            />
+            在来線のみ
+          </label>
+          <p className="journey-data-note">
+            関東1都6県の鉄道駅が対象です。出発・到着の少なくとも片方に東京都交通局の駅を選んでください。
+          </p>
         </form>
-        {!data && !error && <LoadingStatus>時刻表・運賃データを読み込んでいます…</LoadingStatus>}
+        {!data && !error && <LoadingStatus>補助案内のデータを読み込んでいます…</LoadingStatus>}
         {error && (
           <div className="journey-notice" role="alert">
             {error}{' '}
@@ -235,11 +296,6 @@ export function JourneyPlanner({
               読み込み直す
             </button>
           </div>
-        )}
-        {data?.lineEndDates.Asakusa && (
-          <p className="journey-data-note">
-            浅草線の時刻付き案内は11月20日営業分まで。11月21日改正後の列車時刻表は確認中です。他の3路線は収録期間内で検索できます。
-          </p>
         )}
       </div>
       {search && (
@@ -264,50 +320,48 @@ export function JourneyPlanner({
               {search.inbound ? '指定・時刻未案内' : '以降'}
             </p>
           </div>
+          {search.online && (
+            <OnlineJourneyResults
+              plan={search.online}
+              timetable={timetable}
+              selectedStationData={selectedStationData}
+              positions={positions}
+              searchDate={search.date}
+              sort={sort}
+              onSort={setSort}
+            />
+          )}
           {search.results.length > 0 && (
-            <div className="journey-result-tools">
-              <label>
-                並び替え
-                <select
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value as JourneySort)}
-                >
-                  <option value="arrival">到着が早い順</option>
-                  <option value="toei">都営線優先</option>
-                </select>
-              </label>
-            </div>
-          )}
-          {search.external && (
-            <p className="journey-data-note">
-              他社線は乗換先の案内のみです。全区間の到着時刻・運賃・終電接続は未計算です。
-            </p>
-          )}
-          {sortedResults.some(
-            (result) => completeJourneyArrival(result, search.inbound) === undefined,
-          ) && (
-            <p className="journey-data-note">
-              {sort === 'arrival'
-                ? '到着時刻が分かる経路を早い順に、未計算の経路はその後に表示します。未計算の経路を含めた最速順ではありません。'
-                : '都営線のみ、都営線を含む経路、他社線のみの順に表示します。到着時刻が未計算の経路も含みます。'}
-            </p>
+            <JourneyResultTools
+              sort={sort}
+              onSort={setSort}
+              onFares={() => setShowLocalFares(true)}
+              fareDisabled={showLocalFares || !search.results.some((result) => result.journey)}
+              fareLabel={showLocalFares ? '表示済み' : undefined}
+            />
           )}
           {search.message && (
             <p className="journey-empty" role="status">
               {search.message}
             </p>
           )}
-          {sortedResults.map((result, i) => (
+          {sortedResults.slice(0, shown).map((result, i) => (
             <JourneyResult
               key={`${sort}-${i}`}
               result={result}
-              data={data!}
+              data={timetable!}
               inbound={search.inbound}
               index={i}
               boardingStations={boardingStations}
               positions={positions}
+              showFares={showLocalFares}
             />
           ))}
+          <JourneyMoreResults
+            shown={shown}
+            total={sortedResults.length}
+            onShowMore={() => setShown((count) => count + journeyResultsPerPage)}
+          />
         </div>
       )}
       <JourneyDetails data={data} />

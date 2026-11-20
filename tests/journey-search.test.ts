@@ -12,7 +12,7 @@ const data: JourneyData = JSON.parse(
 );
 const conditions = { date: '2026-11-17', time: '09:00' };
 
-test('検索全体を通して都営の列車・運賃・駅名を維持する', () => {
+test('都営の追加候補も含め、検索結果の列車・運賃・駅名を維持する', () => {
   const result = searchJourneyOptions(data, { ...conditions, from: 'togoshi', to: 'kachidoki' });
   assert.equal(result.from, '戸越');
   assert.equal(result.to, '勝どき');
@@ -20,7 +20,7 @@ test('検索全体を通して都営の列車・運賃・駅名を維持する',
   assert.equal(result.message, undefined);
   assert.deepEqual(
     result.results.map((r) => r.journey),
-    searchJourneys(data, 'togoshi', 'kachidoki', conditions.date, 540),
+    searchJourneys(data, 'togoshi', 'kachidoki', conditions.date, 540, 5),
   );
 });
 

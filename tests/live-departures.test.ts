@@ -97,12 +97,16 @@ for (const stage of ['departed', 'downstream'] as const)
     assert.equal(firstTime(repeated), '12:03');
   });
 
-test('初回に発車済みと分かる列車は、予定時刻が未来でも個別に除外する', () => {
+test('下流の位置を先に受け取っても定刻までは先発を残す', () => {
   const route = fixture([
     { time: '12:10', destination: '光が丘', type: '普通', trainId },
     { time: '12:20', destination: '都庁前', type: '普通' },
   ]);
-  assert.equal(firstTime(resolveLiveDepartures(route, at(0), snapshotAt(0, 'departed'))), '12:20');
+  const due = Date.parse('2026-11-07T12:10:00+09:00') - start;
+  const snapshot = snapshotAt(due - 1, 'departed');
+  const early = resolveLiveDepartures(route, at(due - 1), snapshot);
+  assert.equal(firstTime(early), '12:10');
+  assert.equal(firstTime(resolveLiveDepartures(route, at(due), snapshot, early.session)), '12:20');
 });
 
 test('通信断・空応答・失効でも候補を即座に除外せず、接近だけ解除する', () => {
@@ -254,14 +258,14 @@ test('次発の位置が先でも予定時刻順を保ち、通信断・発車�
     order: [...display.session.order].reverse(),
   });
   assert.deepEqual(times(), ['12:00', '12:05']);
-  const departed = snapshotAt(90_000, 'before');
-  departed.trains.push({ ...snapshotAt(90_000, 'departed').trains[0], id: trainId + 'B' });
-  display = resolveLiveDepartures(route, at(90_000), departed, display.session);
+  const departed = snapshotAt(190_000, 'before');
+  departed.trains.push({ ...snapshotAt(190_000, 'departed').trains[0], id: trainId + 'B' });
+  display = resolveLiveDepartures(route, at(190_000), departed, display.session);
   assert.deepEqual(times(), ['12:00', '12:10']);
   display = resolveLiveDepartures(
     route,
-    at(100_000),
-    snapshotAt(100_000, 'departed'),
+    at(200_000),
+    snapshotAt(200_000, 'departed'),
     display.session,
   );
   assert.deepEqual(times(), ['12:10', '12:00']);

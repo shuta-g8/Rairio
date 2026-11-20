@@ -41,6 +41,14 @@ test('行先や出発駅が一致しない場合や候補が重複する場合�
   assert.equal(journeyLcdDeparture(source, journey, data), undefined);
 });
 
+test('浅草線の羽田空港行は、駅時刻表のターミナル表記と照合する', () => {
+  const journey = searchJourneys(data, 'asakusabashi', 'higashinihombashi', '2026-11-20', 541)[0];
+  const lcd = journeyLcdDeparture(station('asakusabashi'), journey, data);
+  assert.equal(lcd?.departure.time, '09:01');
+  assert.equal(lcd?.departure.destination, '羽田空港第１・第２ターミナル(京急)');
+  assert.ok(lcd?.departure.trainId);
+});
+
 test('検索指定日の列車を照合し、壁時計の先発へ置き換えない', () => {
   const journey = searchJourneys(data, 'togoshi', 'kachidoki', '2026-11-18', 600)[0];
   const lcd = journeyLcdDeparture(station('togoshi'), journey, data)!;

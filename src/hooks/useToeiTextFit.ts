@@ -44,7 +44,7 @@ export function useToeiTextFit(destination: string, language: string) {
           ? readToeiTextLines(name.querySelector<HTMLElement>('.toei-fit-text')!, true)
           : readToeiTextLines(name),
       );
-      const nameWidths = nameLines.map((lines) => toeiTextWidths(lines, true));
+      const nameWidths = nameLines.map((lines) => toeiTextWidths(lines));
       let fixed = gap(heading) * Math.max(0, heading.children.length - 1);
       for (const station of heading.children) {
         if (!station.classList.contains('toei-direction-station')) fixed += boxWidth(station);
@@ -61,7 +61,7 @@ export function useToeiTextFit(destination: string, language: string) {
         ]),
       ) as ToeiWidthMeasurements;
       const lines = readToeiTextLines(translation, true);
-      const translationWidths = toeiTextWidths(lines, false, language);
+      const translationWidths = toeiTextWidths(lines);
       const extra = root.querySelector('.platform');
       const available =
         root.clientWidth -
@@ -70,7 +70,7 @@ export function useToeiTextFit(destination: string, language: string) {
         1;
       const choice = selectToeiTextWidths(nameTotals, translationWidths, available);
       names.forEach((name, index) => {
-        const width = applyToeiTextWidth(name, nameLines[index], choice.names, true);
+        const width = applyToeiTextWidth(name, nameLines[index], choice.names);
         if (name.dataset.lines !== '2') return;
         // WebKit can lay out fallback glyphs wider than its canvas measurement.
         const text = name.querySelector<HTMLElement>('.toei-fit-text')!;
@@ -79,14 +79,7 @@ export function useToeiTextFit(destination: string, language: string) {
           name.style.setProperty('--toei-text-scale', String(width / text.offsetWidth));
       });
       heading.style.width = `${nameTotals[choice.names]}px`;
-      const translationWidth = applyToeiTextWidth(
-        translation,
-        lines,
-        choice.translations,
-        false,
-        language,
-        true,
-      );
+      const translationWidth = applyToeiTextWidth(translation, lines, choice.translations, true);
       translations.style.flexBasis = `${translationWidth}px`;
     }
     // A late font can resize the text without resizing its allocated column.

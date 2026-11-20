@@ -7,13 +7,11 @@ import { StationLink } from './StationLink';
 interface Props {
   stationId: string;
   changeStation: (id: string, railwayId?: string) => void;
-  onRailwayBrowse: (id: string) => void;
 }
 
 export const StationDirectory = memo(function StationDirectory({
   stationId,
   changeStation,
-  onRailwayBrowse,
 }: Props) {
   const [expandedLine, setExpandedLine] = useState<string | null>(null);
   return (
@@ -27,7 +25,6 @@ export const StationDirectory = memo(function StationDirectory({
               expanded={expandedLine === line.id}
               style={{ '--line-color': line.color } as CSSProperties}
               onToggle={() => {
-                if (expandedLine !== line.id) onRailwayBrowse(line.id);
                 setExpandedLine((current) => (current === line.id ? null : line.id));
               }}
               summary={

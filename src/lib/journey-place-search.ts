@@ -1,5 +1,6 @@
 import { STATIONS } from './stations.ts';
 import { KANTO_NETWORK, PREFECTURES } from './kanto-network.ts';
+import { servesToeiSurfaceRail } from '../../shared/journey-online.ts';
 export const JOURNEY_PLACES = [
   ...STATIONS.map((s) => ({
     id: s.id,
@@ -8,6 +9,7 @@ export const JOURNEY_PLACES = [
     search: `${s.name} ${s.reading} ${s.english} `,
     lines: (s.memberships || []).map((m) => `Toei.${m.railwayId}`),
     detail: '都営地下鉄',
+    toei: true,
   })),
   ...KANTO_NETWORK.stations
     .filter((s) => s.lines.some((l) => !['99301', '99302', '99303', '99304'].includes(l)))
@@ -21,7 +23,8 @@ export const JOURNEY_PLACES = [
           .filter((l) => !['99301', '99302', '99303', '99304'].includes(l))
           .slice(0, 4)
           .map((l) => `network:${l}`),
-        detail: '駅 · 経路のみ',
+        detail: servesToeiSurfaceRail(s.lines) ? '東京都交通局' : '鉄道駅',
+        toei: servesToeiSurfaceRail(s.lines),
       })),
     ),
 ];

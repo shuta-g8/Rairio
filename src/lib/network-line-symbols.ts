@@ -49,7 +49,6 @@ generic(
     '11324',
     '11325',
     '11327',
-    '11328',
     '11329',
     '11330',
     '11331',
@@ -65,6 +64,7 @@ generic(
   ],
   '全区間に適用できる単一の路線記号を確認できないため、電車ピクトグラムを表示。',
 );
+register('https://www.jreast.co.jp/multi/nex/', { 'JR-East.NaritaExpress': ['11328'] });
 register('https://railway.jr-central.co.jp/route-map/', { 'JR-Central.Gotemba': ['11505'] });
 
 register('https://www.tobu.co.jp/pdf/guide/tobuStation.pdf', {

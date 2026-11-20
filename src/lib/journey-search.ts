@@ -10,6 +10,7 @@ export interface JourneySearchInput {
   to: string;
   date: string;
   time: string;
+  conventionalOnly?: boolean;
 }
 
 export interface JourneySearchState extends JourneySearchInput {
@@ -109,7 +110,7 @@ export function searchJourneyOptions(
     else
       state.results = rankStationJourneys(
         data,
-        searchJourneys(data, from, to, request.date, request.minutes),
+        searchJourneys(data, from, to, request.date, request.minutes, 5),
         from,
         to,
       );

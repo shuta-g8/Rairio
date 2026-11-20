@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import { RAILWAY_SYMBOLS } from '../lib/railway-symbols';
 import { NETWORK_LINES, networkLineSymbol } from '../lib/kanto-network';
 import { JOURNEY_LINES, type JourneyLine } from '../../shared/journey';
+import { servesToeiSurfaceRail } from '../../shared/journey-online';
 import { StationResultLines } from './StationResultLines';
 import { NearbyStationOption } from './NearbyStationOption';
 import type { NearbyStation } from '../hooks/useNearbyStation';
@@ -183,19 +184,25 @@ export function JourneyPlaceSearch({
                   <span>{journeyPlaceName(p.name)}</span>
                   <small>駅</small>
                   <StationResultLines
-                    lines={p.lines.map((line) => ({
-                      id: line,
-                      name:
-                        (line.startsWith('network:')
-                          ? NETWORK_LINES.get(line.slice(8))?.name
-                          : JOURNEY_LINES[line.slice(5) as JourneyLine]?.name.replace(
-                              /^都営/,
-                              '',
-                            )) || '',
-                      symbol: line.startsWith('network:')
-                        ? networkLineSymbol(line.slice(8))
-                        : RAILWAY_SYMBOLS[line],
-                    }))}
+                    lines={p.lines.map((line) => {
+                      if (line.startsWith('network:')) {
+                        const networkId = line.slice(8);
+                        return {
+                          id: line,
+                          name: NETWORK_LINES.get(networkId)?.name ?? '',
+                          symbol: servesToeiSurfaceRail([networkId])
+                            ? networkLineSymbol(networkId)
+                            : undefined,
+                        };
+                      }
+                      return {
+                        id: line,
+                        name:
+                          JOURNEY_LINES[line.slice(5) as JourneyLine]?.name.replace(/^都営/, '') ??
+                          '',
+                        symbol: RAILWAY_SYMBOLS[line],
+                      };
+                    })}
                   />
                 </span>
                 <span>{p.english}</span>

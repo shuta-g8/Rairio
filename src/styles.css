@@ -5,10 +5,9 @@ html {
 }
 
 :root {
-  --font-regular: 'LINE Seed JP', sans-serif;
-  --font-bold: 'LINE Seed JP', sans-serif;
-  --font-board-regular: 'LINE Seed JP', sans-serif;
-  --font-board-bold: 'LINE Seed JP', sans-serif;
+  --font-regular: system-ui, sans-serif;
+  --font-bold: var(--font-regular);
+  --font-board: 'LINE Seed JP', system-ui, sans-serif;
   font-family: var(--font-regular);
   color: #21353a;
   background: #f7f8f5;
@@ -315,7 +314,7 @@ select {
   display: grid;
   place-items: center;
   font-size: 11px;
-  font-family: var(--font-board-bold);
+  font-family: var(--font-bold);
   font-weight: 700;
   color: #304347;
   flex-shrink: 0;

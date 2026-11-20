@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { findStation, stationRailwayId } from '../lib/stations';
+import { findStation } from '../lib/stations';
 import type { Route } from '../types';
 import { useStationNavigation } from './useStationNavigation';
 
@@ -13,7 +13,6 @@ export function useStationView() {
     setOpenRoute(null);
   }, []);
   const { stationId, changeStation, nearby } = useStationNavigation(resetStationView);
-  const [browseRailwayId, setBrowseRailwayId] = useState(() => stationRailwayId(stationId));
 
   const chooseStation = useCallback(
     (id: string) => {
@@ -28,8 +27,6 @@ export function useStationView() {
     stationId,
     nearby,
     station: findStation(stationId)!,
-    browseRailwayId,
-    setBrowseRailwayId,
     chooseStation,
     selection,
     filter,

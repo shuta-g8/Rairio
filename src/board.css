@@ -1,8 +1,8 @@
-/* Departure cards use F+UD New Rodin at the existing regular and bold weights. */
+/* Both departure board themes use the bundled font. */
 .route-card {
   min-width: 0;
-  --font-regular: var(--font-board-regular);
-  --font-bold: var(--font-board-bold);
+  --font-regular: var(--font-board);
+  --font-bold: var(--font-board);
   font-family: var(--font-regular);
   color: #f0f5ec;
   background: #050706;

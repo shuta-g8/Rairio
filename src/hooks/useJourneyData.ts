@@ -27,6 +27,10 @@ function fetchJourneyData() {
   return pending;
 }
 
+export async function loadJourneyData() {
+  return freshData() ?? fetchJourneyData();
+}
+
 export function useJourneyData() {
   const [data, setData] = useState(freshData);
   const [error, setError] = useState('');

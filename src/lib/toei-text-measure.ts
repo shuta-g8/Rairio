@@ -45,9 +45,7 @@ function clearTextWidths() {
 }
 
 export function resetToeiText(element: HTMLElement) {
-  element.removeAttribute('data-toei-condensed');
   element.removeAttribute('data-toei-width');
-  element.style.removeProperty('font-family');
   element.style.removeProperty('width');
   element.style.removeProperty('--toei-text-scale');
 }
@@ -75,26 +73,7 @@ export function readToeiTextLines(element: HTMLElement, multiline = false): Toei
   });
 }
 
-function loadedFamilies() {
-  return new Set(
-    [...document.fonts]
-      .filter((face) => face.status === 'loaded')
-      .map((face) => face.family.replace(/["']/g, '')),
-  );
-}
-
-function coversText(family: string, lines: ToeiTextLines) {
-  return lines.every((runs) =>
-    runs.every((run) => document.fonts.check(`${run.weight} ${run.size} "${family}"`, run.text)),
-  );
-}
-
-function condensedFamily(width: ToeiTextWidth, bold: boolean, language: string) {
-  if (width === 100 || language === 'ko' || language === 'zh-Hans') return undefined;
-  return `UDKakugoC${width}Pro-${bold ? 'B' : 'M'}`;
-}
-
-function naturalWidth(lines: ToeiTextLines, family?: string) {
+function naturalWidth(lines: ToeiTextLines) {
   context ??= document.createElement('canvas').getContext('2d');
   if (!context) return 0;
   const canvas = context;
@@ -102,7 +81,7 @@ function naturalWidth(lines: ToeiTextLines, family?: string) {
     0,
     ...lines.map((runs) =>
       runs.reduce((sum, run) => {
-        const font = `${run.style} ${run.weight} ${run.size} ${family ? `"${family}", ` : ''}${run.family}`;
+        const font = `${run.style} ${run.weight} ${run.size} ${run.family}`;
         const key = `${font}\0${run.text}`;
         let width = textWidths.get(key);
         if (width === undefined) {
@@ -117,38 +96,10 @@ function naturalWidth(lines: ToeiTextLines, family?: string) {
   );
 }
 
-export function measureToeiText(
-  lines: ToeiTextLines,
-  width: ToeiTextWidth,
-  bold: boolean,
-  language = 'ja',
-) {
+export function toeiTextWidths(lines: ToeiTextLines) {
   const normal = naturalWidth(lines);
-  if (width === 100) return { width: normal + TEXT_WIDTH_PADDING, scale: 1, family: undefined };
-  // Retain native fonts for Hangul and simplified Chinese to avoid missing glyphs.
-  const family = condensedFamily(width, bold, language);
-  const loaded = family && loadedFamilies().has(family);
-  if (loaded && coversText(family, lines))
-    return { width: naturalWidth(lines, family) + TEXT_WIDTH_PADDING, scale: 1, family };
-  // A partially loaded subset can already render some runs in the condensed face.
-  // Scale the actual mixed result, otherwise those glyphs get condensed twice.
-  const target = (normal * width) / 100;
-  const actual = loaded ? naturalWidth(lines, family) : normal;
-  return { width: target + TEXT_WIDTH_PADDING, scale: actual > 0 ? target / actual : 1, family };
-}
-
-export function toeiTextWidths(lines: ToeiTextLines, bold: boolean, language = 'ja') {
-  const normal = naturalWidth(lines);
-  const loaded = loadedFamilies();
   return Object.fromEntries(
-    TOEI_TEXT_WIDTHS.map((width) => {
-      const family = condensedFamily(width, bold, language);
-      const measured =
-        family && loaded.has(family) && coversText(family, lines)
-          ? naturalWidth(lines, family)
-          : (normal * width) / 100;
-      return [width, measured + TEXT_WIDTH_PADDING];
-    }),
+    TOEI_TEXT_WIDTHS.map((width) => [width, (normal * width) / 100 + TEXT_WIDTH_PADDING]),
   ) as Record<ToeiTextWidth, number>;
 }
 
@@ -156,17 +107,12 @@ export function applyToeiTextWidth(
   element: HTMLElement,
   lines: ToeiTextLines,
   width: ToeiTextWidth,
-  bold: boolean,
-  language = 'ja',
   multiline = false,
 ) {
-  const measured = measureToeiText(lines, width, bold, language);
+  const scale = width / 100;
+  const measured = naturalWidth(lines) * scale + TEXT_WIDTH_PADDING;
   if (width !== 100) element.setAttribute('data-toei-width', String(width));
-  if (measured.family) {
-    element.setAttribute('data-toei-condensed', String(width));
-    element.style.fontFamily = `"${measured.family}", ${lines[0]?.[0]?.family || 'sans-serif'}`;
-  }
-  element.style.setProperty('--toei-text-scale', String(measured.scale));
-  element.style.width = `${multiline ? measured.width / measured.scale : measured.width}px`;
-  return measured.width;
+  element.style.setProperty('--toei-text-scale', String(scale));
+  element.style.width = `${multiline ? measured / scale : measured}px`;
+  return measured;
 }
