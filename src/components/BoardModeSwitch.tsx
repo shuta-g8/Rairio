@@ -9,15 +9,7 @@ export function BoardModeSwitch({
 }) {
   return (
     <div className="board-mode-control">
-      <span id="board-mode-label" className="board-mode-label">
-        表示形式
-      </span>
-      <div
-        className="board-mode-switch"
-        data-mode={mode}
-        role="group"
-        aria-labelledby="board-mode-label"
-      >
+      <div className="board-mode-switch" data-mode={mode} role="group" aria-label="表示形式">
         <button type="button" aria-pressed={mode === 'default'} onClick={() => onChange('default')}>
           サイトデフォルト
         </button>

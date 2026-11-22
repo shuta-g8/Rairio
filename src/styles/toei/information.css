@@ -26,7 +26,6 @@
 .toei-information-message {
   flex-shrink: 0;
   font-family: var(--font-bold);
-  font-weight: 700;
   font-size: 2.8cqw;
   line-height: 1.2;
   white-space: nowrap;

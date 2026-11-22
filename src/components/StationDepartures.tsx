@@ -139,7 +139,7 @@ export function StationDepartures({
               aria-pressed={filter === 'all'}
               onClick={() => onFilter('all')}
             >
-              すべての路線<span className="line-filter-count">{lines.length}</span>
+              全路線<span className="line-filter-count">{lines.length}</span>
             </button>
             {lines.map(({ name: line, color, symbol }) => (
               <button
@@ -151,7 +151,7 @@ export function StationDepartures({
                 <span aria-hidden="true">
                   <RailMark color={color} symbol={symbol} />
                 </span>
-                {line}
+                {line.replace(/^都営/, '')}
               </button>
             ))}
           </div>

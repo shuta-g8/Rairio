@@ -1,8 +1,9 @@
-import { memo } from 'react';
+import { memo, useId } from 'react';
 import { LOGO_BOUNDS, LOGO_PARTS } from './LogoAnimation/logo-data';
 import { EDITION } from '../lib/brand';
 import { Trademark } from './Trademark';
 import { logoLayout } from './logo-layout';
+import { logoSymbolMarkup } from './logo-symbol';
 
 /** Approved symbol and original wordmark, with their proportions preserved. */
 export const Logo = memo(function Logo({
@@ -18,6 +19,7 @@ export const Logo = memo(function Logo({
   const wordX = symbolWidth + gap;
   const totalWidth = wordX + wordWidth;
   const displayWidth = (width * totalWidth) / LOGO_BOUNDS.width;
+  const id = `static-logo-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   return (
     <svg
       viewBox={`0 0 ${totalWidth} ${height}`}
@@ -37,10 +39,10 @@ export const Logo = memo(function Logo({
         width={symbolWidth}
         height={height}
         viewBox="6 10 467 196"
+        fill="none"
         aria-hidden="true"
-      >
-        <image href={`${import.meta.env.BASE_URL}rairio-symbol.svg`} width="480" height="216" />
-      </svg>
+        dangerouslySetInnerHTML={{ __html: logoSymbolMarkup(id) }}
+      />
       <g transform={`translate(${wordX} 0)`}>
         {LOGO_PARTS.map((part) => (
           <path key={part.id} d={part.d} />

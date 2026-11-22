@@ -82,7 +82,7 @@
   align-items: center;
   gap: 7px;
   margin: 0 0 5px;
-  font-size: 11px;
+  font-size: 13px;
   color: #bdc1c6;
 }
 .clock-service-day {
@@ -115,7 +115,7 @@
 }
 .clock-date {
   margin-top: 5px;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 1.3px;
   color: #bdc1c6;
 }
@@ -144,11 +144,11 @@
   gap: 7px;
   margin: 0;
   font-family: var(--font-regular);
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 400;
 }
 .hero-operations-heading > span {
-  font-size: 9px;
+  font-size: 12px;
   color: #bdc1c6;
 }
 .hero-updated {
@@ -175,7 +175,6 @@
   gap: 5px 8px;
   padding: 14px 12px;
   background: #304148;
-  font-size: 12px;
 }
 .hero-company .rail-mark {
   width: 24px;
@@ -197,7 +196,7 @@
   padding: 0;
   background: transparent;
   color: #bdc1c6;
-  font-size: 11px;
+  font-size: 13px;
 }
 @container hero-status (width < 340px) {
   .hero-company-grid {
@@ -245,7 +244,6 @@
   max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
-  font-size: 11px;
   /* Keep long notices at the same text scale as short summaries on iOS. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -361,9 +359,6 @@
     min-width: 220px;
     padding: 0 0 8px 10px;
   }
-  .hero-clock > p {
-    font-size: 10px;
-  }
   .clock-digits {
     font-size: 51px;
     letter-spacing: -2px;
@@ -373,7 +368,6 @@
     font-size: 21px;
   }
   .clock-date {
-    font-size: 10px;
     letter-spacing: 0.8px;
   }
 }
@@ -412,7 +406,6 @@
   .hero-clock > p {
     grid-column: 1;
     margin: 0;
-    font-size: 9px;
   }
   .hero-clock > p svg {
     width: 12px;
@@ -428,18 +421,13 @@
     font-size: 19px;
   }
   .clock-date {
-    font-size: 9px;
     letter-spacing: 0.1px;
   }
   .hero-bottom {
     margin-top: 14px;
     padding-top: 10px;
   }
-  .hero-company {
-    font-size: 11px;
-  }
   .hero-company .operation-badge {
-    font-size: 10px;
     gap: 4px;
   }
   .hero-company .operation-badge .operation-mark {
@@ -459,9 +447,6 @@
   }
   .clock-service-day {
     flex-basis: 100%;
-  }
-  .clock-date {
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

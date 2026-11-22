@@ -15,7 +15,7 @@ import { gsap } from 'gsap';
 import { LOGO_PARTS, LOGO_SOURCE } from './logo-data';
 import { LOGO_LAYOUT, SYMBOL_OCCLUSION, SYMBOL_ROUTES, VIEW_BOX } from './geometry';
 import { EDITION } from '../../lib/brand';
-import symbolSvg from '../../../public/rairio-symbol.svg?raw';
+import { frontContour, logoSymbolMarkup } from '../logo-symbol';
 import { LOGO_MOTION } from './timing';
 import { createLogoTimeline, showFinalLogo } from './timeline';
 import styles from './LogoAnimation.module.css';
@@ -47,7 +47,6 @@ export interface LogoAnimationProps {
 }
 
 const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
-const frontContour = symbolSvg.match(/<path id="rairio-symbol-front" d="([^"]+)"/)![1];
 
 export const LogoAnimation = memo(
   forwardRef<LogoAnimationHandle, LogoAnimationProps>(function LogoAnimation(
@@ -72,9 +71,7 @@ export const LogoAnimation = memo(
     completeRef.current = onComplete;
     const id = `logo-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
     const symbolMarkup = useMemo(() => {
-      const inner = symbolSvg.slice(symbolSvg.indexOf('<defs>'), symbolSvg.lastIndexOf('</svg>'));
-      return inner
-        .replaceAll('rairio-symbol-', id + '-symbol-')
+      return logoSymbolMarkup(id)
         .replace(
           '<g id="' + id + '-symbol-back-layer"',
           '<g mask="url(#' + id + '-rear-reveal)" id="' + id + '-symbol-back-layer"',

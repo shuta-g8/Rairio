@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="432" viewBox="0 0 480 216" fill="none" role="img" aria-labelledby="rairio-symbol-title rairio-symbol-desc">
+  <title id="rairio-symbol-title">Rairio symbol</title>
+  <desc id="rairio-symbol-desc">A continuous asymmetric infinity ribbon. The cyan ribbon rising from lower left to upper right passes fully in front of the navy ribbon descending beneath it. Opaque ribbon surfaces, a fine beveled edge and contact shadows establish the over-and-under crossing. Transparent background.</desc>
+  <defs>
+    <path id="rairio-symbol-back" d="M475.5 380L477 370C484 338 519 315 563 315C592 315 625 327 660 350C671 357 682 364 693 371C735 397 773 415 816 415C861 415 898 391 898 361L895 348L941 347L942 359C942 418 887 459 817 459C764 459 714 427 663 391C653 384 643 378 633 371C609 355 585 347 563 347C535 347 513 361 512 379L512 392L475.5 380Z"/>
+    <path id="rairio-symbol-front" d="M477 370C468 409 494 438 546 439C590 440 641 408 693 371C739 337 781 312 824 312C866 312 898 332 898 361L942 359C942 306 895 263 833 263C768 263 711 306 660 350C617 386 585 405 551 405C529 405 511 396 512 379L477 370Z"/>
+    <clipPath id="rairio-symbol-back-clip">
+      <use href="#rairio-symbol-back"/>
+    </clipPath>
+    <clipPath id="rairio-symbol-front-clip">
+      <use href="#rairio-symbol-front"/>
+    </clipPath>
+    <linearGradient id="rairio-symbol-front-blend" x1="546" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0"/>
+      <stop offset=".15" stop-color="white" stop-opacity=".6"/>
+      <stop offset=".295" stop-color="white"/>
+      <stop offset=".915" stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="rairio-symbol-front-blend-mask" x="475" y="263" width="468" height="197" maskUnits="userSpaceOnUse" style="mask-type:alpha">
+      <path d="M475 263H943V460H475Z" fill="url(#rairio-symbol-front-blend)"/>
+    </mask>
+    <linearGradient id="rairio-symbol-body" x1="810" y1="263" x2="810" y2="459" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5bdfff"/>
+      <stop offset=".10" stop-color="#6ce1ff"/>
+      <stop offset=".28" stop-color="#37c3fd"/>
+      <stop offset=".46" stop-color="#009aef"/>
+      <stop offset=".65" stop-color="#0074d5"/>
+      <stop offset=".84" stop-color="#005bb9"/>
+      <stop offset="1" stop-color="#004c9e"/>
+    </linearGradient>
+    <linearGradient id="rairio-symbol-back-shade" x1="535" y1="380" x2="824" y2="380" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#002654"/>
+      <stop offset=".35" stop-color="#002b5f"/>
+      <stop offset=".56" stop-color="#002b5f"/>
+      <stop offset=".78" stop-color="#002e69" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#003b87" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rairio-symbol-front-light" x1="785" y1="263" x2="785" y2="439" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5bdfff"/>
+      <stop offset=".10" stop-color="#63dcff"/>
+      <stop offset=".25" stop-color="#37c3fe"/>
+      <stop offset=".43" stop-color="#0bb3fd"/>
+      <stop offset=".61" stop-color="#009efc"/>
+      <stop offset=".75" stop-color="#007fdd"/>
+      <stop offset=".88" stop-color="#0055aa"/>
+      <stop offset="1" stop-color="#003d7e"/>
+    </linearGradient>
+    <linearGradient id="rairio-symbol-front-shade" x1="477" y1="400" x2="662" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#002654"/>
+      <stop offset=".30" stop-color="#002654"/>
+      <stop offset=".46" stop-color="#003066"/>
+      <stop offset=".66" stop-color="#003c7b" stop-opacity=".58"/>
+      <stop offset="1" stop-color="#003c7b" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rairio-symbol-top-glint" x1="704" y1="315" x2="906" y2="286" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a6f0ff" stop-opacity="0"/>
+      <stop offset=".54" stop-color="#c2f5ff" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#a6f0ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rairio-symbol-front-bevel" x1="559" y1="430" x2="840" y2="306" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#33c2ff" stop-opacity=".35"/>
+      <stop offset=".40" stop-color="#087fe6"/>
+      <stop offset=".78" stop-color="#0077e6"/>
+      <stop offset="1" stop-color="#0076e8"/>
+    </linearGradient>
+    <linearGradient id="rairio-symbol-lower-glint" x1="693" y1="400" x2="898" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#006bc4" stop-opacity="0"/>
+      <stop offset=".27" stop-color="#0076d9" stop-opacity=".08"/>
+      <stop offset=".52" stop-color="#007be9" stop-opacity=".07"/>
+      <stop offset=".72" stop-color="#009eff" stop-opacity=".56"/>
+      <stop offset=".87" stop-color="#00b0ff" stop-opacity=".62"/>
+      <stop offset="1" stop-color="#009eff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rairio-symbol-left-glint" x1="486" y1="345" x2="650" y2="347" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0074bf" stop-opacity="0"/>
+      <stop offset=".44" stop-color="#218de3" stop-opacity=".50"/>
+      <stop offset="1" stop-color="#0074bf" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="rairio-symbol-left-top-light" cx="0" cy="0" r="1" gradientTransform="translate(555 310) scale(130 24)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0066c1" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#0066c1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rairio-symbol-left-bottom-light" cx="0" cy="0" r="1" gradientTransform="translate(576 445) scale(98 60)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0052a8" stop-opacity=".80"/>
+      <stop offset="1" stop-color="#0052a8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rairio-symbol-left-reflection" cx="0" cy="0" r="1" gradientTransform="translate(486 369) scale(34 57)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00549c" stop-opacity=".14"/>
+      <stop offset="1" stop-color="#00549c" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rairio-symbol-bottom-reflection" cx="0" cy="0" r="1" gradientTransform="translate(803 427) scale(100 55)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0087e5" stop-opacity=".38"/>
+      <stop offset=".65" stop-color="#007cdb" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#007cdb" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rairio-symbol-crossing-shadow-fade" cx="0" cy="0" r="1" gradientTransform="translate(666 372) rotate(-35) scale(69 42)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/>
+      <stop offset=".55" stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="rairio-symbol-crossing-shadow-mask" x="600" y="325" width="140" height="105" maskUnits="userSpaceOnUse" style="mask-type:alpha">
+      <path d="M600 325H740V430H600Z" fill="url(#rairio-symbol-crossing-shadow-fade)"/>
+    </mask>
+    <radialGradient id="rairio-symbol-softbox" cx="0" cy="0" r="1" gradientTransform="translate(824 278) rotate(-5) scale(111 39)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c4f5ff" stop-opacity=".075"/>
+      <stop offset=".5" stop-color="#a3efff" stop-opacity=".045"/>
+      <stop offset="1" stop-color="#a3efff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rairio-symbol-edge" x1="790" y1="263" x2="790" y2="459" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a5efff" stop-opacity=".40"/>
+      <stop offset=".35" stop-color="#007acb" stop-opacity=".10"/>
+      <stop offset=".75" stop-color="#001c4a" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#001c4a" stop-opacity=".36"/>
+    </linearGradient>
+    <filter id="rairio-symbol-reflection-softness" x="680" y="350" width="225" height="85" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation=".45"/>
+    </filter>
+    <filter id="rairio-symbol-contact-shadow" x="595" y="320" width="155" height="120" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation=".65"/>
+    </filter>
+    <filter id="rairio-symbol-cast-shadow" x="595" y="320" width="155" height="120" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+    <linearGradient id="rairio-symbol-crossing-glint" x1="608" y1="388" x2="721" y2="302" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6bdaff" stop-opacity="0"/>
+      <stop offset=".35" stop-color="#6bdaff" stop-opacity=".24"/>
+      <stop offset=".65" stop-color="#7de3ff" stop-opacity=".17"/>
+      <stop offset="1" stop-color="#7de3ff" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Composite the light into one opaque paint before applying the ribbon edge. -->
+    <pattern id="rairio-symbol-front-surface" x="0" y="0" width="1024" height="512" patternUnits="userSpaceOnUse">
+      <path d="M475 263H943V460H475Z" fill="url(#rairio-symbol-body)"/>
+      <g mask="url(#rairio-symbol-front-blend-mask)">
+        <path d="M475 263H943V460H475Z" fill="url(#rairio-symbol-front-light)"/>
+      </g>
+      <path d="M475 263H943V460H475Z" fill="url(#rairio-symbol-front-shade)"/>
+      <path d="M475 263H943V460H475Z" fill="url(#rairio-symbol-left-bottom-light)" opacity=".78"/>
+      <path d="M475 263H943V460H475Z" fill="url(#rairio-symbol-left-reflection)"/>
+      <path d="M475 263H943V460H475Z" fill="url(#rairio-symbol-softbox)"/>
+    </pattern>
+  </defs>
+  <g transform="translate(-469 -253)">
+    <!-- The rear ribbon continues behind the crossing as a complete surface. -->
+    <g id="rairio-symbol-back-layer" clip-path="url(#rairio-symbol-back-clip)">
+      <use href="#rairio-symbol-back" fill="url(#rairio-symbol-body)"/>
+      <use href="#rairio-symbol-back" fill="url(#rairio-symbol-back-shade)"/>
+      <use href="#rairio-symbol-back" fill="url(#rairio-symbol-left-top-light)"/>
+      <use href="#rairio-symbol-back" fill="url(#rairio-symbol-left-reflection)"/>
+      <use href="#rairio-symbol-back" fill="url(#rairio-symbol-bottom-reflection)"/>
+      <path d="M693 371C735 397 773 415 816 415C861 415 898 391 898 361C904 394 866 427 816 422C773 422 732 402 689 375Z" fill="url(#rairio-symbol-lower-glint)" filter="url(#rairio-symbol-reflection-softness)"/>
+      <path d="M485 349C504 327 533 315 563 315C592 315 625 327 660 350" stroke="url(#rairio-symbol-left-glint)" stroke-width="2"/>
+      <path d="M477 370C484 338 519 315 563 315C592 315 625 327 660 350C671 357 682 364 693 371C735 397 773 415 816 415C861 415 898 391 898 361M942 359C942 418 887 459 817 459C764 459 714 427 663 391C653 384 643 378 633 371C609 355 585 347 563 347C535 347 513 361 512 379" stroke="url(#rairio-symbol-edge)" stroke-width=".8"/>
+      <!-- Shadows land on the rear ribbon only, never in the transparent openings. -->
+      <g mask="url(#rairio-symbol-crossing-shadow-mask)">
+        <use href="#rairio-symbol-front" fill="#000f2d" opacity=".38" filter="url(#rairio-symbol-contact-shadow)"/>
+        <use href="#rairio-symbol-front" fill="#00102f" opacity=".38" transform="translate(1.2 2.2)" filter="url(#rairio-symbol-cast-shadow)"/>
+      </g>
+    </g>
+    <!-- The front ribbon is fully opaque and hides the entire rear crossing. -->
+    <g id="rairio-symbol-front-layer" clip-path="url(#rairio-symbol-front-clip)">
+      <use href="#rairio-symbol-front" fill="url(#rairio-symbol-front-surface)"/>
+      <g mask="url(#rairio-symbol-front-blend-mask)">
+        <path d="M546 439C590 440 641 408 693 371C739 337 781 312 824 312C866 312 898 332 898 361C898 330 866 304 824 304C780 304 738 334 691.5 368.8C640 405 590 437 546 439Z" fill="url(#rairio-symbol-front-bevel)"/>
+      </g>
+      <path d="M551 405C585 405 617 386 660 350C711 306 768 263 833 263" stroke="url(#rairio-symbol-crossing-glint)" stroke-width=".65"/>
+      <path d="M697 320C742 285 789 263 833 263C860 263 885 271 905 286" stroke="url(#rairio-symbol-top-glint)" stroke-width="1.6"/>
+      <path d="M477 370C468 409 494 438 546 439C590 440 641 408 693 371C739 337 781 312 824 312C866 312 898 332 898 361M942 359C942 306 895 263 833 263C768 263 711 306 660 350C617 386 585 405 551 405C529 405 511 396 512 379" stroke="url(#rairio-symbol-edge)" stroke-width=".8"/>
+    </g>
+  </g>
+</svg>

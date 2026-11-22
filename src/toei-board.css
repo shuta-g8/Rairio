@@ -9,7 +9,6 @@
   gap: 6px;
   margin: 0 0 20px;
   color: var(--app-muted);
-  font-size: 12px;
   line-height: 1.7;
 }
 .toei-viewing-note svg {
@@ -22,16 +21,14 @@
 }
 .route-card.toei-board {
   container-type: inline-size;
-  border: 1px solid #333938;
+  border: 1px solid transparent;
   border-radius: 3px;
   background: #252a28;
-  box-shadow: 0 7px 14px #111a1724;
+  box-shadow: none;
 }
 .toei-board-housing {
   padding: 1.3cqw 1.6cqw 1.5cqw;
-  background: linear-gradient(#424541, #282c29 12%, #1b201d 85%, #363b37);
-  border-top: 2px solid #666960;
-  border-bottom: 2px solid #0c100e;
+  border-block: 2px solid transparent;
 }
 .toei-board-layout {
   aspect-ratio: 3.9;
@@ -43,7 +40,6 @@
 .toei-board-face {
   min-height: 0;
   overflow: hidden;
-  box-shadow: 0 0 0 2px #090c0a;
   background-color: #030504;
   background-image: radial-gradient(#ffffff0d 0.6px, transparent 0.7px);
   background-size: 3px 3px;
@@ -78,7 +74,6 @@
   margin: 0;
   font-size: 1.65cqw;
   font-family: var(--font-bold);
-  font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
 }
@@ -566,7 +561,6 @@
   border-top: 1px solid #555a52;
   background: #272e27;
   color: #fff;
-  font-size: 10px;
 }
 .route-card.toei-board .full-timetable:hover {
   background: #354032;

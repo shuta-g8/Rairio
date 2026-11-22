@@ -23,7 +23,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 12px;
   color: var(--app-muted);
   min-width: 0;
 }
@@ -164,14 +163,13 @@
   background: var(--app-hover);
   border-left: 3px solid var(--app-border);
   line-height: 1.9;
-  font-size: 13px;
 }
 .journey-notice button {
   text-decoration: underline;
 }
 .journey-data-note {
   color: var(--app-muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.8;
   margin: 14px 2px;
 }
@@ -211,7 +209,6 @@
   border-radius: 7px;
   background: #fff;
   color: var(--app-accent);
-  font-size: 13px;
 }
 .journey-back:hover {
   background: var(--app-hover);
@@ -229,7 +226,7 @@
   margin-bottom: 8px;
 }
 .journey-result-heading > p {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--app-muted);
 }
 .journey-result-tools {
@@ -243,7 +240,6 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
 }
 .journey-result-tools select,
 .journey-show-fares,
@@ -376,7 +372,7 @@
   display: inline-block;
   width: fit-content;
   color: var(--app-muted);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.04em;
 }
 .journey-empty {
@@ -385,7 +381,6 @@
   line-height: 1.9;
 }
 .journey-details {
-  font-size: 12px;
   line-height: 1.9;
   color: var(--app-muted);
   margin-top: 28px;
@@ -418,7 +413,7 @@
   background: #fff2f0;
   padding: 2px 7px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .journey-form input[aria-invalid='true'] {
   border-color: #c6837e;
@@ -427,9 +422,6 @@
 .journey-history-results {
   z-index: 20;
   overscroll-behavior: contain;
-}
-.journey-history-results button {
-  font-size: 14px;
 }
 .journey-history-results button[role='option'] > span {
   min-width: 0;
@@ -469,7 +461,6 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 13px;
   background: #fff;
 }
 .journey-table td {
@@ -489,7 +480,6 @@
 }
 .journey-rail-label > b {
   min-width: 0;
-  font-size: 12px;
   line-height: 1.5;
 }
 .journey-table .journey-station-row td {
@@ -502,7 +492,7 @@
 }
 
 .journey-station-times small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .journey-table .journey-segment-row > td {
   vertical-align: middle;
@@ -549,7 +539,7 @@
 }
 .journey-transfer-row {
   color: var(--app-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .journey-fare-column {
   width: 104px;
@@ -623,19 +613,21 @@
 }
 .app-view-tabs {
   display: flex;
+  gap: 6px;
   border-bottom: 1px solid var(--app-border);
   margin: 16px 0 24px;
 }
 .app-view-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 14px 22px;
   font-family: var(--font-bold);
   border: 1px solid var(--app-border);
   border-bottom: 0;
-  border-radius: 0;
+  border-radius: var(--app-radius) var(--app-radius) 0 0;
   background: var(--app-surface);
-}
-.app-view-tabs button + button {
-  border-inline-start: 0;
 }
 .app-view-tabs button[aria-pressed='false']:hover {
   background: var(--app-hover);
@@ -645,8 +637,55 @@
   background: var(--app-accent);
   color: #fff;
 }
-.app-view-tabs ~ div > .departures-section {
+.app-view-content .departures-section {
   padding-top: 0;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --app-view-tabs-height: 3.5rem;
+    scroll-padding-bottom: calc(var(--app-view-tabs-height) + env(safe-area-inset-bottom, 0px));
+  }
+  .page-shell {
+    padding-bottom: calc(var(--app-view-tabs-height) + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+  .app-view-content {
+    isolation: isolate;
+    margin-top: 16px;
+    scroll-margin-top: calc(var(--site-header-height) + 16px);
+  }
+  .app-view-tabs {
+    position: fixed;
+    z-index: 19;
+    inset: auto 0 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    min-height: calc(var(--app-view-tabs-height) + env(safe-area-inset-bottom, 0px));
+    margin: 0;
+    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+      env(safe-area-inset-left, 0px);
+    border: 0;
+    border-top: 1px solid var(--app-border);
+    background: var(--app-background);
+  }
+  .app-view-tabs button {
+    min-height: 44px;
+    padding: 6px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .app-view-tabs button + button {
+    border-inline-start: 1px solid var(--app-border);
+  }
+  .app-view-tabs button[aria-pressed='true'] {
+    background: transparent;
+    color: var(--app-accent);
+  }
+  .app-view-tabs button:focus-visible {
+    outline-offset: -3px;
+  }
 }
 
 .journey-table .journey-time-column {
@@ -687,7 +726,6 @@
 @media (max-width: 720px) {
   .journey-table .journey-station-times {
     padding: 12px 8px;
-    font-size: 12px;
   }
   .journey-table td {
     padding: 12px;
@@ -718,14 +756,8 @@
   .journey-summary strong {
     font-size: 20px;
   }
-  .journey-summary small {
-    font-size: 12px;
-  }
   .journey-summary .journey-rank {
     font-size: 18px;
-  }
-  .journey-summary .journey-tag {
-    font-size: 13px;
   }
 
   .journey-planner {

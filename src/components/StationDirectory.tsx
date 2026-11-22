@@ -57,7 +57,6 @@ export const StationDirectory = memo(function StationDirectory({
                       {station.memberships?.find((member) => member.railwayId === line.id)?.code}
                     </span>
                     {stationDisplayName(station)}
-                    <small>{station.english}</small>
                   </StationLink>
                 ))}
               </div>

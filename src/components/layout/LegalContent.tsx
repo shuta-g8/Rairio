@@ -6,9 +6,9 @@ import {
   STATION_BASICS_SOURCE,
   STATION_INFO_SOURCE,
 } from '../../../shared/transit-source';
-
-import type { LegalSection } from './LegalDialog';
 import { JourneyDataCredits } from '../JourneyDataCredits';
+
+type LegalSection = 'privacy' | 'licenses';
 
 const noticesUrl = `${import.meta.env.BASE_URL}licenses/third-party-notices.txt`;
 const fontLicenseUrl = `${import.meta.env.BASE_URL}licenses/line-seed-jp.txt`;

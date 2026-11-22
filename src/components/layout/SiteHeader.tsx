@@ -13,6 +13,12 @@ import { StationDirectory } from '../StationDirectory';
 import { StationRegistration } from '../SavedStations';
 import { Modal } from '../Modal';
 import { AboutContent } from './AboutContent';
+import {
+  SITE_INFORMATION,
+  SiteFooterContent,
+  SiteInformationContent,
+  type SiteInformation,
+} from './SiteFooter';
 import type { NearbyStation } from '../../hooks/useNearbyStation';
 
 interface Props {
@@ -35,7 +41,13 @@ export const SiteHeader = memo(function SiteHeader({
   onRemoveStation,
 }: Props) {
   const compact = useCompactHeader();
-  const [panel, setPanel] = useState<'search' | 'directory' | 'menu' | 'about' | null>(null);
+  const [panel, setPanel] = useState<
+    'search' | 'directory' | 'menu' | 'about' | SiteInformation | null
+  >(null);
+  const menuFocus = useRef('#header-about-button');
+  const info = panel === 'privacy' || panel === 'licenses' || panel === 'updates' ? panel : null;
+  const menuDetail = panel === 'about' || info !== null;
+  const menuOpen = panel === 'menu' || menuDetail;
   const headerHidden = useHeaderAutoHide(compact && panel === null);
   const [recentStations, setRecentStations] = useState(loadRecentStations);
   const previousCompact = useRef(compact);
@@ -127,9 +139,10 @@ export const SiteHeader = memo(function SiteHeader({
                   className="header-icon-button"
                   aria-label="メニューを開く"
                   aria-haspopup="dialog"
-                  aria-expanded={panel === 'menu' || panel === 'about'}
+                  aria-expanded={menuOpen}
                   onClick={(event) => {
                     event.currentTarget.focus({ preventScroll: true });
+                    menuFocus.current = '#header-about-button';
                     setPanel('menu');
                   }}
                 >
@@ -159,31 +172,41 @@ export const SiteHeader = memo(function SiteHeader({
         panel && (
           <Modal
             title={
-              panel === 'about'
-                ? 'このアプリについて'
-                : panel === 'menu'
-                  ? 'メニュー'
-                  : panel === 'directory'
-                    ? '路線・駅名を選択する'
-                    : '駅名で検索'
+              info
+                ? SITE_INFORMATION[info].title
+                : panel === 'about'
+                  ? 'このアプリについて'
+                  : panel === 'menu'
+                    ? 'メニュー'
+                    : panel === 'directory'
+                      ? '路線・駅名を選択する'
+                      : '駅名で検索'
             }
             onClose={closePanel}
             initialFocus={
               panel === 'search'
                 ? '#station-search'
-                : panel === 'about'
+                : menuDetail
                   ? '#header-menu-back'
                   : panel === 'menu'
-                    ? '#header-about-button'
+                    ? menuFocus.current
                     : undefined
             }
             wide={panel === 'directory'}
             className={
               panel === 'directory'
                 ? 'station-directory-dialog'
-                : `header-panel ${panel === 'menu' || panel === 'about' ? 'header-menu-panel' : 'header-search-panel'}`
+                : `header-panel ${menuOpen ? `header-menu-panel${info ? ' header-menu-information' : ''}` : 'header-search-panel'}`
             }
-            mobileCloseLabel={panel === 'directory' ? '駅一覧を閉じる' : undefined}
+            mobileCloseLabel={
+              info
+                ? SITE_INFORMATION[info].closeLabel
+                : menuOpen
+                  ? 'メニューを閉じる'
+                  : panel === 'directory'
+                    ? '駅一覧を閉じる'
+                    : undefined
+            }
           >
             {panel === 'directory' ? (
               <StationDirectory stationId={stationId} changeStation={chooseStation} />
@@ -191,7 +214,7 @@ export const SiteHeader = memo(function SiteHeader({
               picker
             ) : (
               <>
-                {panel === 'about' && (
+                {menuDetail && (
                   <>
                     <button
                       id="header-menu-back"
@@ -202,10 +225,10 @@ export const SiteHeader = memo(function SiteHeader({
                       <ArrowLeftIcon size={18} aria-hidden="true" />
                       メニューに戻る
                     </button>
-                    <AboutContent />
+                    {info ? <SiteInformationContent section={info} /> : <AboutContent />}
                   </>
                 )}
-                <div className="header-menu-content" hidden={panel === 'about'}>
+                <div className="header-menu-content" hidden={menuDetail}>
                   <StationRegistration
                     stationId={stationId}
                     savedStations={savedStations}
@@ -216,11 +239,23 @@ export const SiteHeader = memo(function SiteHeader({
                     type="button"
                     id="header-about-button"
                     className="header-about-button text-button"
-                    onClick={() => setPanel('about')}
+                    onClick={() => {
+                      menuFocus.current = '#header-about-button';
+                      setPanel('about');
+                    }}
                   >
                     このアプリについて
                     <ArrowUpRightIcon size={17} aria-hidden="true" />
                   </button>
+                  <div className="header-menu-site-info">
+                    <SiteFooterContent
+                      mobile
+                      onSelect={(section) => {
+                        menuFocus.current = `#header-site-info-${section}`;
+                        setPanel(section);
+                      }}
+                    />
+                  </div>
                 </div>
               </>
             )}

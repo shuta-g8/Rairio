@@ -205,7 +205,6 @@ export function JourneyPlaceSearch({
                     })}
                   />
                 </span>
-                <span>{p.english}</span>
               </button>
             ))
           ) : !showLocation ? (

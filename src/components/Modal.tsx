@@ -54,8 +54,9 @@ export function Modal({
   useLayoutEffect(() => {
     const dialog = ref.current!;
     dialog.scrollTop = 0;
+    dialog.querySelector('.modal-body')?.scrollTo(0, 0);
     const target = initialFocus && dialog.querySelector<HTMLElement>(initialFocus);
-    if (target && target !== document.activeElement) target.focus({ preventScroll: true });
+    if (target && target !== document.activeElement) target.focus();
   }, [initialFocus, title]);
   return (
     <dialog

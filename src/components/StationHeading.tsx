@@ -54,7 +54,6 @@ export const StationHeading = memo(function StationHeading({
                 <small>駅</small>
               </h2>
             </div>
-            <span className="station-english">{station.english}</span>
           </div>
         </div>
       </div>

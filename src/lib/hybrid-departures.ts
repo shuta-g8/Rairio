@@ -47,8 +47,9 @@ interface TrainState {
   visited: boolean;
   cleared: boolean;
   approachAt?: number;
-  forecastApproachEndedAt?: number;
-  closed: boolean;
+  fallbackClosed: boolean;
+  approachShown?: boolean;
+  approachEndedAt?: number;
   retired: boolean;
   skippedBeforeFirstResponse?: boolean;
   estimate?: PositionEstimate;
@@ -100,7 +101,7 @@ const initialState = (): TrainState => ({
   positionUntil: 0,
   visited: false,
   cleared: false,
-  closed: false,
+  fallbackClosed: false,
   retired: false,
 });
 
@@ -111,12 +112,14 @@ export function resolveHybridDepartures(
   positions?: TrainPositionsSnapshot | null,
   previous?: HybridDepartureSession,
   useEstimates = true,
-  endLeadMs = APPROACH_END_LEAD_MS,
+  approachRelease: 'stop-or-turnover' | number = 'stop-or-turnover',
 ): DepartureBoardDisplay & {
   session: HybridDepartureSession;
   diagnostic?: HybridDiagnostic;
   estimatedDiagram?: DepartureBoardDisplay['position'];
 } {
+  const holdNotice = approachRelease === 'stop-or-turnover';
+  const endLeadMs = holdNotice ? APPROACH_END_LEAD_MS : approachRelease;
   const scope = scopeFor(route);
   // Clock rollback must not resurrect trains or reopen an announcement.
   const timestamp = Math.max(
@@ -302,6 +305,7 @@ export function resolveHybridDepartures(
           reason: cleared ? (usesEstimate ? 'estimate' : 'clearance') : 'deadline',
         };
       state.retired = true;
+      if (state.approachShown) state.approachEndedAt ??= timestamp;
       state.skippedBeforeFirstResponse =
         useEstimates &&
         (!positions || positions.collected === null) &&
@@ -312,14 +316,14 @@ export function resolveHybridDepartures(
     }
     // Keep the timetable fallback on its original clock if the estimate expires.
     // After an estimated arrival, loss of the feed must not restart this train's notice.
-    if (forecast?.progress === 'here') state.closed = true;
-    if (!departure.gtfs && !state.closed && state.approachAt === undefined) {
+    if (forecast?.progress === 'here') state.fallbackClosed = true;
+    if (!departure.gtfs && !state.fallbackClosed && state.approachAt === undefined) {
       const early =
         fresh &&
         state.progress === 'approaching' &&
         state.coordinate === -0.5 &&
         timestamp >= timeline.approachStart - HYBRID_LIMITS.earlyApproachMs;
-      if (timestamp >= timeline.approachEnd) state.closed = true;
+      if (timestamp >= timeline.approachEnd) state.fallbackClosed = true;
       else if (early || timestamp >= timeline.approachStart)
         state.approachAt = Math.min(timestamp, timeline.approachStart);
     }
@@ -327,24 +331,33 @@ export function resolveHybridDepartures(
       state.approachAt === undefined
         ? timeline.approachEnd
         : state.approachAt + APPROACH_DURATION_MS - endLeadMs;
-    if (state.approachAt !== undefined && timestamp >= fallbackEnd) state.closed = true;
+    if (state.approachAt !== undefined && timestamp >= fallbackEnd) state.fallbackClosed = true;
 
     const forecastEnd =
       forecast?.arrivalAt === undefined ? undefined : forecast.arrivalAt - endLeadMs;
-    if (endLeadMs > 0 && forecastEnd !== undefined && timestamp >= forecastEnd) {
-      state.forecastApproachEndedAt ??= forecastEnd;
-      state.closed = true;
+    if (holdNotice && fresh && state.progress === 'here') state.approachEndedAt ??= timestamp;
+    const keepApproaching = holdNotice && state.approachShown;
+    if (
+      !keepApproaching &&
+      endLeadMs > 0 &&
+      forecastEnd !== undefined &&
+      timestamp >= forecastEnd
+    ) {
+      state.approachEndedAt ??= forecastEnd;
+      state.fallbackClosed = true;
     }
     const approaching =
-      state.forecastApproachEndedAt === undefined &&
-      (departure.gtfs
-        ? !state.closed &&
-          !!fresh &&
-          raw.progress === 'approaching' &&
-          state.progress === 'approaching'
-        : forecast?.progress
-          ? forecast.progress === 'approaching'
-          : state.approachAt !== undefined && !state.closed);
+      state.approachEndedAt === undefined &&
+      (keepApproaching ||
+        (departure.gtfs
+          ? !!fresh && raw.progress === 'approaching' && state.progress === 'approaching'
+          : forecast?.progress
+            ? forecast.progress === 'approaching'
+            : state.approachAt !== undefined && !state.fallbackClosed));
+    // A source update may trigger the first notice. A shown notice follows the
+    // displayed train until an observation puts it at the station or the row switches.
+    if (approaching) state.approachShown = true;
+    else if (state.approachShown) state.approachEndedAt ??= timestamp;
     trains.set(key, state);
     if (selected.length === 0) {
       estimatedDiagram = forecast?.position;
@@ -363,13 +376,16 @@ export function resolveHybridDepartures(
         ...timeline,
         switchAt,
         approachStart: state.approachAt ?? timeline.approachStart,
-        approachEnd: state.forecastApproachEndedAt ?? forecastEnd ?? fallbackEnd,
+        approachEnd:
+          state.approachEndedAt ??
+          (holdNotice && approaching ? switchAt : (forecastEnd ?? fallbackEnd)),
         delayMs,
         turnoverDelayMs,
         delayUntil: state.delayUntil,
         phase: approaching
           ? 'approaching'
-          : forecast?.progress === 'before' || !state.closed
+          : state.approachEndedAt === undefined &&
+              (forecast?.progress === 'before' || !state.fallbackClosed)
             ? 'waiting'
             : 'holding',
         cleared: !!cleared,

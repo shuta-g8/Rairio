@@ -15,7 +15,7 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 15px;
   font-feature-settings: 'palt';
   --ink: #19323a;
   --muted: #6e7a7b;
@@ -219,7 +219,7 @@ select {
 .station-title h2 {
   font-size: 34px;
   font-family: var(--font-bold);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 2px;
   margin: 0;
   line-height: 1.6;
@@ -230,12 +230,6 @@ select {
   font-family: var(--font-regular);
   font-weight: 400;
 }
-.station-english {
-  font-size: 11px;
-  color: #7e8b87;
-  letter-spacing: 1.2px;
-  margin-top: 8px;
-}
 .line-filters {
   display: flex;
   flex-wrap: wrap;
@@ -243,12 +237,11 @@ select {
   margin: -2px 0 20px;
 }
 .line-filters button {
-  font-size: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  border-radius: 12px;
+  border-radius: var(--app-radius);
   background: #fff;
 }
 .line-filters button:hover {
@@ -262,7 +255,7 @@ select {
   background: #25434a;
 }
 .line-filters .line-filter-count {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--lime);
   margin-left: 4px;
 }
@@ -286,6 +279,9 @@ select {
   box-shadow: 0 3px 5px #172e2303;
   position: relative;
   transition: box-shadow 0.2s;
+}
+.route-card :is(h3, strong, b, th, .rail-mark) {
+  font-weight: 400;
 }
 .route-card:hover {
   box-shadow: 0 5px 20px #172e2308;
@@ -334,7 +330,6 @@ select {
   margin: 0;
   line-height: 1.6;
   font-family: var(--font-bold);
-  font-weight: 700;
   overflow-wrap: anywhere;
 }
 .route-card-heading h3 > span {
@@ -391,46 +386,12 @@ select {
 .conditional {
   color: #a1763c;
 }
-.countdown {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-  white-space: nowrap;
-  line-height: 1;
-  padding: 12px 10px;
-  border-radius: 6px;
-  color: #405e32;
-  background: #edf4e3;
-  flex-shrink: 0;
-}
-.countdown strong {
-  font-size: 24px;
-  letter-spacing: -0.6px;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
-  font-family: var(--font-bold);
-  font-weight: 700;
-}
-.countdown > span {
-  font-size: 9px;
-}
-.countdown .countdown-prefix {
-  font-size: 8px;
-  margin-right: 2px;
-}
-.countdown .countdown-seconds {
-  font-size: 14px;
-  font-family: var(--font-regular);
-  font-weight: 400;
-  margin-left: 4px;
-}
 .full-timetable {
   width: 100%;
   padding: 13px 22px;
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
   color: #7a897a;
   background: #fafbf8;
   border-top: 1px solid #e8ece3;
@@ -459,12 +420,12 @@ select {
 }
 .schedule-note {
   color: #7b877c;
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.9;
   margin: 16px 0 0;
 }
 .source-line {
-  font-size: 9px;
+  font-size: 12px;
   color: #99a292;
   display: flex;
   gap: 15px;
@@ -506,7 +467,7 @@ select {
   flex-wrap: wrap;
   gap: 0 12px;
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.3px;
   line-height: 1.9;
 }
@@ -518,7 +479,6 @@ select {
   flex-wrap: wrap;
   margin-inline-start: auto;
   gap: 4px 18px;
-  font-size: 11px;
 }
 .footer-links button {
   min-height: 44px;
@@ -532,7 +492,6 @@ select {
 }
 .release-notes {
   padding: 20px clamp(16px, 5vw, 28px) 24px;
-  font-size: 14px;
   line-height: 1.8;
   overflow-wrap: anywhere;
 }
@@ -558,13 +517,11 @@ select {
 }
 .legal-content {
   padding: 24px 28px;
-  font-size: 12px;
   line-height: 2;
   overflow-wrap: anywhere;
 }
 .legal-content h3 {
   margin: 24px 0 8px;
-  font-size: 14px;
 }
 .legal-content p {
   margin: 0 0 14px;
@@ -580,7 +537,6 @@ select {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 11px;
   line-height: 1.8;
   padding: 14px 17px;
   border-radius: 7px;
@@ -610,7 +566,6 @@ select {
   color: var(--ink);
 }
 .error-state p {
-  font-size: 12px;
   line-height: 1.8;
 }
 .error-state button {
@@ -621,12 +576,10 @@ select {
   color: white;
   padding: 12px 20px;
   border-radius: 12px;
-  font-size: 12px;
   margin-top: 10px;
 }
 .empty-message {
   padding: 30px 0;
-  font-size: 12px;
   color: #899780;
 }
 .loading-status {
@@ -734,12 +687,11 @@ select {
   margin: 20px 0 13px;
 }
 .about-content > p {
-  font-size: 12px;
   line-height: 2.1;
   color: #778370;
 }
 .about-content p.about-source {
-  font-size: 10px;
+  font-size: 13px;
   line-height: 2.3;
   margin: 20px 0 0;
 }
@@ -756,7 +708,7 @@ select {
   gap: 12px;
   flex-wrap: wrap;
   padding: 20px 26px;
-  font-size: 9px;
+  font-size: 13px;
   color: #8b977f;
   line-height: 1.8;
 }
@@ -801,15 +753,11 @@ select {
     min-height: 48px;
     padding: 12px 16px;
     border-radius: 12px;
-    font-size: 14px;
   }
 }
 @media (min-width: 1200px) {
   .departure-row {
     gap: 18px;
-  }
-  .countdown {
-    padding: 13px 13px;
   }
   .route-card-heading {
     padding: 23px 25px 21px;
@@ -851,23 +799,6 @@ select {
   }
   .departure-rank {
     min-width: 37px;
-  }
-  .countdown {
-    gap: 2px;
-    padding: 11px 8px;
-  }
-  .countdown strong {
-    font-size: 21px;
-  }
-  .countdown .countdown-prefix {
-    display: none;
-  }
-  .countdown .countdown-seconds {
-    font-size: 12px;
-    margin-left: 2px;
-  }
-  .countdown > span {
-    font-size: 8px;
   }
   .route-card-heading h3 {
     font-size: 12px;
@@ -924,34 +855,11 @@ select {
   .departure-rank {
     min-width: 60px;
   }
-  .countdown {
-    padding: 13px 15px;
-    gap: 4px;
-  }
-  .countdown .countdown-prefix {
-    display: inline;
-    font-size: 9px;
-  }
-  .countdown strong {
-    font-size: 27px;
-  }
-  .countdown > span {
-    font-size: 10px;
-  }
-  .countdown .countdown-seconds {
-    font-size: 17px;
-    margin-left: 5px;
-  }
   .train-type {
     font-size: 10px;
   }
   .full-timetable {
     padding: 14px 24px;
-    font-size: 10px;
-  }
-  .site-footer {
-    margin: 0 24px;
-    padding: 21px 0;
   }
   .station-title h2 {
     font-size: 32px;
@@ -961,17 +869,6 @@ select {
   }
   .platform {
     font-size: 9px;
-  }
-}
-@media (max-width: 640px) {
-  .site-footer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  .footer-links {
-    margin-inline-start: 0;
-    column-gap: 12px;
   }
 }
 @media (max-width: 560px) {
@@ -1025,18 +922,12 @@ select {
     font-size: 15px;
     margin-left: 5px;
   }
-  .station-english {
-    font-size: 9px;
-    letter-spacing: 0.5px;
-    margin-top: 6px;
-  }
   .line-filters {
     gap: 6px;
     margin-top: 0;
     margin-bottom: 17px;
   }
   .line-filters button {
-    font-size: 9px;
     padding: 8px 10px;
   }
   .route-grid {
@@ -1077,39 +968,16 @@ select {
     min-width: 36px;
     gap: 0;
   }
-  .countdown {
-    padding: 12px 8px;
-    gap: 2px;
-  }
-  .countdown strong {
-    font-size: 24px;
-  }
-  .countdown > span {
-    font-size: 8px;
-  }
-  .countdown .countdown-prefix {
-    font-size: 7px;
-    margin-right: 1px;
-  }
-  .countdown .countdown-seconds {
-    font-size: 14px;
-    margin-left: 3px;
-  }
   .train-type {
     font-size: 9px;
   }
   .full-timetable {
-    font-size: 9px;
     padding: 13px 18px;
   }
   .full-timetable > svg {
     width: 14px;
   }
-  .schedule-note {
-    font-size: 9px;
-  }
   .source-line {
-    font-size: 8px;
     gap: 4px 12px;
     margin-top: 10px;
     justify-content: flex-start;
@@ -1117,20 +985,11 @@ select {
   .source-line svg {
     width: 10px;
   }
-  .site-footer {
-    margin: 0 16px;
-  }
-  .footer-brand {
-    font-size: 12px;
-  }
   .about-content {
     padding: 23px;
   }
   .about-content h3 {
     font-size: 17px;
-  }
-  .about-content > p {
-    font-size: 11px;
   }
   .modal-header {
     padding: 14px 19px;
@@ -1140,7 +999,6 @@ select {
   }
   .modal-footer {
     padding: 15px 19px;
-    font-size: 8px;
   }
   .service-ended {
     padding: 8px 15px;
@@ -1154,20 +1012,8 @@ select {
   .departure-row {
     gap: 9px;
   }
-  .countdown .countdown-prefix {
-    display: none;
-  }
-  .countdown strong {
-    font-size: 23px;
-  }
-  .countdown {
-    padding: 10px 7px;
-  }
   .station-title {
     gap: 7px;
-  }
-  .station-english {
-    font-size: 8px;
   }
 }
 .timetable-unavailable {

@@ -11,6 +11,7 @@
   --app-accent-hover: #174ea6;
   --app-selected: #e8f0fe;
   --app-selected-hover: #d2e3fc;
+  --app-radius: 12px;
   background: var(--app-background);
 }
 
@@ -27,9 +28,7 @@
 }
 .station-search > label,
 .station-search-field,
-.station-results button > span:last-child,
-.station-results p,
-.station-english {
+.station-results p {
   color: var(--app-muted);
 }
 .station-search-field {
@@ -106,8 +105,8 @@
 .footer-brand {
   color: var(--app-ink);
 }
-.directory-stations a small,
-.site-footer {
+.site-footer,
+.header-menu-site-info {
   color: var(--app-muted);
 }
 .directory-stations a:hover {
@@ -121,9 +120,6 @@
 }
 .directory-stations a[aria-current]:hover {
   background: var(--app-selected-hover);
-}
-.directory-stations a[aria-current] small {
-  color: var(--app-accent);
 }
 .site-footer {
   border-top-color: var(--app-border);

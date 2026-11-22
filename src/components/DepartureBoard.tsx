@@ -19,35 +19,17 @@ import { RailMark } from './RailMark';
 import { Destination } from './Destination';
 import type { DepartureBoardDisplay } from '../lib/live-departures';
 
-function Countdown({
-  departure,
-  now,
-  approximate,
-}: {
-  departure: Departure;
-  now: Date;
-  approximate: boolean;
-}) {
+function Countdown({ departure, now }: { departure: Departure; now: Date }) {
   const { minutes, seconds } = remaining(departure.timestamp, now);
-  if (approximate) {
-    const roundedMinutes = minutes + Number(seconds > 0);
-    return (
-      <div className="countdown countdown-approximate" aria-label={`約${roundedMinutes}分後に発車`}>
-        <span>約</span>
-        <strong>{roundedMinutes}</strong>
-        <span>分後</span>
-      </div>
-    );
-  }
+  const roundedMinutes = minutes + Number(seconds > 0);
   return (
-    <div className="countdown" aria-label={`発車まで${minutes}分${seconds}秒`}>
-      <span className="countdown-prefix">あと</span>
-      <strong>{minutes > 99 ? Math.floor(minutes / 60) : minutes}</strong>
-      <span>{minutes > 99 ? '時間' : '分'}</span>
-      <strong className="countdown-seconds">
-        {String(minutes > 99 ? minutes % 60 : seconds).padStart(2, '0')}
+    <div className="countdown" aria-label={`約${roundedMinutes}分後に発車`}>
+      <strong>
+        <span>約</span>
+        {roundedMinutes}
+        <wbr />
+        <span>分後</span>
       </strong>
-      <span>{minutes > 99 ? '分' : '秒'}</span>
     </div>
   );
 }
@@ -100,12 +82,10 @@ function DepartureProgress({ elapsedMs, progress }: { elapsedMs: number; progres
 function DepartureStatus({
   departure,
   now,
-  approximate,
   presentation = departurePresentation(departure.timestamp, now),
 }: {
   departure: Departure;
   now: Date;
-  approximate: boolean;
   presentation?: DeparturePresentation;
 }) {
   if (presentation.kind === 'stopped')
@@ -135,7 +115,7 @@ function DepartureStatus({
       <DepartureProgress elapsedMs={presentation.elapsedMs} progress={presentation.progress} />
     );
   if (presentation.kind === 'expired') return null;
-  return <Countdown departure={departure} now={now} approximate={approximate} />;
+  return <Countdown departure={departure} now={now} />;
 }
 
 export function DepartureRow({
@@ -212,12 +192,7 @@ export function DepartureRow({
       {trailingContent}
       {showStatus && (
         <div className="departure-status">
-          <DepartureStatus
-            departure={departure}
-            now={now}
-            approximate={isYamanote}
-            presentation={presentation}
-          />
+          <DepartureStatus departure={departure} now={now} presentation={presentation} />
         </div>
       )}
     </div>

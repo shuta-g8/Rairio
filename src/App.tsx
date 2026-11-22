@@ -1,4 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { PathIcon } from '@phosphor-icons/react/dist/csr/Path';
+import { TrainIcon } from '@phosphor-icons/react/dist/csr/Train';
 import { stationDisplayName, lineName } from './lib/stations';
 import { useStation } from './hooks/useStation';
 import { useStationView } from './hooks/useStationView';
@@ -12,7 +14,6 @@ import { StationLink } from './components/StationLink';
 import { StationDepartures } from './components/StationDepartures';
 import { Timetable } from './components/Timetable';
 import { Hero } from './components/hero/Hero';
-import { LegalDialog, type LegalSection } from './components/layout/LegalDialog';
 import { ConnectionStatus } from './components/layout/ConnectionStatus';
 import { SiteFooter } from './components/layout/SiteFooter';
 import { SiteHeader } from './components/layout/SiteHeader';
@@ -49,7 +50,6 @@ export default function App() {
     openTimetable,
     closeTimetable,
   } = useStationView();
-  const [legal, setLegal] = useState<LegalSection | null>(null);
   const [registrationOpen, setRegistrationOpen] = useState(false);
   const {
     savedStations,
@@ -74,9 +74,6 @@ export default function App() {
   }, [feed.active, feed.mode]);
   useOffline();
 
-  const showPrivacy = useCallback(() => setLegal('privacy'), []);
-  const showLicenses = useCallback(() => setLegal('licenses'), []);
-  const closeLegal = useCallback(() => setLegal(null), []);
   const showRegistration = useCallback(() => setRegistrationOpen(true), []);
   const closeRegistration = useCallback(() => setRegistrationOpen(false), []);
   const toggleCurrentStation = useCallback(() => {
@@ -108,6 +105,12 @@ export default function App() {
     },
     [chooseStation, changeView],
   );
+  function selectView(next: typeof view) {
+    changeView(next);
+    if (window.matchMedia('(max-width: 760px)').matches) {
+      document.getElementById('app-view-content')?.scrollIntoView({ block: 'start' });
+    }
+  }
   useEffect(() => {
     const followView = () => {
       cancelLocation();
@@ -143,48 +146,56 @@ export default function App() {
             <button
               type="button"
               aria-pressed={view === 'departures'}
-              onClick={() => changeView('departures')}
+              onClick={() => selectView('departures')}
             >
+              <TrainIcon size={20} aria-hidden="true" />
               発車案内
             </button>
             <button
               type="button"
               aria-pressed={view === 'journey'}
-              onClick={() => changeView('journey')}
+              onClick={() => selectView('journey')}
             >
+              <PathIcon size={20} aria-hidden="true" />
               経路・乗換案内
             </button>
           </nav>
-          {view === 'journey' && (
-            <Suspense fallback={<LoadingStatus>経路案内を読み込んでいます…</LoadingStatus>}>
-              <JourneyPlanner stationId={stationId} onManualInput={nearby.cancel} nearby={nearby} />
-            </Suspense>
-          )}
-          <div hidden={view !== 'departures'}>
-            <StationDepartures
-              active={view === 'departures'}
-              station={station}
-              stationSaved={stationSaved}
-              stationSaveDisabled={stationSaveDisabled}
-              onToggleSave={toggleCurrentStation}
-              {...stationData}
-              filter={filter}
-              onFilter={filterDepartures}
-              onRefresh={refresh}
-              onOpen={openTimetable}
-              operations={operations}
-              trainPositions={trainPositions}
-            >
-              <SavedStationTabs
-                stationId={stationId}
-                savedStations={savedStations}
-                onSelect={navigateToStation}
-                onAdd={addStation}
-                onManage={showRegistration}
-              />
-            </StationDepartures>
+          <div id="app-view-content" className="app-view-content">
+            {view === 'journey' && (
+              <Suspense fallback={<LoadingStatus>経路案内を読み込んでいます…</LoadingStatus>}>
+                <JourneyPlanner
+                  stationId={stationId}
+                  onManualInput={nearby.cancel}
+                  nearby={nearby}
+                />
+              </Suspense>
+            )}
+            <div hidden={view !== 'departures'}>
+              <StationDepartures
+                active={view === 'departures'}
+                station={station}
+                stationSaved={stationSaved}
+                stationSaveDisabled={stationSaveDisabled}
+                onToggleSave={toggleCurrentStation}
+                {...stationData}
+                filter={filter}
+                onFilter={filterDepartures}
+                onRefresh={refresh}
+                onOpen={openTimetable}
+                operations={operations}
+                trainPositions={trainPositions}
+              >
+                <SavedStationTabs
+                  stationId={stationId}
+                  savedStations={savedStations}
+                  onSelect={navigateToStation}
+                  onAdd={addStation}
+                  onManage={showRegistration}
+                />
+              </StationDepartures>
+            </div>
           </div>
-          <SiteFooter onPrivacy={showPrivacy} onLicenses={showLicenses} />
+          <SiteFooter />
         </div>
       </main>
       {openRoute && (
@@ -205,7 +216,6 @@ export default function App() {
           />
         </Modal>
       )}
-      {legal && <LegalDialog section={legal} onClose={closeLegal} />}
       <StationSelectionNotice
         selection={selection}
         savedChange={savedStationChange}

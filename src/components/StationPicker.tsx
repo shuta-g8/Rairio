@@ -156,7 +156,6 @@ export const StationPicker = memo(function StationPicker({
                                 }))}
                               />
                             </span>
-                            <span>{station.english}</span>
                           </button>
                         </li>
                       ))}

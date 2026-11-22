@@ -32,8 +32,6 @@
 .route-card {
   --board-columns: minmax(64px, 0.9fr) minmax(0, 1.6fr) 88px minmax(112px, 1.15fr);
   --board-gap: 12px;
-  --approximate-label-size: 14px;
-  --approximate-first-label-size: 16px;
   color: #fff;
 }
 .route-card .departure-row,
@@ -64,7 +62,6 @@
 .route-card .first .departure-rank {
   font-size: 11px;
   font-family: var(--font-bold);
-  font-weight: 700;
 }
 .route-card .first .train-type {
   font-size: 13px;
@@ -78,9 +75,6 @@
 }
 .route-card .first .countdown strong {
   font-size: 27px;
-}
-.route-card .first .countdown .countdown-seconds {
-  font-size: 18px;
 }
 .route-card .first .arrival-announcement,
 .route-card .first .departure-announcement {
@@ -110,7 +104,6 @@
   color: #fff;
   font-size: 11px;
   font-family: var(--font-bold);
-  font-weight: 700;
   line-height: 1.5;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -166,7 +159,6 @@
   color: #fff;
   font-size: 14px;
   font-family: var(--font-bold);
-  font-weight: 700;
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
@@ -197,7 +189,6 @@
   color: #fff;
   font-size: 29px;
   font-family: var(--font-bold);
-  font-weight: 700;
   letter-spacing: -0.7px;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -216,43 +207,22 @@
   min-height: 46px;
 }
 .route-card .countdown {
+  max-width: 100%;
   color: #fff;
-  background: transparent;
   padding: 9px 0;
-  gap: 3px;
+  text-align: center;
+  word-break: keep-all;
+  line-height: 1;
 }
 .route-card .countdown strong {
-  color: #fff;
   font-size: 23px;
   font-family: var(--font-bold);
-  font-weight: 700;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
-.route-card .countdown > span {
-  color: #fff;
-  font-size: 9px;
-}
-.route-card .countdown .countdown-prefix {
-  display: inline;
-  font-size: 8px;
-  margin-right: 1px;
-}
-.route-card .countdown .countdown-seconds {
-  color: #fff;
-  font-size: 15px;
-  font-family: var(--font-regular);
-  font-weight: 400;
-  margin-left: 3px;
-}
-.route-card .countdown.countdown-approximate {
-  gap: 2px;
-}
-.route-card .countdown.countdown-approximate > span {
-  font-size: var(--approximate-label-size);
-  font-family: var(--font-bold);
-  font-weight: 700;
-}
-.route-card .first .countdown.countdown-approximate > span {
-  font-size: var(--approximate-first-label-size);
+.route-card .countdown strong > span {
+  font-size: 0.7em;
 }
 .full-timetable {
   color: #fff;
@@ -296,7 +266,6 @@
   color: #fff;
   font-size: 12px;
   font-family: var(--font-bold);
-  font-weight: 700;
   letter-spacing: 0;
   white-space: normal;
   text-shadow: 0 0 10px #ffffff22;
@@ -358,7 +327,6 @@
   align-items: flex-start;
   gap: 6px;
   color: #986f35;
-  font-size: 10px;
   line-height: 1.8;
   margin: 12px 2px -18px;
 }
@@ -374,8 +342,6 @@
   .route-card {
     --board-columns: minmax(52px, 0.8fr) minmax(0, 1.5fr) 74px minmax(94px, 1.1fr);
     --board-gap: 8px;
-    --approximate-label-size: 12px;
-    --approximate-first-label-size: 14px;
   }
   .route-card .first .destination-name {
     font-size: 15px;
@@ -386,9 +352,6 @@
   .route-card .first .countdown strong {
     font-size: 24px;
   }
-  .route-card .first .countdown .countdown-seconds {
-    font-size: 16px;
-  }
   .departure-time time {
     font-size: 25px;
   }
@@ -397,9 +360,6 @@
   }
   .route-card .countdown strong {
     font-size: 20px;
-  }
-  .route-card .countdown .countdown-prefix {
-    display: none;
   }
   .arrival-announcement,
   .departure-announcement {
@@ -410,8 +370,6 @@
   .route-card {
     --board-columns: minmax(62px, 0.85fr) minmax(0, 1.7fr) 88px minmax(118px, 1.1fr);
     --board-gap: 12px;
-    --approximate-label-size: 14px;
-    --approximate-first-label-size: 16px;
   }
   .route-card .first .destination-name {
     font-size: 17px;
@@ -422,9 +380,6 @@
   .route-card .first .countdown strong {
     font-size: 27px;
   }
-  .route-card .first .countdown .countdown-seconds {
-    font-size: 18px;
-  }
   .departure-time time {
     font-size: 29px;
   }
@@ -433,9 +388,6 @@
   }
   .route-card .countdown strong {
     font-size: 23px;
-  }
-  .route-card .countdown .countdown-prefix {
-    display: inline;
   }
   .arrival-announcement,
   .departure-announcement {
@@ -446,8 +398,6 @@
   .route-card {
     --board-columns: minmax(44px, 0.7fr) minmax(0, 1.4fr) 64px 94px;
     --board-gap: 7px;
-    --approximate-label-size: 12px;
-    --approximate-first-label-size: 14px;
   }
   .route-card .departure-row {
     padding: 18px 0;
@@ -467,14 +417,8 @@
   .route-card .first .departure-time time {
     font-size: 25px;
   }
-  .route-card .first .countdown {
-    gap: 1px;
-  }
   .route-card .first .countdown strong {
     font-size: 22px;
-  }
-  .route-card .first .countdown .countdown-seconds {
-    font-size: 14px;
   }
   .route-card .train-type {
     font-size: 10px;
@@ -496,21 +440,8 @@
   .route-card .platform {
     font-size: 8px;
   }
-  .route-card .countdown {
-    gap: 2px;
-  }
   .route-card .countdown strong {
     font-size: 20px;
-  }
-  .route-card .countdown > span {
-    font-size: 8px;
-  }
-  .route-card .countdown .countdown-prefix {
-    display: none;
-  }
-  .route-card .countdown .countdown-seconds {
-    font-size: 13px;
-    margin-left: 2px;
   }
   .arrival-announcement,
   .departure-announcement {
@@ -524,7 +455,6 @@
     font-size: 14px;
   }
   .connection-status {
-    font-size: 9px;
     margin-top: 10px;
     margin-bottom: -9px;
   }
