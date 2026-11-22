@@ -13,6 +13,7 @@ import type { DepartureBoardDisplay } from './live-departures.ts';
 export const SWITCH_OFFSET_MS = 30_000;
 export const APPROACH_DURATION_MS = 50_000;
 export const AFTER_APPROACH_HOLD_MS = 55_000;
+export const APPROACH_END_LEAD_MS = 10_000;
 export const HYBRID_LIMITS = {
   maxDelayMs: 10 * 60_000,
   delayConfirmationMs: 20_000,
@@ -23,10 +24,14 @@ export const HYBRID_LIMITS = {
 } as const;
 const LOOKBACK_MS = HYBRID_LIMITS.maxTrainHoldMs + SWITCH_OFFSET_MS;
 
-export function hybridTimeline(timestamp: number, delayMs = 0) {
+export function hybridTimeline(timestamp: number, delayMs = 0, endLeadMs = APPROACH_END_LEAD_MS) {
   const switchAt = timestamp + delayMs + SWITCH_OFFSET_MS;
-  const approachEnd = switchAt - AFTER_APPROACH_HOLD_MS;
-  return { approachStart: approachEnd - APPROACH_DURATION_MS, approachEnd, switchAt };
+  const baselineEnd = switchAt - AFTER_APPROACH_HOLD_MS;
+  return {
+    approachStart: baselineEnd - APPROACH_DURATION_MS,
+    approachEnd: baselineEnd - endLeadMs,
+    switchAt,
+  };
 }
 
 interface TrainState {
@@ -42,6 +47,7 @@ interface TrainState {
   visited: boolean;
   cleared: boolean;
   approachAt?: number;
+  forecastApproachEndedAt?: number;
   closed: boolean;
   retired: boolean;
   skippedBeforeFirstResponse?: boolean;
@@ -105,6 +111,7 @@ export function resolveHybridDepartures(
   positions?: TrainPositionsSnapshot | null,
   previous?: HybridDepartureSession,
   useEstimates = true,
+  endLeadMs = APPROACH_END_LEAD_MS,
 ): DepartureBoardDisplay & {
   session: HybridDepartureSession;
   diagnostic?: HybridDiagnostic;
@@ -152,16 +159,18 @@ export function resolveHybridDepartures(
     const reconsiderSkipped = state.skippedBeforeFirstResponse && (useCollected || followingFirst);
     const serverCanCorrect = useCollected && positions.serverEstimates;
     if (state.retired && !reconsiderSkipped && !serverCanCorrect) continue;
-    const forecast = useCollected
-      ? collectedDiagramEstimate(
-          route,
-          departure,
-          acceptedPositions === positions ? positions : { ...positions, trains: [] },
-          now,
-          false,
-          state.estimate,
-        )
-      : undefined;
+    const usesEstimate = collectedMode && !departure.gtfs;
+    const forecast =
+      usesEstimate && useCollected
+        ? collectedDiagramEstimate(
+            route,
+            departure,
+            acceptedPositions === positions ? positions : { ...positions, trains: [] },
+            now,
+            false,
+            state.estimate,
+          )
+        : undefined;
     // A background tab or HTTP fallback may have retired this row locally.
     // Reconcile it only when the current server frame still places this run
     // at or before the station, within the ordinary hold window.
@@ -267,23 +276,21 @@ export function resolveHybridDepartures(
         ? state.position
         : undefined;
     const delayMs = timestamp < state.delayUntil ? state.delayMs : 0;
-    const timeline = hybridTimeline(departure.timestamp, delayMs);
-    const turnoverDelayMs = collectedMode
-      ? Math.max(delayMs, state.estimatedDelayMs ?? 0)
-      : delayMs;
+    const timeline = hybridTimeline(departure.timestamp, delayMs, endLeadMs);
+    const turnoverDelayMs = usesEstimate ? Math.max(delayMs, state.estimatedDelayMs ?? 0) : delayMs;
     const correctedDeparture = departure.timestamp + turnoverDelayMs;
     const switchAt = Math.min(
       departure.timestamp + HYBRID_LIMITS.maxTrainHoldMs,
       Math.max(
         correctedDeparture + SWITCH_OFFSET_MS,
-        collectedMode ? (state.estimateHoldUntil ?? 0) : state.positionUntil,
+        usesEstimate ? (state.estimateHoldUntil ?? 0) : state.positionUntil,
       ),
     );
     // Clearance is deliberately not inferred from a null toStation, loss,
     // a stale observation or just the scheduled time passing.
     // Projection may lead the source clock. The published departure is a lower
     // bound for turnover; adding the estimated delay here would count it twice.
-    const cleared = collectedMode
+    const cleared = usesEstimate
       ? timestamp >= departure.timestamp && forecast?.progress === 'departed'
       : timestamp >= correctedDeparture && state.cleared && fresh;
     // While the first train is held, the timetable alone cannot retire its successor.
@@ -292,7 +299,7 @@ export function resolveHybridDepartures(
         lastTurnover = {
           train: key,
           at: timestamp,
-          reason: cleared ? (collectedMode ? 'estimate' : 'clearance') : 'deadline',
+          reason: cleared ? (usesEstimate ? 'estimate' : 'clearance') : 'deadline',
         };
       state.retired = true;
       state.skippedBeforeFirstResponse =
@@ -306,7 +313,7 @@ export function resolveHybridDepartures(
     // Keep the timetable fallback on its original clock if the estimate expires.
     // After an estimated arrival, loss of the feed must not restart this train's notice.
     if (forecast?.progress === 'here') state.closed = true;
-    if (!state.closed && state.approachAt === undefined) {
+    if (!departure.gtfs && !state.closed && state.approachAt === undefined) {
       const early =
         fresh &&
         state.progress === 'approaching' &&
@@ -316,32 +323,47 @@ export function resolveHybridDepartures(
       else if (early || timestamp >= timeline.approachStart)
         state.approachAt = Math.min(timestamp, timeline.approachStart);
     }
-    if (state.approachAt !== undefined && timestamp >= state.approachAt + APPROACH_DURATION_MS)
+    const fallbackEnd =
+      state.approachAt === undefined
+        ? timeline.approachEnd
+        : state.approachAt + APPROACH_DURATION_MS - endLeadMs;
+    if (state.approachAt !== undefined && timestamp >= fallbackEnd) state.closed = true;
+
+    const forecastEnd =
+      forecast?.arrivalAt === undefined ? undefined : forecast.arrivalAt - endLeadMs;
+    if (endLeadMs > 0 && forecastEnd !== undefined && timestamp >= forecastEnd) {
+      state.forecastApproachEndedAt ??= forecastEnd;
       state.closed = true;
-    const approaching = forecast?.progress
-      ? forecast.progress === 'approaching'
-      : state.approachAt !== undefined && !state.closed;
+    }
+    const approaching =
+      state.forecastApproachEndedAt === undefined &&
+      (departure.gtfs
+        ? !state.closed &&
+          !!fresh &&
+          raw.progress === 'approaching' &&
+          state.progress === 'approaching'
+        : forecast?.progress
+          ? forecast.progress === 'approaching'
+          : state.approachAt !== undefined && !state.closed);
     trains.set(key, state);
     if (selected.length === 0) {
       estimatedDiagram = forecast?.position;
-      position = fresh
-        ? observedToeiTrainGuidance(
-            route,
-            departure,
-            { fetchedAt: new Date(timestamp).toISOString(), trains: [fresh] },
-            now,
-          ).position
-        : undefined;
+      position =
+        fresh && (!departure.gtfs || raw.observation)
+          ? observedToeiTrainGuidance(
+              route,
+              departure,
+              { fetchedAt: new Date(timestamp).toISOString(), trains: [fresh] },
+              now,
+            ).position
+          : undefined;
       diagnostic = {
         sourceAt: state.position ? Date.parse(state.position.updatedAt) : undefined,
         train: key,
         ...timeline,
         switchAt,
         approachStart: state.approachAt ?? timeline.approachStart,
-        approachEnd:
-          state.approachAt === undefined
-            ? timeline.approachEnd
-            : state.approachAt + APPROACH_DURATION_MS,
+        approachEnd: state.forecastApproachEndedAt ?? forecastEnd ?? fallbackEnd,
         delayMs,
         turnoverDelayMs,
         delayUntil: state.delayUntil,
@@ -354,7 +376,13 @@ export function resolveHybridDepartures(
       };
     }
     selected.push(departure);
-    presentations.push({ kind: approaching ? 'approaching' : 'countdown' });
+    presentations.push({
+      kind: approaching
+        ? 'approaching'
+        : departure.gtfs && departure.timestamp <= timestamp
+          ? 'expired'
+          : 'countdown',
+    });
     if (selected.length === 2) break;
   }
   const first = selected[0];

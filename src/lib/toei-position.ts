@@ -7,8 +7,13 @@ import {
   type CollectedTrainPosition,
 } from '../../shared/train-positions.ts';
 import { serviceDate } from './time.ts';
-import { estimatePosition, type PositionEstimate } from '../../shared/position-estimate.ts';
+import {
+  estimatePosition,
+  positionAdvanceAt,
+  type PositionEstimate,
+} from '../../shared/position-estimate.ts';
 import { toeiRouteStations, toeiStopGuide } from './toei-stops.ts';
+import { schedulesForDate } from '../../shared/timetable-editions.ts';
 
 export type TrainStationProgress = 'before' | 'approaching' | 'here' | 'departed';
 
@@ -101,6 +106,8 @@ export function collectedDiagramEstimate(
   disrupted: boolean,
   previous?: PositionEstimate,
 ) {
+  // The direct feed provides the destination needed to verify a GTFS trip.
+  if (train.gtfs) return;
   const collected = snapshot.collected;
   if (!collected) return;
   const p: CollectedTrainPosition | undefined = matchedTrainPosition(route, train, collected, now);
@@ -116,10 +123,19 @@ export function collectedDiagramEstimate(
     : estimatePosition(p, direct, now.getTime(), previous);
   if (!estimate) return;
   const position = describeToeiPosition(route, train, { ...p, ...estimate });
+  const progress = estimatedStationProgress(route, estimate);
+  const arrivalAt =
+    progress === 'approaching' &&
+    estimate.visit === p.model?.visit &&
+    p.model.nextVisit === departureVisit(route)
+      ? positionAdvanceAt(p, estimate)
+      : undefined;
   return {
     estimate,
     position: position && { ...position, estimated: true },
-    progress: estimatedStationProgress(route, estimate),
+    progress,
+    // A live server estimate that still shows an approach can outlast its arrival forecast.
+    arrivalAt: arrivalAt !== undefined && now.getTime() < arrivalAt ? arrivalAt : undefined,
     freshUntil: Math.min(
       Date.parse(p.validUntil),
       Date.parse(p.updatedAt) + TRAIN_POSITION_MAX_AGE,
@@ -127,17 +143,48 @@ export function collectedDiagramEstimate(
   };
 }
 
+export function statisticalArrivalTime(
+  route: Route,
+  train: Departure | undefined,
+  snapshot: TrainPositionsSnapshot | null | undefined,
+  now: Date,
+) {
+  if (!snapshot?.collected || !train) return;
+  const direct = matchedTrainPosition(route, train, snapshot, now);
+  if (train.gtfs && !direct) return;
+  const position = matchedTrainPosition(route, train, snapshot.collected, now) as
+    CollectedTrainPosition | undefined;
+  const estimate = position?.vicinityArrival;
+  if (
+    !estimate ||
+    !position ||
+    position.toStation !== route.sourceStationId ||
+    estimate.station !== route.sourceStationId ||
+    estimate.at <= now.getTime() ||
+    Date.parse(position.updatedAt) > now.getTime() ||
+    stationLocation(route, position)?.progress !== 'approaching'
+  )
+    return;
+  if (
+    direct &&
+    Date.parse(direct.updatedAt) >= Date.parse(position.updatedAt) &&
+    (direct.fromStation !== position.fromStation || direct.toStation !== position.toStation)
+  )
+    return;
+  return estimate.at;
+}
+
 const positionIndices = new WeakMap<TrainPositionsSnapshot, Map<string, TrainPosition[]>>();
 const ambiguousIds = new WeakMap<Route['schedules']['weekday'], Set<string>>();
 
-function matchedTrainPosition(
+export function matchedTrainPosition(
   route: Route,
   train: Departure | undefined,
   snapshot: TrainPositionsSnapshot | null | undefined,
   now: Date,
 ) {
   if (!train?.trainId || !snapshot || train.serviceDate !== serviceDate(now)) return;
-  const schedule = route.schedules[train.day];
+  const schedule = (schedulesForDate(route, train.serviceDate) ?? route.schedules)[train.day];
   let ambiguous = ambiguousIds.get(schedule);
   if (!ambiguous) {
     ambiguous = new Set();
@@ -172,6 +219,23 @@ function matchedTrainPosition(
     serviceDate(new Date(stamp)) !== train.serviceDate
   )
     return;
+  if (train.gtfs) {
+    const destination = position.destinationStation?.split('.').at(-1);
+    if (stamp > now.getTime() || !destination || destination !== train.gtfs.destinationId) return;
+    const { stopMask } = train.gtfs;
+    const minimum = 32 - Math.clz32(stopMask & -stopMask);
+    const maximum = 32 - Math.clz32(stopMask);
+    const order = toeiRouteStations(route);
+    const withinTrip = (id: string) => {
+      const stationId = id.split('.').at(-1)?.toLowerCase();
+      return order?.some((s) => s.id === stationId && s.number >= minimum && s.number <= maximum);
+    };
+    if (
+      !withinTrip(position.fromStation) ||
+      (position.toStation && !withinTrip(position.toStation))
+    )
+      return;
+  }
   return position;
 }
 

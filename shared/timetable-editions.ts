@@ -3,9 +3,25 @@
 export const ASAKUSA_CUTOVER = '2026-11-21';
 export const TIMETABLE_MANIFEST_PATH = 'metadata/asakusa-timetable-editions.json';
 export const TIMETABLE_POLICY_VERSION = 1;
+export interface GtfsDeparture {
+  stopMask: number;
+  destinationId?: string;
+}
+interface GtfsTimetable {
+  version: string;
+  sha256: string;
+  serviceDays: Record<string, 'weekday' | 'saturday' | 'holiday'>;
+}
 export type EditionSchedules = Record<
   'weekday' | 'saturday' | 'holiday',
-  { time: string; destination: string; type: string; trainId?: string; dayOffset?: number }[]
+  {
+    time: string;
+    destination: string;
+    type: string;
+    trainId?: string;
+    dayOffset?: number;
+    gtfs?: GtfsDeparture;
+  }[]
 >;
 export interface EditionRoute {
   id: string;
@@ -15,15 +31,20 @@ export interface EditionRoute {
   schedules: EditionSchedules;
   [key: string]: unknown;
 }
-export interface TimetableRelease {
+export type TimetableRelease = {
   id: string;
   effectiveFrom: string;
   effectiveToExclusive: string | null;
-  sourceHashes: { station: string; weekday: string; holiday: string };
-  issued: { weekday: string; holiday: string };
   reviewedAt: string;
   stations: Record<string, { path: string; sha256: string; routeHashes: Record<string, string> }>;
-}
+} & (
+  | {
+      gtfs?: undefined;
+      sourceHashes: { station: string; weekday: string; holiday: string };
+      issued: { weekday: string; holiday: string };
+    }
+  | { gtfs: GtfsTimetable }
+);
 export interface TimetableManifest {
   version: 1;
   railwayId: 'Asakusa';
@@ -38,6 +59,7 @@ export interface VerifiedRouteEdition {
   sha256: string;
   schedules: EditionSchedules;
   sourceUpdated?: string;
+  gtfs?: GtfsTimetable;
 }
 export interface EditionAwareRoute {
   id: string;
@@ -73,6 +95,33 @@ const validEditionDate = (d: unknown): d is string =>
   new Date(d + 'T00:00:00Z').toISOString().slice(0, 10) === d;
 const validEditionHash = (h: unknown): h is string =>
   typeof h === 'string' && /^[a-f0-9]{64}$/.test(h);
+function validGtfsRelease(release: TimetableRelease) {
+  const { gtfs, effectiveFrom, effectiveToExclusive } = release;
+  if (
+    !gtfs ||
+    !/^\d{8}$/.test(gtfs.version) ||
+    !validEditionHash(gtfs.sha256) ||
+    !validEditionDate(effectiveToExclusive) ||
+    !gtfs.serviceDays ||
+    typeof gtfs.serviceDays !== 'object'
+  )
+    return false;
+  const days = Object.entries(gtfs.serviceDays);
+  const start = Date.parse(effectiveFrom);
+  const length = (Date.parse(effectiveToExclusive) - start) / 86_400_000;
+  return (
+    length > 0 &&
+    length <= 366 &&
+    days.length === length &&
+    days.every(
+      ([date, day]) =>
+        validEditionDate(date) &&
+        date >= effectiveFrom &&
+        date < effectiveToExclusive &&
+        ['weekday', 'saturday', 'holiday'].includes(day),
+    )
+  );
+}
 export function validateTimetableManifest(value: unknown): TimetableManifest {
   const m = value as TimetableManifest;
   if (
@@ -98,19 +147,20 @@ export function validateTimetableManifest(value: unknown): TimetableManifest {
         ? r.id !== 'asakusa-pre-2026-11-21' || r.effectiveToExclusive !== ASAKUSA_CUTOVER
         : r.id !== 'asakusa-2026-11-21' ||
           r.effectiveFrom !== ASAKUSA_CUTOVER ||
-          r.effectiveToExclusive !== null) ||
-      !r.sourceHashes ||
-      !['station', 'weekday', 'holiday'].every((k) =>
-        validEditionHash(r.sourceHashes[k as keyof typeof r.sourceHashes]),
-      ) ||
-      !r.issued ||
-      !validEditionDate(r.issued.weekday) ||
-      !validEditionDate(r.issued.holiday) ||
-      (r.effectiveFrom >= ASAKUSA_CUTOVER &&
-        (r.issued.weekday < ASAKUSA_CUTOVER ||
-          r.issued.weekday > '2026-11-24' ||
-          r.issued.holiday < ASAKUSA_CUTOVER ||
-          r.issued.holiday > ASAKUSA_CUTOVER))
+          (!r.gtfs && r.effectiveToExclusive !== null)) ||
+      (r.gtfs !== undefined
+        ? r.effectiveFrom !== ASAKUSA_CUTOVER || !validGtfsRelease(r)
+        : !r.sourceHashes ||
+          ![r.sourceHashes.station, r.sourceHashes.weekday, r.sourceHashes.holiday].every(
+            validEditionHash,
+          ) ||
+          !r.issued ||
+          !validEditionDate(r.issued.weekday) ||
+          !validEditionDate(r.issued.holiday) ||
+          (r.effectiveFrom >= ASAKUSA_CUTOVER &&
+            (r.issued.weekday < ASAKUSA_CUTOVER ||
+              r.issued.weekday > '2026-11-24' ||
+              r.issued.holiday !== ASAKUSA_CUTOVER)))
     )
       throw Error('timetable-release-unverified');
     ids.add(r.id);
@@ -154,12 +204,7 @@ export function advanceTimetableManifest(
     throw Error('timetable-manifest-generation-conflict');
   return candidate;
 }
-export function schedulesForDate(route: EditionAwareRoute, date: string): EditionSchedules | null {
-  if (!managesTimetable(route)) return route.schedules;
-  // Compatibility for pure legacy callers before the known revision. The app
-  // loader always sets this field (including [] on failure) after hash checks.
-  // Missing metadata never enables a schedule on/after the revision.
-  if (date < ASAKUSA_CUTOVER && route.timetableEditions === undefined) return route.schedules;
+export function timetableEditionForDate(route: EditionAwareRoute, date: string) {
   const expected = date < ASAKUSA_CUTOVER ? 'asakusa-pre-2026-11-21' : 'asakusa-2026-11-21';
   const matches = route.timetableEditions?.filter(
     (e) =>
@@ -168,9 +213,15 @@ export function schedulesForDate(route: EditionAwareRoute, date: string): Editio
       (e.effectiveToExclusive === null || date < e.effectiveToExclusive) &&
       (date < ASAKUSA_CUTOVER
         ? e.effectiveToExclusive === ASAKUSA_CUTOVER
-        : e.effectiveFrom === ASAKUSA_CUTOVER && e.effectiveToExclusive === null),
+        : e.effectiveFrom === ASAKUSA_CUTOVER &&
+          (e.gtfs ? Object.hasOwn(e.gtfs.serviceDays, date) : e.effectiveToExclusive === null)),
   );
-  return matches?.length === 1 ? matches[0].schedules : null;
+  return matches?.length === 1 ? matches[0] : null;
+}
+export function schedulesForDate(route: EditionAwareRoute, date: string): EditionSchedules | null {
+  if (!managesTimetable(route) || (date < ASAKUSA_CUTOVER && route.timetableEditions === undefined))
+    return route.schedules;
+  return timetableEditionForDate(route, date)?.schedules ?? null;
 }
 export async function verifyEditionAsset(
   text: string,
@@ -207,10 +258,21 @@ export async function verifyEditionAsset(
           Array.isArray(route.schedules?.[day]) &&
           route.schedules[day].length > 0 &&
           route.schedules[day].every(
-            (t: any) =>
+            (t: EditionSchedules['weekday'][number]) =>
               /^([01]\d|2[0-3]):[0-5]\d$/.test(t.time) &&
               typeof t.destination === 'string' &&
-              typeof t.type === 'string',
+              typeof t.type === 'string' &&
+              (release.gtfs
+                ? t.type === '' &&
+                  !!t.gtfs &&
+                  Number.isSafeInteger(t.gtfs.stopMask) &&
+                  t.gtfs.stopMask > 0 &&
+                  t.gtfs.stopMask < 2 ** 20 &&
+                  (t.trainId === undefined ||
+                    (/^odpt\.Train:Toei\.Asakusa\.\d{3,4}[HKNT][ab]?$/.test(t.trainId) &&
+                      typeof t.gtfs.destinationId === 'string' &&
+                      /^[A-Za-z0-9]+$/.test(t.gtfs.destinationId)))
+                : t.gtfs === undefined),
           ),
       )
     )

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { STATIONS, RAILWAY_CATALOG } from '../shared/stations.ts';
 import { searchStations } from '../src/lib/station-search.ts';
 import type { StationData } from '../src/types.ts';
+import { JOURNEY_GTFS_CATALOG } from '../shared/journey-sources.ts';
 
 test('都営4路線の全106駅を99駅へまとめ、乗換・駅順・駅番号・よみ・所在地を保持する', () => {
   assert.equal(STATIONS.length, 99);
@@ -56,7 +57,17 @@ test('終端駅は公開された出発方向のみ、都庁前は3方面、新�
   const all = STATIONS.map((station) => load(station.id));
   assert.equal(all.flatMap((station) => station.routes).length, 206);
   const tableIds = all.flatMap((station) =>
-    station.routes.flatMap((route) => route.sourceTimetableIds!),
+    station.routes.flatMap((route) => {
+      if (route.sourceUrl === JOURNEY_GTFS_CATALOG && route.railwayId === 'Asakusa') {
+        assert.ok(route.schedules.saturday.length);
+        return (['weekday', 'holiday'] as const).map((day) => {
+          assert.ok(route.schedules[day].length);
+          return [station.id, route.id, day].join('/');
+        });
+      }
+      assert.equal(route.sourceTimetableIds?.length, 2);
+      return route.sourceTimetableIds!;
+    }),
   );
   assert.equal(new Set(tableIds).size, 412);
   const coverage = JSON.parse(readFileSync('public/metadata/toei-coverage.json', 'utf8'));

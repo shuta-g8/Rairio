@@ -177,12 +177,12 @@ export function DepartureRow({
   const typeBackground = trainTypeColor(departure.type, railwayId);
   return (
     <div className={`departure-row ${index === 0 ? 'first' : 'second'}`} data-flip={flip}>
-      {(showRank || showType) && (
+      {(showRank || (showType && departure.type)) && (
         <div className="departure-type">
           {showRank && (
             <span className="departure-rank">{rankContent ?? (index === 0 ? '先発' : '次発')}</span>
           )}
-          {showType && (
+          {showType && departure.type && (
             <span
               className="train-type"
               data-unfilled={typeBackground === 'transparent' || undefined}
@@ -279,6 +279,11 @@ export function RouteCard({
           <p className="empty-message">発車予定がありません。時刻表をご確認ください。</p>
         )}
       </div>
+      {display.arrivalEstimate && (
+        <p className="journey-data-note">
+          先発列車の駅付近への到着予測　{display.arrivalEstimate}頃
+        </p>
+      )}
       <button className="full-timetable" onClick={onOpen}>
         <CalendarDotsIcon size={15} aria-hidden="true" />
         一日分の時刻表

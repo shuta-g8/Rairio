@@ -12,15 +12,10 @@ import type {
   OnlineJourneyLeg,
   OnlineJourneyPlan,
 } from '../../shared/journey-online';
-import type { TrainPositionsSnapshot } from '../../shared/train-positions';
-import type { StationData } from '../types';
-import { useJourneyStationData } from '../hooks/useJourneyStationData';
 import { confirmedOdptTimes, requestOnlineFares } from '../lib/journey-online';
-import { journeyLcdDeparture, type JourneyLcdDeparture } from '../lib/journey-lcd';
 import { onlineJourneyLineId } from '../lib/journey-lines';
 import type { JourneySort } from '../lib/journey-sort';
 import { AnimatedDetails } from './AnimatedDetails';
-import { JourneyDepartureDisplay } from './JourneyDepartureDisplay';
 import { JourneyRailLabel, JourneySummaryHeading, journeyLineSymbol } from './JourneyLineMark';
 import { JourneyRailTrack } from './JourneyRailTrack';
 import { JourneyStationNumbers, type JourneyStopNumber } from './JourneyStationNumbers';
@@ -83,37 +78,18 @@ function onlineStationNumber(
 export function OnlineJourneyResults({
   plan,
   timetable,
-  selectedStationData,
-  positions,
   searchDate,
   sort,
   onSort,
 }: {
   plan: OnlineJourneyPlan;
   timetable?: JourneyData;
-  selectedStationData?: StationData | null;
-  positions?: TrainPositionsSnapshot | null;
   searchDate: string;
   sort: JourneySort;
   onSort: (sort: JourneySort) => void;
 }) {
   const [shown, setShown] = useState(journeyResultsPerPage);
   const officialTimes = useMemo(() => confirmedOdptTimes(plan, timetable), [plan, timetable]);
-  const stationIds = useMemo(
-    () => [...new Set([...officialTimes.values()].map((match) => match.fromStation))],
-    [officialTimes],
-  );
-  const stations = useJourneyStationData(stationIds, selectedStationData);
-  const lcds = useMemo(() => {
-    const displays = new Map<OnlineJourneyLeg, JourneyLcdDeparture>();
-    if (!timetable) return displays;
-    for (const [leg, match] of officialTimes) {
-      const station = stations.get(match.fromStation);
-      const lcd = station && journeyLcdDeparture(station, match.journey, timetable);
-      if (lcd) displays.set(leg, lcd);
-    }
-    return displays;
-  }, [officialTimes, stations, timetable]);
   const [fareState, setFareState] = useState<{
     busy: boolean;
     fares?: OnlineJourneyFare[];
@@ -173,13 +149,41 @@ export function OnlineJourneyResults({
           NAVITIMEの応答から、表示中の経路の参考運賃を確認できませんでした。
         </p>
       )}
+      {fareState?.fares && fareState.fares.length > 0 && (
+        <table className="journey-fare-comparison">
+          <caption>検索結果の参考運賃比較</caption>
+          <thead>
+            <tr>
+              <th scope="col">経路（発時刻・路線）</th>
+              <th scope="col">IC</th>
+              <th scope="col">きっぷ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {routes.map((route) => {
+              const fare = fareState.fares?.find((item) => item.id === route.id);
+              return (
+                <tr key={route.id}>
+                  <th scope="row">
+                    {clock.format(route.start)}　
+                    {route.legs
+                      .filter((leg) => !leg.walk)
+                      .map((leg) => leg.line)
+                      .join(' → ')}
+                  </th>
+                  <td>{fare?.ic == null ? '未確認' : fare.ic + '円'}</td>
+                  <td>{fare == null ? '未確認' : fare.ticket + '円'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
       {routes.slice(0, shown).map((route, index) => (
         <OnlineRoute
           key={route.id}
           route={route}
           officialTimes={officialTimes}
-          lcds={lcds}
-          positions={positions}
           searchDate={searchDate}
           index={index}
           fare={fareState?.fares?.find((fare) => fare.id === route.id)}
@@ -220,8 +224,6 @@ export function OnlineJourneyResults({
 function OnlineRoute({
   route,
   officialTimes,
-  lcds,
-  positions,
   searchDate,
   index,
   fare,
@@ -229,8 +231,6 @@ function OnlineRoute({
 }: {
   route: OnlineJourney;
   officialTimes: ReturnType<typeof confirmedOdptTimes>;
-  lcds: ReadonlyMap<OnlineJourneyLeg, JourneyLcdDeparture>;
-  positions?: TrainPositionsSnapshot | null;
   searchDate: string;
   index: number;
   fare?: OnlineJourneyFare;
@@ -305,7 +305,6 @@ function OnlineRoute({
               (line) => line !== undefined,
             );
             const lineId = onlineJourneyLineId(leg);
-            const lcd = lcds.get(leg);
             const startCode = onlineStationNumber(leg, 'fromCode');
             const arrivalCodes = [
               onlineStationNumber(leg, 'toCode'),
@@ -325,25 +324,6 @@ function OnlineRoute({
                       />
                     }
                   />
-                )}
-                {!leg.walk && leg.toeiLine && (
-                  <tr className="journey-lcd-row">
-                    <td colSpan={2}>
-                      {lcd ? (
-                        <JourneyDepartureDisplay lcd={lcd} positions={positions} />
-                      ) : (
-                        <JourneyDepartureDisplay
-                          schedule={{
-                            line: leg.toeiLine,
-                            stationName: leg.from,
-                            timestamp: start,
-                            destination,
-                            source: official ? 'ODPT' : 'Transitous',
-                          }}
-                        />
-                      )}
-                    </td>
-                  </tr>
                 )}
                 {leg.walk ? (
                   <JourneyWalkRow>

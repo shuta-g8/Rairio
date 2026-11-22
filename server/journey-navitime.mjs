@@ -3,14 +3,18 @@ import { japaneseLabel } from './journey-transitous.mjs';
 
 export const navitimeHost = 'navitime-route-totalnavi.p.rapidapi.com';
 
-// Reviewed equivalences from the two-provider prototype. Other routes require identical line names.
+// Reviewed equivalences between the providers. Other routes require identical line names.
 const alternateLines = new Map([
   [
     'jp-tokyo-rail_JR-East.Tokaido',
     ['東海道本線(東京-熱海)', '東海道本線(上野東京ライン)', '上野東京ライン'],
   ],
   ['jp-tokyo-rail_JR-East.Yokosuka', ['横須賀線・総武線快速']],
-  ['jp-tokyo-rail_JR-East.KeihinTohokuNegishi', ['京浜東北線・根岸線', '京浜東北・根岸線']],
+  [
+    'jp-tokyo-rail_JR-East.KeihinTohokuNegishi',
+    ['京浜東北線・根岸線', '京浜東北・根岸線', '京浜東北線'],
+  ],
+  ['jp-tokyo-rail_JR-East.Utsunomiya', ['宇都宮線〔東北本線〕（東京-宇都宮）']],
   ['jp-tokyo-rail_JR-East.ShonanShinjuku', ['湘南新宿ライン(宇都宮-逗子)']],
 ]);
 const lineKey = (name) =>
@@ -19,6 +23,16 @@ const lineKey = (name) =>
     .replace(/\s+/g, '')
     .replace(/^(?:JR|東京メトロ|都営地下鉄|都営)/, '')
     .replace(/(?:内回り|外回り)$/, '');
+
+const utsunomiyaTakasakiSharedStations = new Set([
+  '東京',
+  '上野',
+  '尾久',
+  '赤羽',
+  '浦和',
+  'さいたま新都心',
+  '大宮',
+]);
 
 function matchesStation(point, link, expected, points) {
   if (point?.type !== 'point' || (link?.id && point.node_id && link.id !== point.node_id))
@@ -48,6 +62,16 @@ function matchesRide(section, from, to, expected, points) {
   const first = links[0];
   const last = links.at(-1);
   const names = [expected.line, ...(alternateLines.get(expected.routeId) ?? [])].map(lineKey);
+  // NAVITIME's link names the common track even when the train's line differs.
+  if (
+    ['jp-tokyo-rail_JR-East.Utsunomiya', 'jp-tokyo-rail_JR-East.Takasaki'].includes(
+      expected.routeId,
+    ) &&
+    [expected.from, expected.to].every(({ name }) =>
+      utsunomiyaTakasakiSharedStations.has(stationNameKey(name)),
+    )
+  )
+    names.push(lineKey('宇都宮線〔東北本線〕・ＪＲ上野東京ライン'));
   if (
     links.length > 1 &&
     !links.every(

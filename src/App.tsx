@@ -157,13 +157,7 @@ export default function App() {
           </nav>
           {view === 'journey' && (
             <Suspense fallback={<LoadingStatus>経路案内を読み込んでいます…</LoadingStatus>}>
-              <JourneyPlanner
-                stationId={stationId}
-                onManualInput={nearby.cancel}
-                nearby={nearby}
-                selectedStationData={stationData.data}
-                positions={trainPositions}
-              />
+              <JourneyPlanner stationId={stationId} onManualInput={nearby.cancel} nearby={nearby} />
             </Suspense>
           )}
           <div hidden={view !== 'departures'}>

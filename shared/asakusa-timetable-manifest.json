@@ -2,7 +2,7 @@
   "version": 1,
   "railwayId": "Asakusa",
   "serviceDayStartHourJst": 4,
-  "generation": 1,
+  "generation": 2,
   "releases": [
     {
       "id": "asakusa-pre-2026-11-21",
@@ -13,10 +13,7 @@
         "weekday": "692b4f183748ffbe672ad490cf5f69ab434db10dffa1eeabc9aa8941633a1c95",
         "holiday": "d23108a028a1b4882473d0f0efefc657a221cb33fb55e897a285a7317941c76f"
       },
-      "issued": {
-        "weekday": "2025-12-15",
-        "holiday": "2025-12-13"
-      },
+      "issued": { "weekday": "2025-12-15", "holiday": "2025-12-13" },
       "reviewedAt": "2026-11-13T09:26:19.789Z",
       "stations": {
         "nishimagome": {
@@ -175,6 +172,290 @@
           "sha256": "0d13e48b366ba5ed872a7403555e12aa27ecdfba75e916226c2a674002234e2a",
           "routeHashes": {
             "Toei.Asakusa.Southbound": "e66e479b2f3af3e5f978911d02ae1a35b03dc48bbbe9903a38672de22959abc5"
+          }
+        }
+      }
+    },
+    {
+      "id": "asakusa-2026-11-21",
+      "effectiveFrom": "2026-11-21",
+      "effectiveToExclusive": "2027-03-13",
+      "gtfs": {
+        "version": "20261120",
+        "sha256": "5edcd252f2380c68ce22683bf52d4f78479d5e514303a15f4487dcf295aa55bd",
+        "serviceDays": {
+          "2026-11-21": "saturday",
+          "2026-11-22": "holiday",
+          "2026-11-23": "holiday",
+          "2026-11-24": "weekday",
+          "2026-11-25": "weekday",
+          "2026-11-26": "weekday",
+          "2026-11-27": "weekday",
+          "2026-11-28": "saturday",
+          "2026-11-29": "holiday",
+          "2026-11-30": "weekday",
+          "2026-12-01": "weekday",
+          "2026-12-02": "weekday",
+          "2026-12-03": "weekday",
+          "2026-12-04": "weekday",
+          "2026-12-05": "saturday",
+          "2026-12-06": "holiday",
+          "2026-12-07": "weekday",
+          "2026-12-08": "weekday",
+          "2026-12-09": "weekday",
+          "2026-12-10": "weekday",
+          "2026-12-11": "weekday",
+          "2026-12-12": "saturday",
+          "2026-12-13": "holiday",
+          "2026-12-14": "weekday",
+          "2026-12-15": "weekday",
+          "2026-12-16": "weekday",
+          "2026-12-17": "weekday",
+          "2026-12-18": "weekday",
+          "2026-12-19": "saturday",
+          "2026-12-20": "holiday",
+          "2026-12-21": "weekday",
+          "2026-12-22": "weekday",
+          "2026-12-23": "weekday",
+          "2026-12-24": "weekday",
+          "2026-12-25": "weekday",
+          "2026-12-26": "saturday",
+          "2026-12-27": "holiday",
+          "2026-12-28": "weekday",
+          "2026-12-29": "weekday",
+          "2026-12-30": "weekday",
+          "2026-12-31": "weekday",
+          "2027-01-01": "holiday",
+          "2027-01-02": "saturday",
+          "2027-01-03": "holiday",
+          "2027-01-04": "weekday",
+          "2027-01-05": "weekday",
+          "2027-01-06": "weekday",
+          "2027-01-07": "weekday",
+          "2027-01-08": "weekday",
+          "2027-01-09": "saturday",
+          "2027-01-10": "holiday",
+          "2027-01-11": "holiday",
+          "2027-01-12": "weekday",
+          "2027-01-13": "weekday",
+          "2027-01-14": "weekday",
+          "2027-01-15": "weekday",
+          "2027-01-16": "saturday",
+          "2027-01-17": "holiday",
+          "2027-01-18": "weekday",
+          "2027-01-19": "weekday",
+          "2027-01-20": "weekday",
+          "2027-01-21": "weekday",
+          "2027-01-22": "weekday",
+          "2027-01-23": "saturday",
+          "2027-01-24": "holiday",
+          "2027-01-25": "weekday",
+          "2027-01-26": "weekday",
+          "2027-01-27": "weekday",
+          "2027-01-28": "weekday",
+          "2027-01-29": "weekday",
+          "2027-01-30": "saturday",
+          "2027-01-31": "holiday",
+          "2027-02-01": "weekday",
+          "2027-02-02": "weekday",
+          "2027-02-03": "weekday",
+          "2027-02-04": "weekday",
+          "2027-02-05": "weekday",
+          "2027-02-06": "saturday",
+          "2027-02-07": "holiday",
+          "2027-02-08": "weekday",
+          "2027-02-09": "weekday",
+          "2027-02-10": "weekday",
+          "2027-02-11": "holiday",
+          "2027-02-12": "weekday",
+          "2027-02-13": "saturday",
+          "2027-02-14": "holiday",
+          "2027-02-15": "weekday",
+          "2027-02-16": "weekday",
+          "2027-02-17": "weekday",
+          "2027-02-18": "weekday",
+          "2027-02-19": "weekday",
+          "2027-02-20": "saturday",
+          "2027-02-21": "holiday",
+          "2027-02-22": "weekday",
+          "2027-02-23": "holiday",
+          "2027-02-24": "weekday",
+          "2027-02-25": "weekday",
+          "2027-02-26": "weekday",
+          "2027-02-27": "saturday",
+          "2027-02-28": "holiday",
+          "2027-03-01": "weekday",
+          "2027-03-02": "weekday",
+          "2027-03-03": "weekday",
+          "2027-03-04": "weekday",
+          "2027-03-05": "weekday",
+          "2027-03-06": "saturday",
+          "2027-03-07": "holiday",
+          "2027-03-08": "weekday",
+          "2027-03-09": "weekday",
+          "2027-03-10": "weekday",
+          "2027-03-11": "weekday",
+          "2027-03-12": "weekday"
+        }
+      },
+      "reviewedAt": "2026-11-22T21:00:00+09:00",
+      "stations": {
+        "nishimagome": {
+          "path": "timetables/asakusa/3b3980e345a57433eb16f8e6b847ec155172658cf4cbf80491265fd2833ad146-nishimagome.json",
+          "sha256": "3b3980e345a57433eb16f8e6b847ec155172658cf4cbf80491265fd2833ad146",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "c76eac08823a2532bf09268757273b7ceef7959594bb0425d6571ed3cf1d02c3"
+          }
+        },
+        "magome": {
+          "path": "timetables/asakusa/6e70e6978b1563b51f60b96edf98017ce02e7a433f35208a178cdd2f2e10b8ae-magome.json",
+          "sha256": "6e70e6978b1563b51f60b96edf98017ce02e7a433f35208a178cdd2f2e10b8ae",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "a99b932bfc535fbf639f88f700cc9df3bd03589112df3059cd9089ed4b9cf61f",
+            "Toei.Asakusa.Southbound": "9b837110322456a8b9375949f9d7d8a6d6d33dfda3f8564e4c35d1d12d9ea39f"
+          }
+        },
+        "nakanobu": {
+          "path": "timetables/asakusa/0a0364529fcdf8c1a661e0b27c51773c3eaed117a2e6cb6109e1cf355765fe65-nakanobu.json",
+          "sha256": "0a0364529fcdf8c1a661e0b27c51773c3eaed117a2e6cb6109e1cf355765fe65",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "83f3d6508bb7bfd20872bc9ceae636b9a3489041ff6c390d162d9b81dcddffc2",
+            "Toei.Asakusa.Southbound": "d5c92cd466a954117950a689b10a5406a8da08c848acc15ef54d3c751aa55b77"
+          }
+        },
+        "togoshi": {
+          "path": "timetables/asakusa/46b2456edd1dcf1edd715619253d63c8f13e87eaedfa85074d07daa39f26f0f8-togoshi.json",
+          "sha256": "46b2456edd1dcf1edd715619253d63c8f13e87eaedfa85074d07daa39f26f0f8",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "1c999efaa28192a36680a906c81fa6e920e9a75a62cc07682ff5e5fa0f940fc0",
+            "Toei.Asakusa.Southbound": "50f27f47b2211c1197cb3e4437d58ae4a74976a15c3538b7d586de584f7fae16"
+          }
+        },
+        "gotanda": {
+          "path": "timetables/asakusa/5a66b53615bb8950c3580e2517a7b4f50fcb8702f8192f8ee6e23c847e6d66b9-gotanda.json",
+          "sha256": "5a66b53615bb8950c3580e2517a7b4f50fcb8702f8192f8ee6e23c847e6d66b9",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "d8e4c09edd80be893e5912f55945bd852e3709a69b8e5ea89de73c2bb153ee00",
+            "Toei.Asakusa.Southbound": "4a45edac5428113112476f173a888db7e0984ed3302f849185af557275243098"
+          }
+        },
+        "takanawadai": {
+          "path": "timetables/asakusa/1256d7bc56c2f9bf865c7a0b4be62a6ea13be5a0f98188219293db5759688575-takanawadai.json",
+          "sha256": "1256d7bc56c2f9bf865c7a0b4be62a6ea13be5a0f98188219293db5759688575",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "98843b7512c50ae21d0d5e4b3e20425463606859619db7f6afd789133c15b2c2",
+            "Toei.Asakusa.Southbound": "97b6c776e6b151948fdb80d47b4a72b970921b90b9d658301156f8b74bacc7ec"
+          }
+        },
+        "sengakuji": {
+          "path": "timetables/asakusa/1b16c0b939e72f003e6520c38fdc1e1f0a2c76e16f68882b2a0cd044cf287e76-sengakuji.json",
+          "sha256": "1b16c0b939e72f003e6520c38fdc1e1f0a2c76e16f68882b2a0cd044cf287e76",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "c2e3c409d66b1f87e66866950c6d673ff1aada0b2a8bc2af6b2740efe2e194d7",
+            "Toei.Asakusa.Southbound": "b7d126b2189196c8717d8ebe19f43f99aab3a67f9b4c51dc2e11a964599d9b6d"
+          }
+        },
+        "mita": {
+          "path": "timetables/asakusa/98fc012d7ec029b9675771aab47019ba8fb3b89a5eb78407a0b9b8da9da76624-mita.json",
+          "sha256": "98fc012d7ec029b9675771aab47019ba8fb3b89a5eb78407a0b9b8da9da76624",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "621b3e5dfe6718e577b0ec61e576eeda8d8eda9e9488e2e4dce455cebbe6ff99",
+            "Toei.Asakusa.Southbound": "1e234ebc0e4cc4e13e08fc5a360d46faa256653084ce6635d002936185877efb"
+          }
+        },
+        "daimon": {
+          "path": "timetables/asakusa/58ce5909b9b2d802010c8c97645621e2ff4773500296dc5cbc7570316f52f27d-daimon.json",
+          "sha256": "58ce5909b9b2d802010c8c97645621e2ff4773500296dc5cbc7570316f52f27d",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "a2605dfcc56ce2d7ef446a5fc0fc4d46041bae3195748e20265966fefb0621ad",
+            "Toei.Asakusa.Southbound": "dfb10234838ab6cc714e9fb6c9fb0300308af3f6119fc7373f5a82420e14bb44"
+          }
+        },
+        "shimbashi": {
+          "path": "timetables/asakusa/4e9422ff3591a8dcc5db12691cdd53443e955cacd74adee083577b583ce33e17-shimbashi.json",
+          "sha256": "4e9422ff3591a8dcc5db12691cdd53443e955cacd74adee083577b583ce33e17",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "62fe80bde6214bdc89318bf173d32a175a812d6824672a756dc06ae0a7a4c9ad",
+            "Toei.Asakusa.Southbound": "00c16726e79d66b40a36248e0407f97a1b064606bf4a37790fb5637ee55d6b56"
+          }
+        },
+        "higashiginza": {
+          "path": "timetables/asakusa/73c3da5214068bacad8800e8cf005d8a6700fc1cb39942d8468ee7c34cdd1605-higashiginza.json",
+          "sha256": "73c3da5214068bacad8800e8cf005d8a6700fc1cb39942d8468ee7c34cdd1605",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "caefd99211a6e608901f93406d0d12e36fc07845e9bf6bc586f289456f4d3f8f",
+            "Toei.Asakusa.Southbound": "89c61530b0441ee75fac91a72da0c7e5a94bab00d4b436a918540b65effe4729"
+          }
+        },
+        "takaracho": {
+          "path": "timetables/asakusa/1d172d8db28f5033019464dc0d756b731bd9eb98c0fb94a23956a26241ef5ddd-takaracho.json",
+          "sha256": "1d172d8db28f5033019464dc0d756b731bd9eb98c0fb94a23956a26241ef5ddd",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "5aedf4f60b36058ae12407d8118454772b9f9ae5c9075eb2f1f0911d027daa3e",
+            "Toei.Asakusa.Southbound": "591b15840ae903c28a614b09f7ebb4cfd347715d52c6e654e952a19f105500c6"
+          }
+        },
+        "nihombashi": {
+          "path": "timetables/asakusa/7288a96fbb5267517d1929ef4227f1cb2563d312e1cb735a937dac3c5f4bc98e-nihombashi.json",
+          "sha256": "7288a96fbb5267517d1929ef4227f1cb2563d312e1cb735a937dac3c5f4bc98e",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "d2cfdaa124f54841fab9ae563b3f28bcd10676d6d3de7e5f8ec2fdc33bd9c3e5",
+            "Toei.Asakusa.Southbound": "c24dff415771c3193a5e592c6312706d68ec79612351a2e31be50d9728bdfca0"
+          }
+        },
+        "ningyocho": {
+          "path": "timetables/asakusa/220801479560470043a3f237587c5f8e6281423b6a36b9829f5bb80a4adaedc9-ningyocho.json",
+          "sha256": "220801479560470043a3f237587c5f8e6281423b6a36b9829f5bb80a4adaedc9",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "8a671996a2aff61a7cfa26f7f42dcfb72929f3d9fcee76e03a069b7867184e32",
+            "Toei.Asakusa.Southbound": "678e11a22b5bdc2a00343f215ea39b84b4ef5e3329c82717750e93492ff4d228"
+          }
+        },
+        "higashinihombashi": {
+          "path": "timetables/asakusa/9f045485f97d229c5e6349f1eb4e63beb2327bf5ccbe9a10774cd2e8aef69668-higashinihombashi.json",
+          "sha256": "9f045485f97d229c5e6349f1eb4e63beb2327bf5ccbe9a10774cd2e8aef69668",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "9c19ac51d7e2f05a580725a524a0332a480486edaabca4c70d7924bcf848b986",
+            "Toei.Asakusa.Southbound": "a8d0b95829ca3127a3efb162863c65fa80a16625caafe6c02e166d4193c7f9ad"
+          }
+        },
+        "asakusabashi": {
+          "path": "timetables/asakusa/49801a9a1f866726af82e262116a82020b64bd4682a969c16bf550a106cefadb-asakusabashi.json",
+          "sha256": "49801a9a1f866726af82e262116a82020b64bd4682a969c16bf550a106cefadb",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "b7f01f685b3c9a9683effcdc1a5c0ad741370e69568df9feeebf6b03e0604b0b",
+            "Toei.Asakusa.Southbound": "694b6c57f760443792bfd99b463c572c2a9c81855641b62a8a4d83be624fc3d0"
+          }
+        },
+        "kuramae": {
+          "path": "timetables/asakusa/176f42eec947d3361f27a2a6cdbcd00aa9242bf292b8b6388900b82c1859157c-kuramae.json",
+          "sha256": "176f42eec947d3361f27a2a6cdbcd00aa9242bf292b8b6388900b82c1859157c",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "618ac296a5fd9746aeed47701457f61f50891b73fe3b3228b9f927e94a9e9381",
+            "Toei.Asakusa.Southbound": "38da67e54f50f84ab5e82b58283d06b0fbe5c931489888ae75c3fe067cf5f61d"
+          }
+        },
+        "asakusa": {
+          "path": "timetables/asakusa/ab96b1da968227653454aa561b7d910e0f80f4e5ae7fadfb856c300bd002f247-asakusa.json",
+          "sha256": "ab96b1da968227653454aa561b7d910e0f80f4e5ae7fadfb856c300bd002f247",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "bc96b561fb0937176307f36e74b79a1f8de52e8450921a9c70551dad8f9956e2",
+            "Toei.Asakusa.Southbound": "2f759ecc81b536252d311f1a4e6190a73a4f3a0dcb6d1b1d17dd176fd0e94843"
+          }
+        },
+        "honjoazumabashi": {
+          "path": "timetables/asakusa/015cbf0772bca4b85643857afc8a19b98f2c893149cdb54d7d2915336279e38b-honjoazumabashi.json",
+          "sha256": "015cbf0772bca4b85643857afc8a19b98f2c893149cdb54d7d2915336279e38b",
+          "routeHashes": {
+            "Toei.Asakusa.Northbound": "882238ee2405e9d9834b136779459cecfe29cdeff006374b4b9a6d767ea406e7",
+            "Toei.Asakusa.Southbound": "3fbe66c73f05df84e0124a9ee475baf5f5cc39d24f55a429d0ad341f94ffa959"
+          }
+        },
+        "oshiage": {
+          "path": "timetables/asakusa/4e9d78b4384c133e8cab96f02fe2652dedaac607d5c8f4b306b62563cd23e0f2-oshiage.json",
+          "sha256": "4e9d78b4384c133e8cab96f02fe2652dedaac607d5c8f4b306b62563cd23e0f2",
+          "routeHashes": {
+            "Toei.Asakusa.Southbound": "89232c7a2ff35fcb3ffbc867a46cc40762c5524576b3fc134f02ecfb4e33f3e8"
           }
         }
       }

@@ -45,7 +45,11 @@ export const SiteFooter = memo(function SiteFooter({
         </p>
       </footer>
       {showUpdates && (
-        <Modal title="更新履歴" onClose={() => setShowUpdates(false)}>
+        <Modal
+          title="更新履歴"
+          onClose={() => setShowUpdates(false)}
+          mobileCloseLabel="更新履歴を閉じる"
+        >
           <div className="release-notes">
             {RELEASE_NOTES.map(({ version, date, changes }) => (
               <section key={version}>

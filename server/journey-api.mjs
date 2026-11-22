@@ -7,7 +7,7 @@ const headers = { ...securityHeaders, 'Cache-Control': 'private, no-store' };
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const fareTokenLifetime = 15 * 60_000;
-const apiVersion = '1.3.0';
+const apiVersion = '1.3.1';
 
 const json = (body, status = 200) => Response.json(body, { headers, status });
 const failure = (error, status, code) => json({ error, code }, status);

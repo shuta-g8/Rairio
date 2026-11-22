@@ -59,7 +59,6 @@ function HeroClock({ now }: { now: Date }) {
     <div className="hero-clock">
       <p>
         <ClockIcon size={14} aria-hidden="true" />
-        <span className="clock-timezone">JST</span>
         <span className="clock-service-day">{DAY_LABEL[dayKind(serviceDate(now))]}ダイヤ</span>
       </p>
       <div className="clock-digits" aria-label={`日本時間 ${hours}時${minutes}分${seconds}秒`}>

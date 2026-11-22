@@ -2,8 +2,10 @@ import { memo, useMemo, useRef, useState } from 'react';
 import { ArrowDownIcon } from '@phosphor-icons/react/dist/csr/ArrowDown';
 import { ArrowSquareOutIcon } from '@phosphor-icons/react/dist/csr/ArrowSquareOut';
 import { useClock } from '../hooks/useClock';
-import { DAY_LABEL, japanHour, serviceHour, serviceDate, dayKind } from '../lib/time';
-import { schedulesForDate } from '../../shared/timetable-editions';
+import { DAY_LABEL, japanHour, serviceHour, serviceDate, timetableDay } from '../lib/time';
+import { schedulesForDate, timetableEditionForDate } from '../../shared/timetable-editions';
+import { JOURNEY_GTFS_CATALOG } from '../../shared/journey-sources';
+import { TIMETABLE_SOURCE } from '../../shared/transit-source';
 import { TimetableUnavailable } from './TimetableUnavailable';
 import { groupTimetableByHour } from '../lib/timetable';
 import { lineName, lineSymbol, stationDisplayName } from '../lib/stations';
@@ -20,8 +22,12 @@ export const TimetableContent = memo(function TimetableContent({
 }) {
   const now = useClock();
   const date = serviceDate(now);
-  const [selection, setSelection] = useState(() => ({ date, day: initialDay, manual: false }));
-  const day = selection.manual || selection.date === date ? selection.day : dayKind(date);
+  const edition = timetableEditionForDate(route, date);
+  const gtfs = edition?.gtfs;
+  const openedOn = useRef(date);
+  const [selection, setSelection] = useState<{ edition?: string; day: DayKind }>();
+  const defaultDay = gtfs || openedOn.current !== date ? timetableDay(route, date) : initialDay;
+  const day = selection && selection.edition === edition?.id ? selection.day : defaultDay;
   const currentHour = serviceHour(japanHour(now));
   const currentRow = useRef<HTMLTableRowElement>(null);
   const applicable = schedulesForDate(route, serviceDate(now));
@@ -52,7 +58,7 @@ export const TimetableContent = memo(function TimetableContent({
           <button
             key={kind}
             aria-pressed={day === kind}
-            onClick={() => setSelection({ date, day: kind, manual: true })}
+            onClick={() => setSelection({ edition: edition?.id, day: kind })}
           >
             {DAY_LABEL[kind]}
           </button>
@@ -92,9 +98,11 @@ export const TimetableContent = memo(function TimetableContent({
                     {trains.map((train, index) => (
                       <div key={`${train.time}-${index}`} className="minute-item">
                         <strong>{train.time.slice(3)}</strong>
-                        <span>
-                          {trainTypeName(train.type, route.railwayId || route.id.split('.')[1])}
-                        </span>
+                        {train.type && (
+                          <span>
+                            {trainTypeName(train.type, route.railwayId || route.id.split('.')[1])}
+                          </span>
+                        )}
                         <span>
                           {stationDisplayName(train.destination)}
                           {train.extra ? ' ※' : ''}
@@ -111,11 +119,17 @@ export const TimetableContent = memo(function TimetableContent({
       <div className="modal-footer">
         <span>※ 運転日が指定された列車です。出典でご確認ください。</span>
         <a
-          href={`${route.sourceUrl}?kind=${day === 'weekday' ? '1' : day === 'saturday' ? '2' : '4'}`}
+          href={
+            gtfs
+              ? JOURNEY_GTFS_CATALOG
+              : (route.sourceUrl === JOURNEY_GTFS_CATALOG ? TIMETABLE_SOURCE : route.sourceUrl) +
+                '?kind=' +
+                (day === 'weekday' ? '1' : day === 'saturday' ? '2' : '4')
+          }
           target="_blank"
           rel="noreferrer"
         >
-          出典の時刻表
+          {gtfs ? '出典の時刻表（東京都交通局 GTFS）' : '出典の時刻表'}
           <ArrowSquareOutIcon size={13} aria-hidden="true" />
         </a>
       </div>

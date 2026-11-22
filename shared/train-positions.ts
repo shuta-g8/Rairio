@@ -13,8 +13,11 @@ export interface TrainPosition {
   updatedAt: string;
   validUntil: string;
   delay?: number;
+  trainType?: string;
+  destinationStation?: string;
 }
 export interface CollectedTrainPosition extends TrainPosition {
+  vicinityArrival?: { station: string; at: number };
   projection?: { at: number; fromStation: string; toStation: string | null };
   model?: {
     runId: string;
@@ -80,6 +83,10 @@ function validPositionRows(value: unknown): value is TrainPositionsSnapshot {
         (train.toStation === null || typeof train.toStation === 'string') &&
         Number.isFinite(Date.parse(train.updatedAt)) &&
         Number.isFinite(Date.parse(train.validUntil)) &&
+        (train.trainType === undefined || typeof train.trainType === 'string') &&
+        (train.destinationStation === undefined ||
+          (typeof train.destinationStation === 'string' &&
+            train.destinationStation.startsWith('odpt.Station:'))) &&
         (train.delay === undefined || (Number.isFinite(train.delay) && train.delay >= 0)),
     )
   );
@@ -95,7 +102,12 @@ export function validTrainPositions(value: unknown): value is TrainPositionsSnap
 export function validCollectedPositions(value: unknown): value is CollectedPositions {
   if (!validPositionRows(value) || 'collected' in value) return false;
   return (value.trains as CollectedTrainPosition[]).every(
-    ({ id, model, projection }) =>
+    ({ id, model, projection, vicinityArrival, toStation }) =>
+      (vicinityArrival === undefined ||
+        (vicinityArrival !== null &&
+          typeof toStation === 'string' &&
+          vicinityArrival.station === toStation &&
+          Number.isSafeInteger(vicinityArrival.at))) &&
       (model === undefined ||
         (model != null &&
           projection != null &&

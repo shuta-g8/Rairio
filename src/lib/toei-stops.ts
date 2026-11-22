@@ -97,7 +97,7 @@ function orderedRouteStations(route: Route) {
 /** Return nothing when the route, destination or stopping pattern cannot be established. */
 export function toeiStopGuide(
   route: Route,
-  train: Pick<Train, 'destination' | 'type'>,
+  train: Pick<Train, 'destination' | 'type' | 'gtfs'>,
 ): ToeiStopGuide | undefined {
   const order = toeiRouteStations(route);
   if (!order) return;
@@ -106,7 +106,7 @@ export function toeiStopGuide(
   const local = localTypes.has(train.type);
   if (
     railwayId === 'Asakusa'
-      ? !asakusaTypes.has(train.type)
+      ? !train.gtfs && !asakusaTypes.has(train.type)
       : railwayId === 'Oedo'
         ? !local
         : !local && train.type !== '急行'
@@ -119,18 +119,29 @@ export function toeiStopGuide(
     throughDestinations[`${railwayId}.${direction}`]?.includes(train.destination) ?? false;
   const boundary =
     railwayId === 'Asakusa' && direction === 'Southbound' ? '泉岳寺' : order.at(-1)!.name;
-  const end = order.findIndex(
-    (station, index) => index > start && station.name === (through ? boundary : train.destination),
-  );
+  const gtfsMask = train.gtfs?.stopMask;
+  const gtfsStops = (station: (typeof order)[number]) =>
+    gtfsMask !== undefined && !!(gtfsMask & (1 << (station.number - 1)));
+  const end =
+    gtfsMask === undefined
+      ? order.findIndex(
+          (station, index) =>
+            index > start && station.name === (through ? boundary : train.destination),
+        )
+      : order.reduce((last, station, index) => (gtfsStops(station) ? index : last), -1);
   if (end <= start) return;
   const stops =
-    railwayId === 'Asakusa' && train.type === 'エアポート快特'
+    gtfsMask === undefined && railwayId === 'Asakusa' && train.type === 'エアポート快特'
       ? airportStops
       : railwayId === 'Shinjuku' && train.type === '急行'
         ? expressStops
         : undefined;
   // A departure from a normally passed station needs train-specific evidence.
-  if (stops && (!stops.has(order[start].number) || !stops.has(order[end].number))) return;
+  if (
+    (gtfsMask !== undefined && !gtfsStops(order[start])) ||
+    (stops && (!stops.has(order[start].number) || !stops.has(order[end].number)))
+  )
+    return;
   return {
     through,
     preceding: order.slice(Math.max(0, start - 3), start).map((station) => ({
@@ -143,7 +154,12 @@ export function toeiStopGuide(
       id: station.id,
       name: station.name,
       code: station.code,
-      kind: index === 0 ? 'current' : !stops || stops.has(station.number) ? 'stop' : 'pass',
+      kind:
+        index === 0
+          ? 'current'
+          : (gtfsMask === undefined ? !stops || stops.has(station.number) : gtfsStops(station))
+            ? 'stop'
+            : 'pass',
     })),
   };
 }

@@ -68,9 +68,16 @@
   display: grid;
   place-items: center;
   border-radius: 7px;
+  background: var(--app-hover);
 }
 .journey-swap:hover {
-  background: var(--app-hover);
+  background: var(--app-border);
+}
+.journey-swap:focus-visible,
+.journey-result-tools :is(button, select):focus-visible,
+.journey-more-results:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
 }
 .journey-options {
   display: grid;
@@ -171,6 +178,30 @@
 .journey-results {
   margin-top: 0;
 }
+.journey-fare-comparison {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block: 1rem;
+}
+.journey-fare-comparison caption {
+  text-align: start;
+  font-weight: 700;
+  padding-bottom: 0.5rem;
+}
+.journey-fare-comparison th,
+.journey-fare-comparison td {
+  text-align: start;
+  padding: 0.4rem;
+  border-bottom: 1px solid var(--app-border);
+}
+.journey-fare-comparison th[scope='row'] {
+  overflow-wrap: anywhere;
+  font-weight: 400;
+}
+.journey-fare-comparison td {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 .journey-back {
   display: inline-flex;
   align-items: center;
@@ -219,7 +250,7 @@
 .journey-more-results {
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid var(--app-border);
+  border: 0;
   border-radius: 7px;
   background: #fff;
   color: var(--app-ink);
@@ -227,7 +258,6 @@
 }
 .journey-show-fares:enabled,
 .journey-more-results {
-  border-color: var(--app-ink);
   cursor: pointer;
 }
 .journey-more-results {
@@ -379,6 +409,9 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+}
+.journey-form .journey-place-search input {
+  background: var(--app-search-surface);
 }
 .journey-required-badge {
   color: #a3332b;
@@ -579,107 +612,6 @@
 }
 .journey-guidance-row p {
   line-height: 1.8;
-}
-.journey-table .journey-lcd-row > td:first-child {
-  padding: 10px 12px;
-}
-.route-card.toei-board.journey-departure-display {
-  margin: 0;
-  border-radius: 3px;
-  border: 2px solid #1b201d;
-  background: #030504;
-  box-shadow: none;
-}
-.journey-lcd-face {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr);
-  aspect-ratio: 8;
-  padding: 0.3cqw 1cqw;
-  overflow: hidden;
-  background: #030504;
-}
-.route-card.toei-board.journey-departure-display .departure-row.first {
-  grid-row: 1;
-  grid-template-columns: 14% minmax(0, 1fr) 16% 8%;
-  --toei-name-size: 6cqw;
-  --toei-number-size: 5.4cqw;
-  --toei-time-size: 5cqw;
-}
-.route-card.toei-board.journey-departure-display .departure-type {
-  grid-template-columns: minmax(0, 1fr);
-}
-.route-card.toei-board.journey-departure-display[data-railway='Oedo'] .departure-row {
-  grid-template-columns: minmax(0, 1fr) 16% 8%;
-}
-.journey-table .journey-departure-display small {
-  color: inherit;
-  line-height: inherit;
-}
-.journey-departure-display .departure-time {
-  min-width: 0;
-  white-space: nowrap;
-}
-.journey-scheduled-departure {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2cqw;
-  padding: 0 2cqw;
-  color: #fff;
-  font-family: var(--font-board);
-  font-size: 5cqw;
-  line-height: 1.15;
-}
-.journey-scheduled-departure > span {
-  min-width: 0;
-}
-.journey-scheduled-departure strong {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.journey-scheduled-departure small {
-  display: block;
-  margin-top: 0.4cqw;
-  font-size: 2.7cqw;
-}
-.journey-scheduled-departure time {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.journey-departure-display .toei-board-notice-attention {
-  grid-row: 1;
-  justify-content: center;
-  gap: 2cqw;
-  margin: 0;
-  padding: 0.6cqw 1.6cqw;
-  border: 0;
-}
-.journey-departure-display .toei-board-notice-attention > svg {
-  width: 7.5cqw;
-  height: 7.5cqw;
-}
-.journey-departure-display .toei-board-notice p {
-  font-size: 3.3cqw;
-}
-.journey-departure-display .toei-board-notice small {
-  font-size: 1.5cqw;
-}
-.journey-departure-display .toei-board-notice-languages {
-  font-size: 1.1cqw;
-}
-.journey-lcd-departed {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  color: #e0e5e1;
-  font-family: var(--font-bold);
-  font-size: 3.2cqw;
-  line-height: 1.4;
-  white-space: nowrap;
 }
 .journey-table caption {
   position: absolute;

@@ -34,7 +34,7 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
 }) {
   const guide = useMemo(
     () => train && toeiStopGuide(route, train),
-    [route, train?.destination, train?.type],
+    [route, train?.destination, train?.type, train?.gtfs],
   );
   const available = !!guide && (!operation || operation.state === 'normal');
   const stations = useMemo(() => (guide ? [...guide.preceding, ...guide.stations] : []), [guide]);

@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir, rename, stat, unlink } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { inflateRawSync } from 'node:zlib';
+import { gtfsCsvReader } from './gtfs-source.mjs';
 import { STATIONS } from '../shared/stations.ts';
 import { DATA_LICENSE, DATA_PROVIDER } from '../shared/transit-source.ts';
 import { ASAKUSA_CUTOVER } from '../shared/timetable-editions.ts';
@@ -20,63 +20,7 @@ else {
   await writeFile(archivePath, archive);
 }
 
-// Read the central directory; never extract archive-supplied paths to disk.
-const files = new Map();
-let eocd = archive.length - 22;
-const minimumEocd = Math.max(0, archive.length - 65557);
-while (eocd >= Math.max(0, archive.length - 65557) && archive.readUInt32LE(eocd) !== 0x06054b50)
-  eocd--;
-if (eocd < minimumEocd) throw new Error('Invalid ZIP');
-let offset = archive.readUInt32LE(eocd + 16);
-for (let i = 0; i < archive.readUInt16LE(eocd + 10); i++) {
-  if (archive.readUInt32LE(offset) !== 0x02014b50) throw new Error('Invalid ZIP entry');
-  const method = archive.readUInt16LE(offset + 10);
-  const size = archive.readUInt32LE(offset + 20);
-  const nameLength = archive.readUInt16LE(offset + 28);
-  const local = archive.readUInt32LE(offset + 42);
-  const name = archive.subarray(offset + 46, offset + 46 + nameLength).toString();
-  const begin = local + 30 + archive.readUInt16LE(local + 26) + archive.readUInt16LE(local + 28);
-  const bytes = archive.subarray(begin, begin + size);
-  if (method !== 0 && method !== 8) throw new Error('Unsupported ZIP compression');
-  files.set(
-    name,
-    (method === 8 ? inflateRawSync(bytes, { maxOutputLength: 30_000_000 }) : bytes).toString(
-      'utf8',
-    ),
-  );
-  offset += 46 + nameLength + archive.readUInt16LE(offset + 30) + archive.readUInt16LE(offset + 32);
-}
-
-function csv(name) {
-  const input = files.get(name);
-  if (!input) throw new Error(`Missing ${name}`);
-  const rows = [];
-  let row = [],
-    cell = '',
-    quoted = false;
-  for (let i = 0; i < input.length; i++) {
-    const char = input[i];
-    if (char === '"') {
-      if (quoted && input[i + 1] === '"') {
-        cell += '"';
-        i++;
-      } else quoted = !quoted;
-    } else if (!quoted && (char === ',' || char === '\n')) {
-      row.push(cell.replace(/\r$/, ''));
-      cell = '';
-      if (char === '\n') {
-        rows.push(row);
-        row = [];
-      }
-    } else cell += char;
-  }
-  if (quoted) throw new Error(`Invalid CSV: ${name}`);
-  if (cell || row.length) rows.push([...row, cell.replace(/\r$/, '')]);
-  const header = rows.shift();
-  return rows
-    .filter((r) => r.length === header.length)
-    .map((r) => Object.fromEntries(header.map((h, i) => [h, r[i]])));
-}
+const csv = gtfsCsvReader(archive);
 const date = (s) => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
 const time = (s) => {
   if (!/^\d{2}:\d{2}:\d{2}$/.test(s)) throw new Error(`Invalid time: ${s}`);

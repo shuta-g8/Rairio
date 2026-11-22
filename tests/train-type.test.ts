@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { STATIONS } from '../shared/stations.ts';
 import type { StationData } from '../src/types.ts';
+import { JOURNEY_GTFS_CATALOG } from '../shared/journey-sources.ts';
 import { TRAIN_TYPE_LABELS, trainTypeLabel } from '../src/lib/train-type.ts';
 
 test('三田・新宿の普通を各停として表示し、浅草・大江戸や優等種別は維持する', () => {
@@ -24,7 +25,13 @@ test('全駅・全曜日の種別を識別可能な2文字で表示する', () =
     const data: StationData = JSON.parse(readFileSync(`public/data/${station.id}.json`, 'utf8'));
     for (const route of data.routes)
       for (const trains of Object.values(route.schedules)) {
-        for (const train of trains) types.add(train.type);
+        for (const train of trains) {
+          if (train.gtfs) {
+            assert.equal(route.railwayId, 'Asakusa');
+            assert.equal(route.sourceUrl, JOURNEY_GTFS_CATALOG);
+            assert.equal(train.type, '');
+          } else types.add(train.type);
+        }
       }
   }
   const labels = [...types].map((type) => {

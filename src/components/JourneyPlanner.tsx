@@ -19,13 +19,14 @@ import { loadJourneyData, useJourneyData } from '../hooks/useJourneyData';
 import { findJourneyPlace, isExternalJourneyPlace, placeName } from '../lib/journey-place-search';
 import { searchJourneyOptions, type JourneySearchState } from '../lib/journey-search';
 import { loadJourneyHistory, rememberJourneyPlace } from '../lib/journey-search-history';
-import type { StationData } from '../types';
-import type { TrainPositionsSnapshot } from '../../shared/train-positions';
-import { useJourneyStationData } from '../hooks/useJourneyStationData';
 import type { NearbyStation } from '../hooks/useNearbyStation';
 import { sortJourneyOptions, type JourneySort } from '../lib/journey-sort';
 import { requestOnlinePlan } from '../lib/journey-online';
-import type { OnlineJourneyPlan } from '../../shared/journey-online';
+import {
+  fareComparisonTrips,
+  isFareComparisonTrip,
+  type OnlineJourneyPlan,
+} from '../../shared/journey-online';
 import type { JourneyData } from '../../shared/journey';
 
 type PlannerSearch = JourneySearchState & { online?: OnlineJourneyPlan; timetable?: JourneyData };
@@ -42,14 +43,10 @@ function openDateTimePicker(event: MouseEvent<HTMLInputElement>) {
 
 export function JourneyPlanner({
   stationId,
-  selectedStationData,
-  positions,
   onManualInput,
   nearby,
 }: {
   stationId: string;
-  selectedStationData?: StationData | null;
-  positions?: TrainPositionsSnapshot | null;
   onManualInput?: () => void;
   nearby?: NearbyStation;
 }) {
@@ -73,20 +70,6 @@ export function JourneyPlanner({
     () => (search ? sortJourneyOptions(search.results, sort, search.inbound) : []),
     [search, sort],
   );
-  const boardingStationIds = useMemo(() => {
-    if (!search || search.inbound || !timetable) return [];
-    return [
-      ...new Set(
-        search.results.flatMap(
-          (result) =>
-            result.journey?.legs.flatMap((leg) =>
-              leg.kind === 'ride' ? [timetable.stops[leg.from].station] : [],
-            ) ?? [],
-        ),
-      ),
-    ];
-  }, [search, timetable]);
-  const boardingStations = useJourneyStationData(boardingStationIds, selectedStationData);
   const [recent, setRecent] = useState(loadJourneyHistory);
   const [attempted, setAttempted] = useState(false);
   const plannerRef = useRef<HTMLElement>(null);
@@ -120,7 +103,11 @@ export function JourneyPlanner({
       setSearch(undefined);
       return;
     }
-    if (!findJourneyPlace(from)?.toei && !findJourneyPlace(to)?.toei) {
+    if (
+      !findJourneyPlace(from)?.toei &&
+      !findJourneyPlace(to)?.toei &&
+      !isFareComparisonTrip(from, to)
+    ) {
       setSearchError('出発駅または到着駅の少なくとも片方に東京都交通局の駅を選んでください。');
       return;
     }
@@ -279,8 +266,26 @@ export function JourneyPlanner({
             在来線のみ
           </label>
           <p className="journey-data-note">
-            関東1都6県の鉄道駅が対象です。出発・到着の少なくとも片方に東京都交通局の駅を選んでください。
+            関東1都6県の東京都交通局の駅を発着する経路と、以下の運賃比較区間を検索できます。
           </p>
+          <details>
+            <summary>運賃比較の区間を選ぶ</summary>
+            {fareComparisonTrips.map((trip) => (
+              <button
+                key={trip.from}
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setFrom(trip.from);
+                  setTo(trip.to);
+                  setSearchError('');
+                  onManualInput?.();
+                }}
+              >
+                {trip.label}
+              </button>
+            ))}
+          </details>
         </form>
         {!data && !error && <LoadingStatus>補助案内のデータを読み込んでいます…</LoadingStatus>}
         {error && (
@@ -324,8 +329,6 @@ export function JourneyPlanner({
             <OnlineJourneyResults
               plan={search.online}
               timetable={timetable}
-              selectedStationData={selectedStationData}
-              positions={positions}
               searchDate={search.date}
               sort={sort}
               onSort={setSort}
@@ -352,8 +355,6 @@ export function JourneyPlanner({
               data={timetable!}
               inbound={search.inbound}
               index={i}
-              boardingStations={boardingStations}
-              positions={positions}
               showFares={showLocalFares}
             />
           ))}

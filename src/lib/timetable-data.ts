@@ -138,6 +138,7 @@ export async function verifyStationTimetables(
               sha256: ref.routeHashes[route.id],
               schedules: route.schedules,
               sourceUpdated: route.sourceUpdated,
+              ...(release.gtfs && { gtfs: release.gtfs }),
             },
           ]);
         }

@@ -4,6 +4,7 @@ import {
   schedulesForDate,
   managesTimetable,
   ASAKUSA_CUTOVER,
+  timetableEditionForDate,
 } from '../../shared/timetable-editions.ts';
 
 const JST = 9 * 60 * 60 * 1000;
@@ -49,6 +50,10 @@ export function dayKind(date: string): DayKind {
   const newYear = (month === 12 && day >= 30) || (month === 1 && day <= 3);
   if (weekday === 0 || holiday || newYear) return 'holiday';
   return weekday === 6 ? 'saturday' : 'weekday';
+}
+
+export function timetableDay(route: Route, date: string): DayKind {
+  return timetableEditionForDate(route, date)?.gtfs?.serviceDays[date] ?? dayKind(date);
 }
 
 let lastServiceTimestamp: number | undefined;
@@ -101,7 +106,8 @@ export type DepartureBoardState =
   | { kind: 'empty' };
 
 export function departureIdentity(departure: Departure): string {
-  return `${departure.serviceDate}/${departure.timestamp}/${departure.trainId || ''}/${departure.destination}/${departure.type}`;
+  const scheduledType = departure.gtfs ? '' : departure.type;
+  return `${departure.serviceDate}/${departure.timestamp}/${departure.trainId || ''}/${departure.destination}/${scheduledType}`;
 }
 
 export function departureBoardState(
@@ -151,7 +157,7 @@ function prepareDepartures(route: Route, start: string): Departure[] {
     // Do not surface a future edition early in tomorrow's card, or retain a
     // preceding edition after the boundary. Within an edition calendars vary.
     if (managesTimetable(route) && date < ASAKUSA_CUTOVER !== start < ASAKUSA_CUTOVER) continue;
-    const day = dayKind(date);
+    const day = timetableDay(route, date);
     const applicable = schedulesForDate(route, date);
     if (!applicable) continue;
     for (const train of applicable[day]) {

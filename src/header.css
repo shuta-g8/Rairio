@@ -44,7 +44,7 @@
   min-height: 42px;
   padding: 0 11px;
   gap: 8px;
-  background: #f7f8f9;
+  background: var(--app-search-surface);
 }
 .header-search .station-search-field input {
   height: 40px;

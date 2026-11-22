@@ -1,5 +1,5 @@
 import type { JourneyData } from '../../shared/journey';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { CaretDownIcon } from '@phosphor-icons/react/dist/csr/CaretDown';
 import { journeyTime } from '../lib/journey';
 import { journeyTransferCount, type RankedJourney } from '../lib/journey-ranking';
@@ -10,9 +10,6 @@ import { NetworkGuidanceRows } from './NetworkGuidanceRows';
 import { JourneyRailTrack } from './JourneyRailTrack';
 import { JourneyRailLabel, JourneySummaryHeading } from './JourneyLineMark';
 import { AnimatedDetails } from './AnimatedDetails';
-import type { StationData } from '../types';
-import type { TrainPositionsSnapshot } from '../../shared/train-positions';
-import { journeyLcdDepartures } from '../lib/journey-lcd';
 import { guidanceLineId, journeyResultLines } from '../lib/journey-lines';
 
 const stationName = (id: string) => STATIONS.find((s) => s.id === id)?.name || id;
@@ -22,26 +19,18 @@ export function JourneyResult({
   data,
   inbound,
   index,
-  boardingStations,
-  positions,
   showFares,
 }: {
   result: RankedJourney;
   data: JourneyData;
   inbound: boolean;
   index: number;
-  boardingStations: ReadonlyMap<string, StationData>;
-  positions?: TrainPositionsSnapshot | null;
   showFares: boolean;
 }) {
   const [expanded, setExpanded] = useState(index === 0);
   const external = Boolean(result.guidance);
   const journey = result.journey;
   const hasFareColumn = Boolean(journey && showFares);
-  const lcds = useMemo(
-    () => (journey && !inbound ? journeyLcdDepartures(boardingStations, journey, data) : undefined),
-    [journey, inbound, boardingStations, data],
-  );
   const transfers = journeyTransferCount(result);
   const connection = result.guidance;
   const lineId = connection ? guidanceLineId(connection) : undefined;
@@ -130,8 +119,6 @@ export function JourneyResult({
               data={data}
               showTimes={!inbound}
               showFares={hasFareColumn}
-              lcds={lcds}
-              positions={positions}
             />
           )}
           {!inbound && guidance}

@@ -1,7 +1,10 @@
+import { readStoredValue } from './storage.ts';
+
 export type DeparturePolicy = 'hybrid' | 'legacy';
 export const DEFAULT_DEPARTURE_POLICY: DeparturePolicy = 'hybrid';
 export const DEPARTURE_POLICY_KEY = 'rairio:departure-policy';
 export const DEPARTURE_DIAGNOSTICS_KEY = 'rairio:departure-diagnostics';
+export const EARLY_APPROACH_END_KEY = 'rairio:early-approach-end';
 
 /** Internal per-tab override; no new UI, network requests or persisted observations. */
 export function readDeparturePolicy(): DeparturePolicy {
@@ -24,4 +27,8 @@ export function departureDiagnosticsEnabled() {
   } catch {
     return false;
   }
+}
+
+export function earlyApproachEndEnabled() {
+  return readStoredValue(EARLY_APPROACH_END_KEY) !== 'off';
 }

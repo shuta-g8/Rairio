@@ -13,7 +13,12 @@ import { UpdatedAt } from './UpdatedAt';
 import { StationHeading } from './StationHeading';
 import { RailMark } from './RailMark';
 import { loadBoardMode, saveBoardMode, TOEI_VIEWING_NOTE, type BoardMode } from '../lib/board-mode';
-import { editionServiceDate, managesTimetable } from '../../shared/timetable-editions';
+import {
+  editionServiceDate,
+  managesTimetable,
+  timetableEditionForDate,
+} from '../../shared/timetable-editions';
+import { JOURNEY_GTFS_CATALOG } from '../../shared/journey-sources';
 import { readDeparturePolicy } from '../lib/departure-policy';
 
 interface Props {
@@ -95,15 +100,12 @@ export function StationDepartures({
   const fetchedAt = useMemo(() => (data ? Date.parse(data.fetchedAt) : null), [data]);
   const stale = fetchedAt !== null && now.getTime() - fetchedAt > 14 * 86400000;
   const date = editionServiceDate(now.getTime());
+  const gtfsVisible = routes.some(({ route }) => timetableEditionForDate(route, date)?.gtfs);
   const sourceUpdated = useMemo(() => {
     const stamps = (data?.routes ?? [])
       .map((route) =>
         managesTimetable(route)
-          ? route.timetableEditions?.find(
-              (e) =>
-                e.effectiveFrom <= date &&
-                (e.effectiveToExclusive === null || date < e.effectiveToExclusive),
-            )?.sourceUpdated
+          ? timetableEditionForDate(route, date)?.sourceUpdated
           : route.sourceUpdated,
       )
       .filter((value): value is string => !!value && Number.isFinite(Date.parse(value)));
@@ -211,6 +213,12 @@ export function StationDepartures({
           ? '接近案内と列車の切替は実測に基づく時間の目安です。列車を照合できた新しい位置情報で補正しますが、実際の到着・発車を保証しません。'
           : '接近案内は、列車を照合できた最新の位置情報を優先し、取得できない場合は時刻表を目安に表示します。'}
         <br />
+        {gtfsVisible && (
+          <>
+            浅草線のGTFS版では、走行中の列車を時刻表と照合できたときに種別・接近案内を表示します。
+            <br />
+          </>
+        )}
         発車時刻・カウントダウンは時刻表に基づく目安で、
         {departurePolicy === 'hybrid'
           ? '案内の補正後も表示時刻自体は変更しません。'
@@ -229,6 +237,12 @@ export function StationDepartures({
             出典：東京都交通局・公共交通オープンデータ協議会
             <ArrowSquareOutIcon size={12} aria-hidden="true" />
           </a>
+          {gtfsVisible && (
+            <a href={JOURNEY_GTFS_CATALOG} target="_blank" rel="noreferrer">
+              浅草線時刻表の出典（GTFS）
+              <ArrowSquareOutIcon size={12} aria-hidden="true" />
+            </a>
+          )}
           <a href={TRAIN_POSITIONS_CATALOG} target="_blank" rel="noreferrer">
             列車位置の出典
             <ArrowSquareOutIcon size={12} aria-hidden="true" />

@@ -43,6 +43,7 @@ export interface LiveDepartureSession {
 }
 
 export interface DepartureBoardDisplay {
+  arrivalEstimate?: string;
   board: DepartureBoardState;
   presentation?: DeparturePresentation;
   presentations?: DeparturePresentation[];
@@ -65,7 +66,7 @@ function presentationFor(candidate: Candidate, now: Date): DeparturePresentation
   if (candidate.guidance?.progress === 'approaching') return { kind: 'approaching' };
   // A known train must not acquire a timetable-based departure/arrival warning
   // when its observation expires. Leave the existing status cell empty instead.
-  if (candidate.observation)
+  if (candidate.observation || candidate.departure.gtfs)
     return { kind: candidate.departure.timestamp > now.getTime() ? 'countdown' : 'expired' };
   return departurePresentation(candidate.departure.timestamp, now);
 }

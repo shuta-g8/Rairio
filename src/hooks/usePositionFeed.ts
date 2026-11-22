@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { FeedReceiver, FEED_MAX_IDS, filterPositions } from '../../shared/position-feed';
 import { validTrainPositions, type TrainPositionsSnapshot } from '../../shared/train-positions';
-import { liveDepartureCandidates } from '../lib/time';
+import { liveDepartureCandidates, serviceDate } from '../lib/time';
+import { timetableEditionForDate } from '../../shared/timetable-editions';
 import type { Route } from '../types';
 
 export function positionFeedIds(routes: Route[], now: Date): string[] {
@@ -36,6 +37,10 @@ export function usePositionFeed(enabled: boolean, routes: Route[]) {
     };
   }, [enabled]);
   const key = enabled ? positionFeedIds(routes, new Date(clock)).join(',') : '';
+  const date = serviceDate(new Date(clock));
+  // The Pages endpoint supplies the destination needed for GTFS matching even
+  // when the independently deployed streaming worker still uses its old schema.
+  const pollForGtfs = routes.some((route) => timetableEditionForDate(route, date)?.gtfs);
   useEffect(() => {
     if (!enabled || !key) {
       setSnapshot(null);
@@ -120,6 +125,10 @@ export function usePositionFeed(enabled: boolean, routes: Route[]) {
     };
     const connect = () => {
       if (!visible()) return;
+      if (pollForGtfs) {
+        void refresh();
+        return;
+      }
       clearTimeout(retry);
       stopStream();
       const receiver = new FeedReceiver(ids);
@@ -183,6 +192,6 @@ export function usePositionFeed(enabled: boolean, routes: Route[]) {
       window.removeEventListener('online', resume);
       window.removeEventListener('offline', resume);
     };
-  }, [enabled, key]);
+  }, [enabled, key, pollForGtfs]);
   return { snapshot, mode, active: enabled && routes.some((route) => route.railwayId) };
 }

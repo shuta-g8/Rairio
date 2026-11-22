@@ -10,7 +10,12 @@ import { TimetableUnavailable } from './TimetableUnavailable';
 import { RailMark } from './RailMark';
 import { lineName, lineSymbol } from '../lib/stations';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { collectedDiagramEstimate } from '../lib/toei-position';
+import {
+  collectedDiagramEstimate,
+  matchedTrainPosition,
+  statisticalArrivalTime,
+} from '../lib/toei-position';
+import type { DepartureBoardDisplay } from '../lib/live-departures';
 import type { PositionEstimate } from '../../shared/position-estimate';
 
 /** Keep the live deadline across display-mode changes without retaining hidden boards. */
@@ -44,7 +49,10 @@ export function StationDepartureBoard({
   const display = useLiveDepartures(scoped, positions, now, !legacyDiagram);
   const first = display.board.kind === 'active' ? display.board.departures[0] : undefined;
   const collectedMode =
-    mode === 'toei' && !legacyDiagram && (!positions || positions.collected !== undefined);
+    mode === 'toei' &&
+    !first?.gtfs &&
+    !legacyDiagram &&
+    (!positions || positions.collected !== undefined);
   const trip = [
     route.sourceStationId,
     route.id,
@@ -82,11 +90,41 @@ export function StationDepartureBoard({
     );
   const Board = mode === 'toei' ? ToeiDepartureBoard : RouteCard;
   const estimated = 'estimatedDiagram' in display ? display.estimatedDiagram : forecast?.position;
-  const diagram = collectedMode
+  const diagram: DepartureBoardDisplay = collectedMode
     ? {
         ...display,
         position: props.operation && props.operation.state !== 'normal' ? undefined : estimated,
       }
     : display;
-  return <Board {...props} route={scoped} now={now} display={diagram} />;
+  const board = diagram.board;
+  const withTrainTypes =
+    board.kind === 'active' && board.departures.some((departure) => departure.gtfs)
+      ? {
+          ...diagram,
+          board: {
+            ...board,
+            departures: board.departures.map((departure) => {
+              const type =
+                departure.gtfs &&
+                matchedTrainPosition(scoped, departure, positions, now)?.trainType;
+              return type ? { ...departure, type } : departure;
+            }),
+          },
+        }
+      : diagram;
+  const at =
+    props.operation?.state === 'normal'
+      ? statisticalArrivalTime(scoped, first, positions, now)
+      : undefined;
+  const arrivalEstimate =
+    at === undefined
+      ? undefined
+      : new Date(at).toLocaleTimeString('ja-JP', {
+          timeZone: 'Asia/Tokyo',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+  return (
+    <Board {...props} route={scoped} now={now} display={{ ...withTrainTypes, arrivalEstimate }} />
+  );
 }

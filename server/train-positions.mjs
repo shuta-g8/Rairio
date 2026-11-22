@@ -5,6 +5,29 @@ import {
 } from '../shared/train-positions.ts';
 import { TOEI_OPERATOR } from '../shared/transit-source.ts';
 
+const ASAKUSA_TRAIN_TYPES = {
+  AccessExpress: 'アクセス特急',
+  AirportRapidLimitedExpress: 'エアポート快特',
+  CommuterLimitedExpress: '通勤特急',
+  Express: '急行',
+  LimitedExpress: '特急',
+  Local: '普通',
+  RapidLimitedExpress: '快特',
+  Rapid: '快速',
+};
+
+function asakusaTrainDetails(entry) {
+  if (entry['odpt:railway'] !== 'odpt.Railway:Toei.Asakusa') return {};
+  const type = /^odpt\.TrainType:Toei\.(\w+)$/.exec(entry['odpt:trainType'])?.[1];
+  const destinations = entry['odpt:destinationStation'];
+  const destination = Array.isArray(destinations) && destinations.length === 1 && destinations[0];
+  return {
+    ...(Object.hasOwn(ASAKUSA_TRAIN_TYPES, type) && { trainType: ASAKUSA_TRAIN_TYPES[type] }),
+    ...(typeof destination === 'string' &&
+      destination.startsWith('odpt.Station:') && { destinationStation: destination }),
+  };
+}
+
 export function parseTrainPositions(data, fetchedAt = new Date().toISOString()) {
   if (!Array.isArray(data)) throw new Error('Invalid train positions');
   const now = Date.parse(fetchedAt);
@@ -34,6 +57,7 @@ export function parseTrainPositions(data, fetchedAt = new Date().toISOString()) 
       toStation: entry['odpt:toStation'],
       updatedAt: entry['dc:date'],
       validUntil: entry['dct:valid'],
+      ...asakusaTrainDetails(entry),
       ...(Number.isFinite(entry['odpt:delay']) && entry['odpt:delay'] >= 0
         ? { delay: entry['odpt:delay'] }
         : {}),

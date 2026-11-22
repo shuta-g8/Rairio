@@ -1,5 +1,5 @@
 import type { Station } from '../shared/stations';
-import type { VerifiedRouteEdition } from '../shared/timetable-editions';
+import type { GtfsDeparture, VerifiedRouteEdition } from '../shared/timetable-editions';
 export type { DirectoryStation as Station } from '../shared/station-directory';
 
 export type DayKind = 'weekday' | 'saturday' | 'holiday';
@@ -12,6 +12,7 @@ export interface Train {
   extra?: boolean;
   dayOffset?: number;
   carCount?: number;
+  gtfs?: GtfsDeparture;
 }
 export interface Route {
   id: string;

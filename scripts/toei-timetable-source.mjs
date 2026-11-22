@@ -34,7 +34,7 @@ const LINES = {
 };
 
 // Names label identifiers in the Toei feed, including through services.
-const THROUGH_STATIONS = {
+export const THROUGH_STATIONS = {
   ImbaNihonIdai: '印旛日本医大',
   InzaiMakinohara: '印西牧の原',
   Aoto: '青砥',

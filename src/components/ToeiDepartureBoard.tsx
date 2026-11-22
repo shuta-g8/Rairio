@@ -109,6 +109,11 @@ export function ToeiDepartureBoard({
           </div>
         </div>
       </div>
+      {display.arrivalEstimate && (
+        <p className="journey-data-note">
+          先発列車の駅付近への到着予測　{display.arrivalEstimate}頃
+        </p>
+      )}
       <button className="full-timetable" onClick={onOpen}>
         一日分の時刻表
         <span>

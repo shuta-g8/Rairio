@@ -21,6 +21,24 @@ export interface PositionEstimate {
   };
 }
 
+export function positionAdvanceAt(
+  { model, projection }: CollectedTrainPosition,
+  { evidence, delaySeconds }: Pick<PositionEstimate, 'evidence' | 'delaySeconds'>,
+) {
+  if (
+    !model ||
+    !projection ||
+    (evidence?.confirmed && evidence.stalled && evidence.phase === model.visit)
+  )
+    return;
+  if (delaySeconds <= 0) return projection.at;
+  // The phase entry already includes accumulated lateness. Shift the historical exit when known.
+  const delayMs = delaySeconds * 1000;
+  return model.usualExit === undefined
+    ? projection.at + Math.min(model.lead, delayMs)
+    : Math.max(projection.at, model.usualExit + delayMs - model.lead);
+}
+
 /** Both inputs are observations on the source clock. Only the last step uses the display lead. */
 export function estimatePosition(
   p: CollectedTrainPosition,
@@ -76,16 +94,8 @@ export function estimatePosition(
     rawAt !== undefined && rawAt <= now ? (direct?.delay ?? 0) : 0,
   );
   const delaySeconds = Math.max(reported, Math.floor((confirmed?.lag ?? 0) / 1000));
-  let advanceAt = projection.at;
-  if (delaySeconds > 0) {
-    // Today's phase entry already contains accumulated lateness. Shift the historical
-    // exit, not today's entry, so the same delay is never added twice.
-    advanceAt =
-      model.usualExit === undefined
-        ? advanceAt + Math.min(model.lead, delaySeconds * 1000)
-        : Math.max(advanceAt, model.usualExit + delaySeconds * 1000 - model.lead);
-  }
-  const advance = now >= advanceAt && !(confirmed?.stalled && confirmed.phase === model.visit);
+  const advanceAt = positionAdvanceAt(p, { evidence, delaySeconds });
+  const advance = advanceAt !== undefined && now >= advanceAt;
   const selected = advance ? projection : p;
   const visit = advance ? model.nextVisit : model.visit;
   const floor = prior && prior.visit > visit ? prior : undefined;

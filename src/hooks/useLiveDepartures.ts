@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { Route } from '../types';
 import type { TrainPositionsSnapshot } from '../../shared/train-positions';
 import { resolveLiveDepartures, type DepartureBoardDisplay } from '../lib/live-departures';
-import { resolveHybridDepartures } from '../lib/hybrid-departures';
-import { readDeparturePolicy, departureDiagnosticsEnabled } from '../lib/departure-policy';
+import { APPROACH_END_LEAD_MS, resolveHybridDepartures } from '../lib/hybrid-departures';
+import {
+  departureDiagnosticsEnabled,
+  earlyApproachEndEnabled,
+  readDeparturePolicy,
+} from '../lib/departure-policy';
 import { departureIdentity } from '../lib/time';
 
 export function useLiveDepartures(
@@ -14,11 +18,13 @@ export function useLiveDepartures(
 ) {
   const [policy] = useState(readDeparturePolicy);
   const [diagnostics] = useState(departureDiagnosticsEnabled);
+  const [earlyApproachEnd] = useState(earlyApproachEndEnabled);
   type Frame = {
     route: Route;
     at: number;
     positions: typeof positions;
     hybrid?: ReturnType<typeof resolveHybridDepartures>;
+    baselineHybrid?: ReturnType<typeof resolveHybridDepartures>;
     legacy?: ReturnType<typeof resolveLiveDepartures>;
   };
   const calculate = (previous?: Frame): Frame => ({
@@ -27,7 +33,25 @@ export function useLiveDepartures(
     positions,
     hybrid:
       policy === 'hybrid' || diagnostics
-        ? resolveHybridDepartures(route, now, positions, previous?.hybrid?.session, useEstimates)
+        ? resolveHybridDepartures(
+            route,
+            now,
+            positions,
+            previous?.hybrid?.session,
+            useEstimates,
+            earlyApproachEnd ? APPROACH_END_LEAD_MS : 0,
+          )
+        : undefined,
+    baselineHybrid:
+      diagnostics && earlyApproachEnd
+        ? resolveHybridDepartures(
+            route,
+            now,
+            positions,
+            previous?.baselineHybrid?.session,
+            useEstimates,
+            0,
+          )
         : undefined,
     legacy:
       policy === 'legacy' || diagnostics
@@ -51,12 +75,18 @@ export function useLiveDepartures(
             : undefined,
         presentation: display.presentation?.kind,
       };
+    const baseline = frame.baselineHybrid ?? frame.hybrid;
     const detail = {
       route: route.id,
+      station: route.sourceStationId,
       policy,
+      approachEndLeadMs: earlyApproachEnd ? APPROACH_END_LEAD_MS : 0,
       hybrid: frame.hybrid?.diagnostic,
       turnover: frame.hybrid?.session.lastTurnover,
       hybridDisplay: summary(frame.hybrid),
+      baselineHybrid: baseline?.diagnostic,
+      baselineTurnover: baseline?.session.lastTurnover,
+      baselineDisplay: summary(baseline),
       legacy: summary(frame.legacy),
     };
     const serialized = JSON.stringify(detail);
@@ -65,6 +95,6 @@ export function useLiveDepartures(
     window.dispatchEvent(
       new CustomEvent('rairio:departure-diagnostic', { detail: { ...detail, at: now.getTime() } }),
     );
-  }, [diagnostics, frame, policy, route.id, now]);
+  }, [diagnostics, earlyApproachEnd, frame, policy, route.id, route.sourceStationId, now]);
   return (policy === 'hybrid' ? frame.hybrid : frame.legacy)!;
 }

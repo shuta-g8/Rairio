@@ -1,7 +1,7 @@
 import type { JourneyData } from '../../shared/journey';
-import type { Journey, JourneyLeg, RideLeg } from '../lib/journey';
+import type { Journey } from '../lib/journey';
 import { journeyTime } from '../lib/journey';
-import { buildJourneyRouteRows, type JourneyRouteRow } from '../lib/journey-route-rows';
+import { buildJourneyRouteRows } from '../lib/journey-route-rows';
 import { RAILWAY_SYMBOLS } from '../lib/railway-symbols';
 import { JourneyRailTrack } from './JourneyRailTrack';
 import { JourneyRailLabel } from './JourneyLineMark';
@@ -10,32 +10,19 @@ import { JourneyStationNumbers } from './JourneyStationNumbers';
 import { JourneyWalkRow } from './JourneyWalkRow';
 import { JourneyStationRow } from './JourneyStationRow';
 import { JourneyFareRange } from './JourneyFareRange';
-import type { TrainPositionsSnapshot } from '../../shared/train-positions';
-import type { JourneyLcdDeparture } from '../lib/journey-lcd';
-import { JourneyDepartureDisplay } from './JourneyDepartureDisplay';
-
-type DisplayRow = JourneyRouteRow | { kind: 'lcd'; leg: RideLeg };
 
 export function JourneyRouteRows({
   journey,
   data,
   showTimes = true,
   showFares,
-  lcds,
-  positions,
 }: {
   journey: Journey;
   data: JourneyData;
   showTimes?: boolean;
   showFares: boolean;
-  lcds?: ReadonlyMap<JourneyLeg, JourneyLcdDeparture>;
-  positions?: TrainPositionsSnapshot | null;
 }) {
-  const rows = buildJourneyRouteRows(journey, data).flatMap<DisplayRow>((row) =>
-    showTimes && row.kind === 'segment' && row.leg.kind === 'ride'
-      ? [{ kind: 'lcd', leg: row.leg }, row]
-      : [row],
-  );
+  const rows = buildJourneyRouteRows(journey, data);
   return (
     <>
       {rows.map((row, i) => {
@@ -80,31 +67,6 @@ export function JourneyRouteRows({
               to={data.stops[journey.legs.at(-1)!.to].name}
             />
           ) : null;
-        if (row.kind === 'lcd') {
-          const lcd = lcds?.get(row.leg);
-          return (
-            <tr key={i} className="journey-lcd-row">
-              <td colSpan={2}>
-                {lcd ? (
-                  <JourneyDepartureDisplay lcd={lcd} positions={positions} />
-                ) : (
-                  <JourneyDepartureDisplay
-                    schedule={{
-                      line: row.leg.line,
-                      stationName: data.stops[row.leg.from].name,
-                      timestamp:
-                        Date.parse(`${journey.serviceDate}T00:00:00+09:00`) +
-                        row.leg.departure * 60_000,
-                      destination: row.leg.headsign,
-                      source: 'ODPT',
-                    }}
-                  />
-                )}
-              </td>
-              {fare}
-            </tr>
-          );
-        }
         const leg = row.leg;
         if (leg.kind === 'walk')
           return (

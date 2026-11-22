@@ -85,6 +85,7 @@ const request = (body: object, fromOrigin = origin) =>
 
 test('accepts Kanto rail stations in either direction, but requires a verified Toei endpoint', () => {
   assert.ok(sample);
+  assert.ok(resolveJourneyQuery({ ...query, from: 'kanto:1130205', to: 'kanto:2800118' }));
   assert.ok(resolveJourneyQuery({ ...query, from: 'gotanda', to: 'kanto:1131915' })); // Koga, Ibaraki
   assert.ok(resolveJourneyQuery({ ...query, from: 'kanto:9930530', to: 'kanto:1131915' })); // Sakura Tram
   for (const invalid of [
@@ -257,6 +258,61 @@ test('uses corroborated station IDs for missing coordinates and checks the throu
   throughFare.summary.move.transit_count = 0;
   assert.deepEqual(matchJourneyFares([throughFare], [route]), [{ id: 1, ticket: 440, ic: 434 }]);
   assert.deepEqual(matchJourneyFares([direct], [route]), []);
+});
+
+test('matches a through fare when Tokyo–Omiya is reported as Utsunomiya and Takasaki', () => {
+  const takanawadai = { name: '高輪台', lat: 35.631, lon: 139.73 };
+  const shimbashi = { name: '新橋', lat: 35.667, lon: 139.759 };
+  const tokyo = { name: '東京', lat: 35.681, lon: 139.767 };
+  const omiya = { name: '大宮', lat: 35.906, lon: 139.624 };
+  const eastOmiya = { name: '東大宮', lat: 35.948, lon: 139.641 };
+  const item = {
+    sections: [
+      point(takanawadai.name, takanawadai),
+      { ...ride('都営浅草線'), next_transit: true },
+      point(shimbashi.name, shimbashi),
+      ride('ＪＲ東海道本線（東京-熱海）'),
+      point(tokyo.name, tokyo),
+      {
+        ...ride('ＪＲ高崎線'),
+        transport: { links: [{ name: 'ＪＲ宇都宮線〔東北本線〕・ＪＲ上野東京ライン' }] },
+      },
+      point('大宮（埼玉県）', omiya),
+    ],
+    summary: { move: { transit_count: 1, fare: { unit_0: 700, unit_48: 690 } } },
+  };
+  const candidate = {
+    id: 2,
+    transfers: 1,
+    rides: [
+      { from: takanawadai, to: shimbashi, line: '都営浅草線', through: false },
+      {
+        from: shimbashi,
+        to: tokyo,
+        line: 'JR東海道線',
+        routeId: 'jp-tokyo-rail_JR-East.Tokaido',
+        through: false,
+      },
+      {
+        from: tokyo,
+        to: omiya,
+        line: 'JR宇都宮線',
+        routeId: 'jp-tokyo-rail_JR-East.Utsunomiya',
+        through: true,
+      },
+    ],
+  };
+  assert.deepEqual(matchJourneyFares([item], [candidate]), [{ id: 2, ticket: 700, ic: 690 }]);
+
+  const differentTrain = structuredClone(candidate);
+  differentTrain.rides[2].through = false;
+  assert.deepEqual(matchJourneyFares([item], [differentTrain]), []);
+
+  const outsideSharedTracks = structuredClone(candidate);
+  outsideSharedTracks.rides[2].to = eastOmiya;
+  const outsideItem = structuredClone(item);
+  outsideItem.sections[6] = point(eastOmiya.name, eastOmiya);
+  assert.deepEqual(matchJourneyFares([outsideItem], [outsideSharedTracks]), []);
 });
 
 test('recognizes the official ODPT feed in Transitous as well as Tokyo Rail', () => {
