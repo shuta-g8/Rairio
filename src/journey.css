@@ -633,9 +633,11 @@
   background: var(--app-hover);
 }
 .app-view-tabs button[aria-pressed='true'] {
-  border-color: var(--app-accent);
   background: var(--app-accent);
   color: #fff;
+}
+.app-view-tabs button:focus-visible {
+  outline-color: var(--app-ink);
 }
 .app-view-content .departures-section {
   padding-top: 0;
@@ -643,7 +645,7 @@
 
 @media (max-width: 760px) {
   :root {
-    --app-view-tabs-height: 3.5rem;
+    --app-view-tabs-height: 4.25rem;
     scroll-padding-bottom: calc(var(--app-view-tabs-height) + env(safe-area-inset-bottom, 0px));
   }
   .page-shell {

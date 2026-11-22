@@ -1,5 +1,12 @@
 export const RELEASE_NOTES = [
   {
+    version: '1.4.4',
+    date: '2026-11-23',
+    changes: [
+      'スマートフォンの下部タブの押せる範囲を広げ、案内タブの枠を青くしないようにしました。',
+    ],
+  },
+  {
     version: '1.4.3',
     date: '2026-11-23',
     changes: [
