@@ -311,7 +311,8 @@ export function resolveHybridDepartures(
           reason: cleared ? (usesEstimate ? 'estimate' : 'clearance') : 'deadline',
         };
       state.retired = true;
-      if (state.noticeDeadline !== undefined) state.approachEndedAt ??= timestamp;
+      if (cleared || (endLeadMs === 0 && state.noticeDeadline !== undefined))
+        state.approachEndedAt ??= timestamp;
       state.skippedBeforeFirstResponse =
         useEstimates &&
         (!positions || positions.collected === null) &&
@@ -324,12 +325,10 @@ export function resolveHybridDepartures(
     // After an estimated arrival, loss of the feed must not restart this train's notice.
     if (forecast?.progress === 'here') state.fallbackClosed = true;
     const timetableStart = timeline.approachStart + timetableStartOffset;
+    const withinEarlyStart = timestamp >= timeline.approachStart - HYBRID_LIMITS.earlyApproachMs;
     if (!departure.gtfs && !state.fallbackClosed && !state.fallbackWindow) {
       const early =
-        fresh &&
-        state.progress === 'approaching' &&
-        state.coordinate === -0.5 &&
-        timestamp >= timeline.approachStart - HYBRID_LIMITS.earlyApproachMs;
+        fresh && state.progress === 'approaching' && state.coordinate === -0.5 && withinEarlyStart;
       if (timestamp >= timeline.approachEnd) state.fallbackClosed = true;
       else if (early || timestamp >= timetableStart)
         state.fallbackWindow = {
@@ -342,49 +341,52 @@ export function resolveHybridDepartures(
 
     const forecastEnd =
       forecast?.arrivalAt === undefined ? undefined : forecast.arrivalAt - endLeadMs;
-    const incoming = departure.gtfs
-      ? !!fresh && raw.progress === 'approaching' && state.progress === 'approaching'
-      : forecast?.progress
-        ? forecast.progress === 'approaching'
-        : !!state.fallbackWindow && !state.fallbackClosed;
+    const currentObservation = fresh && observation?.updatedAt === fresh.updatedAt;
+    const progress = forecast?.progress ?? (currentObservation ? state.progress : undefined);
+    const inWindow = !!state.fallbackWindow && !state.fallbackClosed;
+    let approaching: boolean;
     if (endLeadMs > 0) {
-      // Keep the last deadline across a feed gap. A replay or a late forecast
-      // must not restart a notice whose deadline passed between renders.
-      if (state.noticeDeadline !== undefined && timestamp >= state.noticeDeadline)
-        state.approachEndedAt ??= state.noticeDeadline;
-      if (
-        (fresh && (state.progress === 'here' || state.progress === 'departed')) ||
-        forecast?.progress === 'here' ||
-        forecast?.progress === 'departed'
-      )
-        state.approachEndedAt ??= timestamp;
-      if (forecastEnd !== undefined && timestamp >= forecastEnd)
-        state.approachEndedAt ??= forecastEnd;
+      // The diagram and the notice follow the same directed train visit.
+      // Only arrival or departure is final. A timer bounds a gap in evidence.
+      if (progress === 'here' || progress === 'departed') state.approachEndedAt ??= timestamp;
+      const liveApproach =
+        progress === 'approaching' &&
+        (!!forecast?.progress ||
+          !!departure.gtfs ||
+          withinEarlyStart ||
+          state.noticeDeadline !== undefined);
+      if (liveApproach) {
+        state.noticeDeadline =
+          forecastEnd ??
+          state.noticeDeadline ??
+          (inWindow && !forecast?.progress
+            ? fallbackEnd
+            : timestamp + APPROACH_DURATION_MS - endLeadMs);
+      } else if (progress === 'before' && state.noticeDeadline !== undefined) {
+        state.noticeDeadline = Math.min(state.noticeDeadline, timestamp);
+      } else if (!progress && inWindow) state.noticeDeadline ??= fallbackEnd;
+      approaching =
+        state.approachEndedAt === undefined &&
+        (liveApproach || (progress === undefined && timestamp < (state.noticeDeadline ?? 0)));
+    } else {
+      // Preserve the timed comparison policy.
+      const incoming = departure.gtfs
+        ? !!currentObservation && state.progress === 'approaching'
+        : forecast?.progress
+          ? forecast.progress === 'approaching'
+          : inWindow;
+      approaching = state.approachEndedAt === undefined && incoming;
+      if (approaching) state.noticeDeadline = forecastEnd ?? state.noticeDeadline ?? fallbackEnd;
+      else if (state.noticeDeadline !== undefined) state.approachEndedAt ??= timestamp;
     }
-    const approaching =
-      state.approachEndedAt === undefined &&
-      (incoming || (endLeadMs > 0 && state.noticeDeadline !== undefined));
-    if (approaching) {
-      // A matched approach without an ETA (including GTFS trips) gets one
-      // ordinary notice window, even if the position is fetched repeatedly.
-      state.noticeDeadline =
-        forecastEnd ??
-        state.noticeDeadline ??
-        (departure.gtfs || forecast?.progress === 'approaching'
-          ? timestamp + APPROACH_DURATION_MS - endLeadMs
-          : fallbackEnd);
-    } else if (state.noticeDeadline !== undefined) state.approachEndedAt ??= timestamp;
     trains.set(key, state);
     if (selected.length === 0) {
-      estimatedDiagram = forecast?.position;
+      const arrived = endLeadMs > 0 && state.approachEndedAt !== undefined;
+      estimatedDiagram =
+        arrived && forecast?.progress === 'approaching' ? undefined : forecast?.position;
       position =
-        fresh && (!departure.gtfs || raw.observation)
-          ? observedToeiTrainGuidance(
-              route,
-              departure,
-              { fetchedAt: new Date(timestamp).toISOString(), trains: [fresh] },
-              now,
-            ).position
+        currentObservation && (!arrived || state.progress !== 'approaching')
+          ? raw.position
           : undefined;
       diagnostic = {
         sourceAt: state.position ? Date.parse(state.position.updatedAt) : undefined,
@@ -399,7 +401,8 @@ export function resolveHybridDepartures(
         phase: approaching
           ? 'approaching'
           : state.approachEndedAt === undefined &&
-              (forecast?.progress === 'before' || !state.fallbackClosed)
+              (progress === 'before' ||
+                (state.noticeDeadline === undefined && !state.fallbackClosed))
             ? 'waiting'
             : 'holding',
         cleared: !!cleared,

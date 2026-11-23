@@ -4667,7 +4667,7 @@ export const RAILWAY_CATALOG = [
   },
 ];
 export const STATION_CATALOG_SOURCE = {
-  fetchedAt: '2026-11-22T12:40:21.563Z',
+  fetchedAt: '2026-11-23T12:19:01.760Z',
   timetableSource: 'https://ckan.odpt.org/dataset/r_station_timetable-toei',
   basicsSource: 'https://catalog.data.metro.tokyo.lg.jp/dataset/t000018d0000000053',
   license: 'https://creativecommons.org/licenses/by/4.0/',

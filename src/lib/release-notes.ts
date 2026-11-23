@@ -1,5 +1,10 @@
 export const RELEASE_NOTES = [
   {
+    version: '1.4.6',
+    date: '2026-11-23',
+    changes: ['列車位置が当駅への接近を示している間に、接近案内が消える問題を修正しました。'],
+  },
+  {
     version: '1.4.5',
     date: '2026-11-23',
     changes: [
