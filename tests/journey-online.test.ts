@@ -85,10 +85,10 @@ const request = (body: object, fromOrigin = origin) =>
 
 test('accepts Kanto rail stations in either direction, but requires a verified Toei endpoint', () => {
   assert.ok(sample);
-  assert.ok(resolveJourneyQuery({ ...query, from: 'kanto:1130205', to: 'kanto:2800118' }));
   assert.ok(resolveJourneyQuery({ ...query, from: 'gotanda', to: 'kanto:1131915' })); // Koga, Ibaraki
   assert.ok(resolveJourneyQuery({ ...query, from: 'kanto:9930530', to: 'kanto:1131915' })); // Sakura Tram
   for (const invalid of [
+    { from: 'kanto:1130205', to: 'kanto:2800118' }, // Shibuya to Omotesando
     { from: 'kanto:1131915', to: 'kanto:1130105' },
     { to: 'kanto:1130105' },
     { from: 'https://unexpected.example/' },
@@ -149,6 +149,19 @@ test('retains times for unnamed rail routes and extracts real station numbers', 
   const [named] = transitousResults(response, sample);
   assert.equal(named.route.legs[0].line, 'JR東海道線');
   assert.ok(named.fare);
+});
+
+test('retains external rail headsigns when provided by Transitous', () => {
+  const response = structuredClone(transitous);
+  const [tokaido, yamanote] = response.itineraries[0].legs;
+  Object.assign(tokaido, { headsign: ' （普通 Local） 小金井行き Koganei ' });
+  Object.assign(yamanote, { headsign: '', tripTo: to });
+
+  const [{ route }] = transitousResults(response, sample);
+  assert.deepEqual(
+    route.legs.map((leg) => leg.headsign),
+    ['小金井行き', undefined],
+  );
 });
 
 test('uses ODPT for an identical train in a mixed route and leaves mismatched or expired data to Transitous', () => {

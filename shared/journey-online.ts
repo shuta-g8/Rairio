@@ -1,14 +1,5 @@
 import type { JourneyLine } from './journey.ts';
 
-export const fareComparisonTrips = [
-  { from: 'kanto:1130105', to: 'gotanda', label: '横浜 → 五反田' },
-  { from: 'kanto:1130205', to: 'kanto:2800118', label: '渋谷 → 表参道' },
-] as const;
-
-export function isFareComparisonTrip(from: string, to: string) {
-  return fareComparisonTrips.some((trip) => trip.from === from && trip.to === to);
-}
-
 export interface OnlineJourneyLeg {
   from: string;
   to: string;

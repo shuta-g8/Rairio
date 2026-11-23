@@ -84,8 +84,8 @@ function candidate(itinerary, query, id) {
     const fromCode = walk ? undefined : stopCode(leg.from.stopCode);
     const toCode = walk ? undefined : stopCode(leg.to.stopCode);
     const headsign =
-      toeiLine && typeof leg.headsign === 'string'
-        ? namedLabel(leg.headsign.replace(/^\([^()]+\)\s*/, ''))
+      !walk && typeof leg.headsign === 'string'
+        ? namedLabel(leg.headsign.trim().replace(/^(?:\([^()]+\)|（[^（）]+）)\s*/, ''))
         : undefined;
     const routeColor =
       !walk &&

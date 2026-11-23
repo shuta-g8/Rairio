@@ -1,6 +1,6 @@
 import { STATIONS } from '../shared/stations.ts';
 import network from '../src/generated/kanto-network.json' with { type: 'json' };
-import { isFareComparisonTrip, servesToeiSurfaceRail } from '../shared/journey-online.ts';
+import { servesToeiSurfaceRail } from '../shared/journey-online.ts';
 
 const toeiStations = new Map(STATIONS.map((station) => [station.id, station]));
 const kantoStations = new Map(network.stations.map((station) => [station.id, station]));
@@ -57,7 +57,7 @@ export function resolveJourneyQuery(input) {
   const from = station(input?.from);
   const to = station(input?.to);
   if (!from || !to || from.group === to.group) return;
-  if (!from.toei && !to.toei && !isFareComparisonTrip(input.from, input.to)) return;
+  if (!from.toei && !to.toei) return;
   const { conventionalOnly = true } = input;
   if (typeof conventionalOnly !== 'boolean') return;
   const time = input.time;

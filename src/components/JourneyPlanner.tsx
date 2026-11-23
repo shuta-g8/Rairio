@@ -22,11 +22,7 @@ import { loadJourneyHistory, rememberJourneyPlace } from '../lib/journey-search-
 import type { NearbyStation } from '../hooks/useNearbyStation';
 import { sortJourneyOptions, type JourneySort } from '../lib/journey-sort';
 import { requestOnlinePlan } from '../lib/journey-online';
-import {
-  fareComparisonTrips,
-  isFareComparisonTrip,
-  type OnlineJourneyPlan,
-} from '../../shared/journey-online';
+import type { OnlineJourneyPlan } from '../../shared/journey-online';
 import type { JourneyData } from '../../shared/journey';
 
 type PlannerSearch = JourneySearchState & { online?: OnlineJourneyPlan; timetable?: JourneyData };
@@ -103,11 +99,7 @@ export function JourneyPlanner({
       setSearch(undefined);
       return;
     }
-    if (
-      !findJourneyPlace(from)?.toei &&
-      !findJourneyPlace(to)?.toei &&
-      !isFareComparisonTrip(from, to)
-    ) {
+    if (!findJourneyPlace(from)?.toei && !findJourneyPlace(to)?.toei) {
       setSearchError('出発駅または到着駅の少なくとも片方に東京都交通局の駅を選んでください。');
       return;
     }
@@ -266,26 +258,8 @@ export function JourneyPlanner({
             在来線のみ
           </label>
           <p className="journey-data-note">
-            関東1都6県の東京都交通局の駅を発着する経路と、以下の運賃比較区間を検索できます。
+            関東1都6県の駅を検索できます。出発駅か到着駅に東京都交通局の駅を選んでください。
           </p>
-          <details>
-            <summary>運賃比較の区間を選ぶ</summary>
-            {fareComparisonTrips.map((trip) => (
-              <button
-                key={trip.from}
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  setFrom(trip.from);
-                  setTo(trip.to);
-                  setSearchError('');
-                  onManualInput?.();
-                }}
-              >
-                {trip.label}
-              </button>
-            ))}
-          </details>
         </form>
         {!data && !error && <LoadingStatus>補助案内のデータを読み込んでいます…</LoadingStatus>}
         {error && (

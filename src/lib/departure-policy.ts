@@ -29,7 +29,6 @@ export function departureDiagnosticsEnabled() {
   }
 }
 
-export function holdApproachNoticeEnabled() {
-  // Keep the existing rollback setting for the timed hybrid comparison.
+export function earlyApproachEndEnabled() {
   return readStoredValue(EARLY_APPROACH_END_KEY) !== 'off';
 }

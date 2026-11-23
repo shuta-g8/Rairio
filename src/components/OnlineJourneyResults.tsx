@@ -298,7 +298,11 @@ function OnlineRoute({
             const official = officialTimes.get(leg);
             const officialRide = official?.journey.legs[0];
             const destination =
-              officialRide?.kind === 'ride' ? officialRide.headsign : leg.headsign;
+              (officialRide?.kind === 'ride' && officialRide.headsign) || leg.headsign;
+            const direction =
+              destination && !/(?:行き?|方面|[回廻]り|循環)$/.test(destination)
+                ? `${destination}行`
+                : destination;
             const nextOfficial = next?.from === leg.to ? officialTimes.get(next) : undefined;
             const arrivalStation = official?.toStation ?? nextOfficial?.fromStation;
             const arrivalLines = [leg.toeiLine, nextOfficial ? next?.toeiLine : undefined].filter(
@@ -336,7 +340,7 @@ function OnlineRoute({
                     />
                     <td>
                       <JourneyRailLabel id={lineId} name={leg.line} color={leg.routeColor} />
-                      {destination && <p className="journey-direction-label">{destination}行</p>}
+                      {direction && <p className="journey-direction-label">{direction}</p>}
                       <small>乗車{Math.round((end - start) / 60_000)}分</small>
                       {leg.through && <small>乗換なしで直通</small>}
                       {official && <small>時刻表：東京都交通局（ODPT）</small>}

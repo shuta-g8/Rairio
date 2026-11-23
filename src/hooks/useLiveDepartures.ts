@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { Route } from '../types';
 import type { TrainPositionsSnapshot } from '../../shared/train-positions';
 import { resolveLiveDepartures, type DepartureBoardDisplay } from '../lib/live-departures';
-import { resolveHybridDepartures } from '../lib/hybrid-departures';
+import { APPROACH_END_LEAD_MS, resolveHybridDepartures } from '../lib/hybrid-departures';
 import {
   departureDiagnosticsEnabled,
-  holdApproachNoticeEnabled,
+  earlyApproachEndEnabled,
   readDeparturePolicy,
 } from '../lib/departure-policy';
 import { departureIdentity } from '../lib/time';
@@ -18,8 +18,8 @@ export function useLiveDepartures(
 ) {
   const [policy] = useState(readDeparturePolicy);
   const [diagnostics] = useState(departureDiagnosticsEnabled);
-  const [holdApproach] = useState(holdApproachNoticeEnabled);
-  const approachRelease = holdApproach ? 'stop-or-turnover' : 0;
+  const [earlyApproachEnd] = useState(earlyApproachEndEnabled);
+  const approachEndLeadMs = earlyApproachEnd ? APPROACH_END_LEAD_MS : 0;
   type Frame = {
     route: Route;
     at: number;
@@ -40,11 +40,11 @@ export function useLiveDepartures(
             positions,
             previous?.hybrid?.session,
             useEstimates,
-            approachRelease,
+            approachEndLeadMs,
           )
         : undefined,
     baselineHybrid:
-      diagnostics && approachRelease === 'stop-or-turnover'
+      diagnostics && earlyApproachEnd
         ? resolveHybridDepartures(
             route,
             now,
@@ -81,7 +81,7 @@ export function useLiveDepartures(
       route: route.id,
       station: route.sourceStationId,
       policy,
-      approachRelease,
+      approachEndLeadMs,
       hybrid: frame.hybrid?.diagnostic,
       turnover: frame.hybrid?.session.lastTurnover,
       hybridDisplay: summary(frame.hybrid),
@@ -96,6 +96,6 @@ export function useLiveDepartures(
     window.dispatchEvent(
       new CustomEvent('rairio:departure-diagnostic', { detail: { ...detail, at: now.getTime() } }),
     );
-  }, [diagnostics, approachRelease, frame, policy, route.id, route.sourceStationId, now]);
+  }, [diagnostics, approachEndLeadMs, frame, policy, route.id, route.sourceStationId, now]);
   return (policy === 'hybrid' ? frame.hybrid : frame.legacy)!;
 }
