@@ -312,6 +312,68 @@ test('停車の観測を飛ばして当駅発の区間に移ったら、先発�
   assert.equal(resolve(r, at(-54), null, d.session).presentation?.kind, 'countdown');
 });
 
+test('SSEの進入推定より新しい当駅の直接観測で、位置図と接近案内を揃える', () => {
+  const r = route();
+  const data = approachingForecast(0, 60);
+  const p = data.collected!.trains[0];
+  data.serverEstimates = {
+    validUntil: at(50).getTime(),
+    trains: [
+      {
+        id,
+        runId: p.model!.runId,
+        visit: 19.5,
+        fromStation: p.fromStation,
+        toStation: p.toStation,
+        delaySeconds: 0,
+      },
+    ],
+  };
+  let d = resolve(r, at(10), data);
+  assert.equal(d.presentation?.kind, 'approaching');
+  const arrived = { ...data, ...positions(12, 'here') };
+  d = resolve(r, at(12), arrived, d.session);
+  assert.equal(first(d), '10:05');
+  assert.equal(d.estimatedDiagram?.stage, 'here');
+  assert.ok(!d.estimatedDiagram?.estimated);
+  assert.equal(d.presentation?.kind, 'countdown');
+  // A heartbeat can renew the server estimate without a new source observation.
+  d = resolve(r, at(32), { ...arrived, trains: [] }, d.session);
+  assert.equal(first(d), '10:05');
+  assert.equal(d.presentation?.kind, 'countdown');
+  d = resolve(r, at(42), forecast(42, 42), d.session);
+  assert.equal(first(d), '10:06');
+});
+
+test('収集側の推定が欠けても進入観測の有効期間は先発を保持し、同じ応答で延長しない', () => {
+  const r = route();
+  const data = { ...positions(5), collected: null };
+  let d = resolve(r, at(15), data);
+  d = resolve(r, at(30), data, d.session);
+  assert.equal(first(d), '10:05');
+  assert.equal(d.presentation?.kind, 'approaching');
+  assert.equal(d.estimatedDiagram?.segment, 'second');
+  const missing = resolve(r, at(94), null, d.session);
+  assert.equal(first(missing), '10:05');
+  assert.equal(first(resolve(r, at(95), null, missing.session)), '10:12');
+  d = resolve(r, at(42), forecast(42, 72), d.session);
+  assert.equal(first(d), '10:05');
+  assert.equal(d.presentation?.kind, 'countdown');
+  assert.equal(d.session.lastTurnover, undefined);
+  assert.equal(first(resolve(r, at(72), forecast(72, 72), d.session)), '10:06');
+});
+
+test('古い発車推定と新しい進入観測が重なったときは、案内と繰り上げの両方に進入観測を使う', () => {
+  const r = route();
+  const old = forecast(0, 5);
+  const direct = positions(35);
+  const d = resolve(r, at(36), { ...old, ...direct });
+  assert.equal(first(d), '10:05');
+  assert.equal(d.presentation?.kind, 'approaching');
+  assert.equal(d.estimatedDiagram?.segment, 'second');
+  assert.equal(d.diagnostic?.switchAt, at(125).getTime());
+});
+
 test('GTFS便は進入区間の新鮮な観測を優先し、欠測では期限を延長しない', () => {
   const r = route([
     {
@@ -347,6 +409,32 @@ test('GTFS便は進入区間の新鮮な観測を優先し、欠測では期限�
   d = resolve(r, at(-12), tracked(-12, 'here'), d.session);
   assert.equal(first(d), '10:05');
   assert.equal(d.presentation?.kind, 'countdown');
+});
+
+test('GTFSの観測が進入から当駅発の区間に飛んでも、定刻30秒後に即座に次発へ進めない', () => {
+  const r = route();
+  const train = r.schedules.holiday[0];
+  train.gtfs = {
+    stopMask: (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21),
+    destinationId: 'Hikarigaoka',
+  };
+  const tracked = (seconds: number, stage: string) => {
+    const data = positions(seconds, stage);
+    data.trains[0].destinationStation = 'odpt.Station:Toei.Oedo.Hikarigaoka';
+    return data;
+  };
+  const incoming = tracked(-5, 'incoming');
+  let d = resolve(r, at(24), incoming);
+  assert.equal(d.presentation?.kind, 'approaching');
+  const outbound = tracked(25, 'outgoing');
+  d = resolve(r, at(25), outbound, d.session);
+  assert.equal(d.presentation?.kind, 'expired');
+  assert.equal(d.diagnostic?.sourceAt, at(25).getTime());
+  for (const second of [30, 53]) {
+    d = resolve(r, at(second), outbound, d.session);
+    assert.equal(first(d), '10:05');
+  }
+  assert.equal(first(resolve(r, at(54), null, d.session)), '10:06');
 });
 
 test('same estimate holds the displayed train at the station and advances it exactly at estimated departure', () => {

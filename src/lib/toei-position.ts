@@ -132,6 +132,7 @@ export function collectedDiagramEstimate(
       : undefined;
   return {
     estimate,
+    sourceAt: Date.parse(p.updatedAt),
     position: position && { ...position, estimated: true },
     progress,
     // A live server estimate that still shows an approach can outlast its arrival forecast.

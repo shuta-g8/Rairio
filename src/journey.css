@@ -645,11 +645,15 @@
 
 @media (max-width: 760px) {
   :root {
-    --app-view-tabs-height: 4.25rem;
-    scroll-padding-bottom: calc(var(--app-view-tabs-height) + env(safe-area-inset-bottom, 0px));
+    --app-view-tabs-bottom: env(safe-area-inset-bottom, 0px);
+    --app-view-tabs-height: calc(4.25rem + var(--app-view-tabs-bottom));
+    scroll-padding-bottom: var(--app-view-tabs-height);
+  }
+  :root.standalone {
+    --app-view-tabs-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
   }
   .page-shell {
-    padding-bottom: calc(var(--app-view-tabs-height) + env(safe-area-inset-bottom, 0px) + 16px);
+    padding-bottom: calc(var(--app-view-tabs-height) + 16px);
   }
   .app-view-content {
     isolation: isolate;
@@ -663,9 +667,9 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0;
-    min-height: calc(var(--app-view-tabs-height) + env(safe-area-inset-bottom, 0px));
+    min-height: var(--app-view-tabs-height);
     margin: 0;
-    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    padding: 0 env(safe-area-inset-right, 0px) var(--app-view-tabs-bottom)
       env(safe-area-inset-left, 0px);
     border: 0;
     border-top: 1px solid var(--app-border);

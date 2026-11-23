@@ -157,7 +157,7 @@ export default function App() {
               onClick={() => selectView('journey')}
             >
               <PathIcon size={20} aria-hidden="true" />
-              経路・乗換案内
+              経路案内
             </button>
           </nav>
           <div id="app-view-content" className="app-view-content">
