@@ -88,7 +88,7 @@ function departureVisit(route: Route) {
 
 function estimatedStationProgress(
   route: Route,
-  estimate: PositionEstimate,
+  estimate: Pick<PositionEstimate, 'visit' | 'toStation'>,
 ): TrainStationProgress | undefined {
   const visit = departureVisit(route);
   if (visit == null) return;
@@ -124,17 +124,30 @@ export function collectedDiagramEstimate(
   if (!estimate) return;
   const position = describeToeiPosition(route, train, { ...p, ...estimate });
   const progress = estimatedStationProgress(route, estimate);
+  const model = p.model;
+  const advanceAt = progress === 'approaching' ? positionAdvanceAt(p, estimate) : undefined;
   const arrivalAt =
-    progress === 'approaching' &&
-    estimate.visit === p.model?.visit &&
-    p.model.nextVisit === departureVisit(route)
-      ? positionAdvanceAt(p, estimate)
+    estimate.visit === model?.visit && model.nextVisit === departureVisit(route)
+      ? advanceAt
+      : undefined;
+  const projectedApproach = progress === 'approaching' && !!model && estimate.visit > model.visit;
+  const observedProgress =
+    progress === 'departed' && model && model.visit < estimate.visit
+      ? estimatedStationProgress(route, { visit: model.visit, toStation: p.toStation })
+      : undefined;
+  const beforeProjectedDeparture =
+    observedProgress && observedProgress !== 'departed'
+      ? { progress: observedProgress, position: describeToeiPosition(route, train, p) }
       : undefined;
   return {
     estimate,
     sourceAt: Date.parse(p.updatedAt),
     position: position && { ...position, estimated: true },
     progress,
+    projectedApproach,
+    // The estimator may keep its previous position even after confirming a stall.
+    stalledApproachProjection: projectedApproach && advanceAt === undefined,
+    beforeProjectedDeparture,
     // A live server estimate that still shows an approach can outlast its arrival forecast.
     arrivalAt: arrivalAt !== undefined && now.getTime() < arrivalAt ? arrivalAt : undefined,
     freshUntil: Math.min(

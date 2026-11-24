@@ -4,8 +4,8 @@ import { useToeiGuidance } from '../hooks/useToeiGuidance';
 import type { Departure, Route, Train } from '../types';
 import type { LineOperation } from '../../shared/railways';
 import { toeiStopGuide } from '../lib/toei-stops';
-import { ToeiBoardInformation } from './ToeiBoardInformation';
-import { ToeiDepartureRow } from './ToeiDepartureRow';
+import { ToeiBoardInformation, ToeiPossibleDelayNotice } from './ToeiBoardInformation';
+import { FlippingToeiDepartureRow } from './ToeiDepartureRow';
 import { ToeiStopDiagram } from './ToeiStopDiagram';
 import { TOEI_CONTINUATIONS } from '../lib/toei-map-labels';
 import type { ToeiObservedPosition } from '../lib/toei-position';
@@ -23,6 +23,7 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
   operation,
   previous,
   position,
+  possibleDelay,
 }: {
   route: Route;
   train?: Train;
@@ -31,6 +32,7 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
   operation?: LineOperation;
   previous: boolean;
   position?: ToeiObservedPosition;
+  possibleDelay: boolean;
 }) {
   const guide = useMemo(
     () => train && toeiStopGuide(route, train),
@@ -58,7 +60,7 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
   }, [stations, page]);
   const messages = useToeiGuidance(operation, previous, messageIndex, available);
   const direction = toeiDiagramDirection(route);
-  return kind === 'diagram' && guide ? (
+  return !possibleDelay && kind === 'diagram' && guide ? (
     <ToeiStopDiagram
       stations={visibleStations}
       railwayId={route.railwayId!}
@@ -74,7 +76,9 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
     />
   ) : (
     <>
-      {kind === 'position' && position ? (
+      {possibleDelay ? (
+        <ToeiPossibleDelayNotice />
+      ) : kind === 'position' && position ? (
         <ToeiPositionIndicator position={position} direction={direction} />
       ) : (
         <ToeiBoardInformation
@@ -85,7 +89,7 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
         />
       )}
       {nextDepartures.map((departure, index) => (
-        <ToeiDepartureRow
+        <FlippingToeiDepartureRow
           key={index}
           departure={departure}
           index={index + 1}

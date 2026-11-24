@@ -4,13 +4,17 @@ import type { Route } from '../types';
 import type { LineOperation } from '../../shared/railways';
 import { DESTINATIONS_EN } from '../lib/destinations';
 import { lineName, lineSymbol } from '../lib/stations';
-import { ToeiDepartureRow } from './ToeiDepartureRow';
+import { FlippingToeiDepartureRow, ToeiDepartureRow } from './ToeiDepartureRow';
 import { ToeiArrivalNotice } from './ToeiArrivalNotice';
 import { RailMark } from './RailMark';
-import { OperationBadge } from './operations/OperationBadge';
+import { OperationBadge, StatusBadge } from './operations/OperationBadge';
 import { ToeiBoardCenter } from './ToeiBoardCenter';
+import { ToeiPossibleDelayNotice } from './ToeiBoardInformation';
 import type { DepartureBoardDisplay } from '../lib/live-departures';
-import { TOEI_FLIP_HALF_MS } from '../hooks/useToeiDepartureFlip';
+import { TOEI_FLIP_HALF_MS, useToeiDepartureFlip } from '../hooks/useToeiDepartureFlip';
+import { departureIdentity } from '../lib/time';
+
+const POSSIBLE_DELAY_NOTICE_MS = 3 * 60_000;
 
 export function ToeiDepartureBoard({
   route,
@@ -29,9 +33,15 @@ export function ToeiDepartureBoard({
 }) {
   const { board, presentation, position, livePhase } = display;
   const first = board.kind === 'active' ? board.departures[0] : undefined;
+  const { departure: shownFirst, phase } = useToeiDepartureFlip(first);
+  const possibleDelay =
+    !!shownFirst && now.getTime() - shownFirst.timestamp >= POSSIBLE_DELAY_NOTICE_MS;
+  const showsCurrentFirst =
+    first && shownFirst && departureIdentity(first) === departureIdentity(shownFirst);
   const attention =
-    presentation?.kind === 'approaching' ||
-    (!livePhase && (presentation?.kind === 'departing' || presentation?.kind === 'progress'));
+    showsCurrentFirst &&
+    (presentation?.kind === 'approaching' ||
+      (!livePhase && (presentation?.kind === 'departing' || presentation?.kind === 'progress')));
   const englishDirection = route.direction
     .split('・')
     .map((name) => DESTINATIONS_EN[name])
@@ -62,28 +72,34 @@ export function ToeiDepartureBoard({
               {englishDirection && <small lang="en">For {englishDirection}</small>}
             </div>
             <OperationBadge operation={operation} previous={previous} />
+            {possibleDelay && <StatusBadge state="delayed">遅延の可能性</StatusBadge>}
           </header>
           <div className="toei-board-face">
             <div className="toei-board-trains">
-              {board.kind === 'active' && (
+              {board.kind === 'active' && shownFirst && (
                 <>
                   <ToeiDepartureRow
-                    departure={board.departures[0]}
+                    departure={shownFirst}
+                    phase={phase}
                     index={0}
                     now={now}
                     route={route}
                   />
                   {attention ? (
-                    <ToeiArrivalNotice />
+                    <>
+                      {possibleDelay && <ToeiPossibleDelayNotice />}
+                      <ToeiArrivalNotice />
+                    </>
                   ) : (
                     <ToeiBoardCenter
                       route={route}
-                      train={first}
+                      train={shownFirst}
                       nextDepartures={board.departures.slice(1)}
                       now={now}
                       operation={operation}
                       previous={previous}
-                      position={position}
+                      position={showsCurrentFirst ? position : undefined}
+                      possibleDelay={possibleDelay}
                     />
                   )}
                 </>
@@ -94,7 +110,7 @@ export function ToeiDepartureBoard({
                     本日の運転は終了しました。
                   </div>
                   <div className="toei-board-ended-middle" aria-hidden="true" />
-                  <ToeiDepartureRow
+                  <FlippingToeiDepartureRow
                     departure={board.nextDeparture}
                     index={1}
                     now={now}
@@ -109,7 +125,7 @@ export function ToeiDepartureBoard({
           </div>
         </div>
       </div>
-      {display.arrivalEstimate && (
+      {showsCurrentFirst && display.arrivalEstimate && (
         <p className="journey-data-note">
           先発列車の駅付近への到着予測　{display.arrivalEstimate}頃
         </p>

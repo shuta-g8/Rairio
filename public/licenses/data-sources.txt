@@ -6,6 +6,7 @@ License: Creative Commons Attribution 4.0 International (CC BY 4.0) - https://cr
 Train information (GTFS): https://ckan.odpt.org/dataset/train-toei
 GTFS download: https://api-public.odpt.org/api/v4/files/Toei/data/Toei-Train-GTFS.zip
 Station timetables: https://ckan.odpt.org/dataset/r_station_timetable-toei
+Train timetables: https://ckan.odpt.org/dataset/r_train_timetable-toei
 Station information and coordinates: https://ckan.odpt.org/dataset/r_station-toei
 Station basics: https://catalog.data.metro.tokyo.lg.jp/dataset/t000018d0000000053
 Train operations: https://ckan.odpt.org/dataset/r_train_status-toei

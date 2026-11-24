@@ -9,6 +9,21 @@
   color: #fff;
   overflow: hidden;
 }
+.toei-board-delay-notice {
+  padding-inline: 1.3cqw;
+  color: #ffb34d;
+}
+.toei-board-delay-notice p {
+  margin: 0;
+  font-family: var(--font-bold);
+  font-size: 2.1cqw;
+  line-height: 1.18;
+}
+.toei-board-delay-notice a {
+  color: inherit;
+  text-decoration: underline;
+  white-space: nowrap;
+}
 .toei-information-track {
   display: flex;
   flex: none;

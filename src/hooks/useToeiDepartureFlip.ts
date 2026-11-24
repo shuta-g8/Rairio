@@ -4,19 +4,20 @@ import { departureIdentity } from '../lib/time';
 
 export const TOEI_FLIP_HALF_MS = 1500;
 
-type FlipState =
-  | { shown: Departure; phase?: undefined; startedAt?: never }
-  | { shown: Departure; phase: 'out' | 'in'; startedAt: number };
+type FlipState<T> =
+  | { shown: T; phase?: undefined; startedAt?: never }
+  | { shown: T; phase: 'out' | 'in'; startedAt: number };
 
 /** One timer and one displayed row; coalesce updates before the edge-on swap. */
-export function useToeiDepartureFlip(departure: Departure) {
-  const identity = departureIdentity(departure);
+export function useToeiDepartureFlip<T extends Departure | undefined>(departure: T) {
+  const identity = departure && departureIdentity(departure);
   const latest = useRef(departure);
   const resumed = useRef(false);
   latest.current = departure;
-  const [state, setState] = useState<FlipState>(() => ({ shown: departure }));
-  const matchesShown = identity === departureIdentity(state.shown);
-  const isEarlierCorrection = departure.timestamp < state.shown.timestamp;
+  const [state, setState] = useState<FlipState<T>>(() => ({ shown: departure }));
+  const matchesShown = identity === (state.shown && departureIdentity(state.shown));
+  const replaceImmediately =
+    !departure || !state.shown || departure.timestamp < state.shown.timestamp;
 
   useLayoutEffect(() => {
     // The clock publishes the resumed board in the same render. The visibility
@@ -28,8 +29,8 @@ export function useToeiDepartureFlip(departure: Departure) {
     }
     // A correction to an earlier retained train is not a departure turnover.
     // Never keep the later row visible while rotating back to the correct one.
-    if (isEarlierCorrection || (state.phase === 'out' && matchesShown)) {
-      setState({ shown: latest.current });
+    if (replaceImmediately || (state.phase === 'out' && matchesShown)) {
+      if (!matchesShown || state.phase) setState({ shown: latest.current });
       return;
     }
     if (matchesShown || state.phase) return;
@@ -41,7 +42,7 @@ export function useToeiDepartureFlip(departure: Departure) {
       return;
     }
     setState({ shown: state.shown, phase: 'out', startedAt: performance.now() });
-  }, [identity, state, matchesShown, isEarlierCorrection]);
+  }, [identity, state, matchesShown, replaceImmediately]);
 
   useLayoutEffect(() => {
     if (!state.phase) return;
@@ -84,7 +85,7 @@ export function useToeiDepartureFlip(departure: Departure) {
   }, []);
 
   return {
-    departure: isEarlierCorrection || (!state.phase && matchesShown) ? departure : state.shown,
-    phase: isEarlierCorrection ? undefined : state.phase,
+    departure: replaceImmediately || (!state.phase && matchesShown) ? departure : state.shown,
+    phase: replaceImmediately ? undefined : state.phase,
   };
 }

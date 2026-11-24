@@ -49,3 +49,21 @@ export const ToeiBoardInformation = memo(function ToeiBoardInformation({
     </div>
   );
 });
+
+export function ToeiPossibleDelayNotice() {
+  return (
+    <div className="toei-board-information toei-board-delay-notice">
+      <p role="status">
+        この方面では列車が遅れている可能性があるため、最新の状況は
+        <a
+          href="https://www.kotsu.metro.tokyo.jp/pickup_information/app.html"
+          target="_blank"
+          rel="noreferrer"
+        >
+          都営交通アプリ
+        </a>
+        でご確認ください。
+      </p>
+    </div>
+  );
+}

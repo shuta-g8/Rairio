@@ -93,6 +93,7 @@ const dataNotices = [
   `Train information (GTFS): ${JOURNEY_GTFS_CATALOG}`,
   `GTFS download: ${JOURNEY_GTFS_DOWNLOAD}`,
   `Station timetables: ${TIMETABLE_SOURCE}`,
+  'Train timetables: https://ckan.odpt.org/dataset/r_train_timetable-toei',
   `Station information and coordinates: ${STATION_INFO_SOURCE}`,
   `Station basics: ${STATION_BASICS_SOURCE}`,
   `Train operations: ${OPERATIONS_CATALOG}`,

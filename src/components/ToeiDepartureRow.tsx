@@ -8,20 +8,27 @@ import { ToeiDepartureRank } from './ToeiDepartureRank';
 import { ToeiTrainType } from './ToeiTrainType';
 import { useToeiDepartureFlip } from '../hooks/useToeiDepartureFlip';
 
-export function ToeiDepartureRow({
-  departure: incoming,
-  route,
-  now,
-  index,
-  showRank = true,
-}: {
+interface RowProps {
   departure: Departure;
   route: Route;
   now: Date;
   index: number;
   showRank?: boolean;
-}) {
-  const { departure, phase } = useToeiDepartureFlip(incoming);
+}
+
+export function FlippingToeiDepartureRow(props: RowProps) {
+  const { departure, phase } = useToeiDepartureFlip(props.departure);
+  return <ToeiDepartureRow {...props} departure={departure} phase={phase} />;
+}
+
+export function ToeiDepartureRow({
+  departure,
+  route,
+  now,
+  index,
+  showRank = true,
+  phase,
+}: RowProps & { phase?: ReturnType<typeof useToeiDepartureFlip>['phase'] }) {
   const symbol = lineSymbol(route.line);
   const language = toeiDisplayLanguage(now);
   const carCount = trainCarCount(route, departure);
