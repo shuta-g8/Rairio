@@ -339,6 +339,66 @@
   display: block;
   font-size: 1.6cqw;
 }
+.toei-station-number[data-symbol] {
+  border-color: var(--toei-badge-color);
+  color: var(--toei-badge-ink, var(--toei-badge-color));
+  font-size: calc(var(--toei-number-size, 4.3cqw) * 0.27);
+  font-weight: 700;
+  font-synthesis: weight;
+  line-height: 0.95;
+}
+.toei-station-number[data-symbol] b {
+  font-size: calc(var(--toei-number-size, 4.3cqw) * 0.43);
+  font-weight: inherit;
+}
+.toei-station-number:is([data-symbol='SO'], [data-symbol='MG'], [data-symbol='SH']) {
+  border: 0.1cqw solid #fff;
+  border-radius: 18%;
+  box-shadow: none;
+  background: var(--toei-badge-color);
+  color: #fff;
+  font-size: calc(var(--toei-number-size, 4.3cqw) * 0.32);
+}
+.toei-station-number:is([data-symbol='SO'], [data-symbol='MG'], [data-symbol='SH']) b {
+  font-size: calc(var(--toei-number-size, 4.3cqw) * 0.5);
+}
+.toei-station-number[data-symbol='SO'] {
+  --toei-badge-color: #0073bc;
+}
+.toei-station-number[data-symbol='SO'] > span {
+  width: 94%;
+}
+.toei-station-number[data-symbol='SO'] b {
+  border-top: 0.13cqw solid #ffa526;
+  padding-top: 0.1cqw;
+}
+.toei-station-number[data-symbol='MG'] {
+  --toei-badge-color: #009cd3;
+}
+.toei-station-number[data-symbol='SH'] {
+  --toei-badge-color: #7f3595;
+}
+.toei-station-number[data-symbol='KS'] {
+  --toei-badge-color: #00449a;
+}
+.toei-station-number[data-symbol='KK'] {
+  --toei-badge-color: #00a3e4;
+  --toei-badge-ink: #00509e;
+}
+.toei-station-number[data-symbol='HS'] {
+  --toei-badge-color: #0068b7;
+}
+.toei-station-number[data-symbol='SR'] {
+  --toei-badge-color: #007f53;
+}
+.toei-station-number[data-symbol='KO'] {
+  --toei-badge-color: #d0006b;
+  --toei-badge-ink: #fff;
+  background: linear-gradient(var(--toei-badge-color) 40%, #fff 40%);
+}
+.toei-station-number[data-symbol='KO'] b {
+  color: #151515;
+}
 .route-card.toei-board .destination-name,
 .route-card.toei-board .first .destination-name {
   display: block;

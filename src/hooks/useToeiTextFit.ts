@@ -12,23 +12,23 @@ import {
   toeiTextWidths,
 } from '../lib/toei-text-measure';
 
-/** Measure Japanese and translations separately; only change both as a last resort. */
-export function useToeiTextFit(destination: string, language: string) {
+/** Refit the memoized destination whenever its displayed content changes. */
+export function useToeiTextFit() {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return;
     function fit() {
-      if (!root?.isConnected) return;
+      if (!root?.isConnected || !root.clientWidth) return;
       const heading = root.querySelector<HTMLElement>('.toei-destination-heading');
       const translations = root.querySelector<HTMLElement>('.toei-destination-translations');
       const translation = translations?.firstElementChild as HTMLElement | null;
       const names = [...root.querySelectorAll<HTMLElement>('.destination-name')];
-      if (!heading || !translations || !translation) return;
+      if (!heading) return;
       names.forEach(resetToeiText);
-      resetToeiText(translation);
+      if (translation) resetToeiText(translation);
       heading.style.removeProperty('width');
-      translations.style.removeProperty('flex-basis');
+      translations?.style.removeProperty('flex-basis');
       const gap = (node: HTMLElement) => parseFloat(getComputedStyle(node).columnGap) || 0;
       const boxWidth = (node: Element) => {
         const style = getComputedStyle(node);
@@ -60,7 +60,7 @@ export function useToeiTextFit(destination: string, language: string) {
           fixed + nameWidths.reduce((sum, widths) => sum + widths[width], 0),
         ]),
       ) as ToeiWidthMeasurements;
-      const lines = readToeiTextLines(translation, true);
+      const lines = translation ? readToeiTextLines(translation, true) : [];
       const translationWidths = toeiTextWidths(lines);
       const extra = root.querySelector('.platform');
       const available =
@@ -79,15 +79,18 @@ export function useToeiTextFit(destination: string, language: string) {
           name.style.setProperty('--toei-text-scale', String(width / text.offsetWidth));
       });
       heading.style.width = `${nameTotals[choice.names]}px`;
-      const translationWidth = applyToeiTextWidth(translation, lines, choice.translations, true);
-      translations.style.flexBasis = `${translationWidth}px`;
+      if (translations && translation) {
+        const width = applyToeiTextWidth(translation, lines, choice.translations, true);
+        translations.style.flexBasis = `${width}px`;
+      }
     }
+    fit();
     // A late font can resize the text without resizing its allocated column.
     return observeToeiTextLayout(
       root,
       fit,
       root.querySelectorAll<HTMLElement>('.destination-name[data-lines="2"] .toei-fit-text'),
     );
-  }, [destination, language]);
+  });
   return ref;
 }

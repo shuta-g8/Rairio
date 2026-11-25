@@ -1,6 +1,14 @@
 import type { ToeiObservedPosition } from '../lib/toei-position';
 import { TrainIcon } from '@phosphor-icons/react/dist/csr/Train';
 import type { ToeiDiagramDirection } from '../lib/toei-diagram';
+import type { ToeiDisplayLanguage } from '../lib/toei-language';
+
+const POSITION_LABELS = {
+  ja: ['ぜんぜんえき', 'ぜんえき', 'とうえき'],
+  en: ['Two stops away', 'Previous stop', 'This station'],
+  'zh-Hans': ['前两站', '上一站', '本站'],
+  ko: ['두 정거장 전', '이전 역', '이 역'],
+} satisfies Record<ToeiDisplayLanguage, readonly [string, string, string]>;
 
 function TrainInFrame() {
   return (
@@ -13,10 +21,13 @@ function TrainInFrame() {
 export function ToeiPositionIndicator({
   position,
   direction,
+  language,
 }: {
   position: ToeiObservedPosition;
   direction: ToeiDiagramDirection;
+  language: ToeiDisplayLanguage;
 }) {
+  const [beforePrevious, previous, current] = POSITION_LABELS[language];
   return (
     <div
       className="toei-position-indicator"
@@ -31,7 +42,7 @@ export function ToeiPositionIndicator({
         data-active={(!position.segment && position.stage === 'before-previous') || undefined}
       >
         <strong>前々駅</strong>
-        <small>ぜんぜんえき</small>
+        <small lang={language}>{beforePrevious}</small>
         {!position.segment && position.stage === 'before-previous' && <TrainInFrame />}
       </div>
       <span
@@ -48,7 +59,7 @@ export function ToeiPositionIndicator({
         data-active={(!position.segment && position.stage === 'previous') || undefined}
       >
         <strong>前　駅</strong>
-        <small>ぜんえき</small>
+        <small lang={language}>{previous}</small>
         {!position.segment && position.stage === 'previous' && <TrainInFrame />}
       </div>
       <span
@@ -62,7 +73,7 @@ export function ToeiPositionIndicator({
       </span>
       <div className="toei-position-box toei-position-current">
         <strong>当　駅</strong>
-        <small>とうえき</small>
+        <small lang={language}>{current}</small>
         {!position.segment && position.stage === 'here' && <TrainInFrame />}
       </div>
     </div>

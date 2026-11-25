@@ -22,6 +22,11 @@ test('収まる文字は通常幅を保ち、片側だけで収まる場合は�
     names: 80,
     translations: 100,
   });
+  // The Japanese name could fit at 80%, but the translation still fits on its own at 60%.
+  assert.deepEqual(selectToeiTextWidths(widths(200), widths(100), 265), {
+    names: 100,
+    translations: 60,
+  });
   assert.deepEqual(selectToeiTextWidths(widths(50), widths(200), 190), {
     names: 100,
     translations: 70,

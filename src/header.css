@@ -92,8 +92,16 @@
 .header-menu-panel .modal-header {
   padding-top: max(12px, env(safe-area-inset-top, 0px));
 }
-.header-menu-panel:not(.header-menu-information) .modal-mobile-actions {
+.header-menu-panel:not(.header-menu-detail) .modal-mobile-actions {
   display: none;
+}
+@media (max-width: 882px) {
+  .header-panel.header-menu-detail {
+    padding-bottom: 0;
+  }
+  .header-menu-detail .modal-mobile-actions {
+    padding-bottom: calc(12px + var(--app-bottom-inset));
+  }
 }
 .header-search-panel .station-picker {
   padding: 22px;

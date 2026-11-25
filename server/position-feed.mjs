@@ -45,6 +45,7 @@ export const FEED_LIMITS = Object.freeze({
   unionIds: 256,
   sessionMs: 600000,
 });
+const FEED_INTERVAL_MS = 2000;
 
 // A single reader already exists for this four-line collector. Reuse it, rather
 // than creating an always-active Durable Object per station or per viewer.
@@ -72,7 +73,7 @@ export class PositionFeedHub {
       },
       { highWaterMark: 2 },
     );
-    // New subscribers join the next shared tick (within 5 seconds). A burst of
+    // New subscribers join the next shared tick. A burst of
     // connections must not accelerate computation or overflow existing clients.
     if (this.clients.size === 1) void this.tick();
     return new Response(stream, {
@@ -118,7 +119,7 @@ export class PositionFeedHub {
       for (const c of this.clients) this.remove(c);
     } finally {
       this.ticking = false;
-      if (this.clients.size) this.timer = setTimeout(() => void this.tick(), 5000);
+      if (this.clients.size) this.timer = setTimeout(() => void this.tick(), FEED_INTERVAL_MS);
     }
   }
 }

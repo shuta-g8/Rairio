@@ -37,9 +37,15 @@ export function toeiDestinationTranslation(
   )
     language = hasEnglish ? 'en' : 'ja';
   if (language === 'ja' && !hasReading) language = 'en';
-  // Match the Japanese two-line airport name before considering condensed faces.
-  if (terminal && stations.length === 1 && stations[0].name === AIRPORT_NAME && language !== 'ja')
-    return { language, lines: AIRPORT_LINES[language].map((text) => ({ text })) };
+  // Match the two-line airport name in every language.
+  if (terminal && stations.length === 1 && stations[0].name === AIRPORT_NAME)
+    return {
+      language,
+      lines:
+        language === 'ja'
+          ? [{ text: 'はねだくうこう' }, { text: 'だい1・だい2ターミナル', suffix: 'ゆき' }]
+          : AIRPORT_LINES[language].map((text) => ({ text })),
+    };
   if (language === 'ja')
     return {
       language,

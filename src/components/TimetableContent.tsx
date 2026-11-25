@@ -12,6 +12,7 @@ import { lineName, lineSymbol, stationDisplayName } from '../lib/stations';
 import type { DayKind, Route } from '../types';
 import { trainTypeName } from '../lib/train-type';
 import { RailMark } from './RailMark';
+import { asakusaTrainType } from '../lib/asakusa-train-types';
 
 export const TimetableContent = memo(function TimetableContent({
   route,
@@ -32,7 +33,18 @@ export const TimetableContent = memo(function TimetableContent({
   const currentRow = useRef<HTMLTableRowElement>(null);
   const applicable = schedulesForDate(route, serviceDate(now));
   const schedule = applicable?.[day] ?? [];
-  const groups = useMemo(() => groupTimetableByHour(schedule), [schedule]);
+  const groups = useMemo(
+    () =>
+      groupTimetableByHour(
+        gtfs
+          ? schedule.map((train) => {
+              const type = asakusaTrainType(edition, day, train);
+              return type ? { ...train, type } : train;
+            })
+          : schedule,
+      ),
+    [schedule, gtfs, edition, day],
+  );
   const hasCurrentHour = groups.has(currentHour);
   if (!applicable) return <TimetableUnavailable now={now} />;
 

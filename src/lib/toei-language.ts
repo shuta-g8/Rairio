@@ -5,9 +5,9 @@ export function toeiDisplayLanguage(now: Date) {
   return LANGUAGES[Math.floor(now.getTime() / 5000) % LANGUAGES.length];
 }
 
-// Direction anchors on the four Toei lines and Oedo short-turn destinations.
+// Direction anchors and terminal names for the four Toei lines.
 // Chinese uses simplified characters; Korean uses station-name transliterations.
-const STATION_NAMES: Readonly<Record<string, readonly [string, string]>> = {
+const STATION_NAMES: Readonly<Partial<Record<string, readonly [string, string, string?]>>> = {
   大門: ['大门', '다이몬'],
   両国: ['两国', '료고쿠'],
   六本木: ['六本木', '롯폰기'],
@@ -24,10 +24,55 @@ const STATION_NAMES: Readonly<Record<string, readonly [string, string]>> = {
   西高島平: ['西高岛平', '니시타카시마다이라'],
   目黒: ['目黑', '메구로'],
   本八幡: ['本八幡', '모토야와타'],
-  // Keikyu's multilingual airport access guides (guidebook_cn.pdf / guidebook_kr.pdf).
-  '羽田空港第１・第２ターミナル': ['羽田机场第1・第2航站楼', '하네다공항 제1·제2터미널'],
+  泉岳寺: ['泉岳寺', '센가쿠지'],
+  浅草橋: ['浅草桥', '아사쿠사바시'],
+  白金高輪: ['白金高轮', '시로카네타카나와'],
+  高島平: ['高岛平', '다카시마다이라'],
+  岩本町: ['岩本町', '이와모토초'],
+  大島: ['大岛', '오지마'],
+  瑞江: ['瑞江', '미즈에'],
+
+  // Through destinations also supply kana when the Toei station catalog has no reading.
+  青砥: ['青砥', '아오토', 'あおと'],
+  京成高砂: ['京成高砂', '게이세이타카사고', 'けいせいたかさご'],
+  京成佐倉: ['京成佐仓', '게이세이사쿠라', 'けいせいさくら'],
+  宗吾参道: ['宗吾参道', '소고산도', 'そうごさんどう'],
+  京成成田: ['京成成田', '게이세이나리타', 'けいせいなりた'],
+  成田空港: ['成田机场', '나리타공항', 'なりたくうこう'],
+  印西牧の原: ['印西牧之原', '인자이마키노하라', 'いんざいまきのはら'],
+  印旛日本医大: ['印旛日本医大', '인바니혼이다이', 'いんばにほんいだい'],
+  芝山千代田: ['芝山千代田', '시바야마치요다', 'しばやまちよだ'],
+  品川: ['品川', '시나가와', 'しながわ'],
+  京急川崎: ['京急川崎', '게이큐카와사키', 'けいきゅうかわさき'],
+  神奈川新町: ['神奈川新町', '가나가와신마치', 'かながわしんまち'],
+  金沢文庫: ['金泽文库', '가나자와분코', 'かなざわぶんこ'],
+  '逗子・葉山': ['逗子・叶山', '즈시·하야마', 'ずし・はやま'],
+  浦賀: ['浦贺', '우라가', 'うらが'],
+  京急久里浜: ['京急久里滨', '게이큐쿠리하마', 'けいきゅうくりはま'],
+  三浦海岸: ['三浦海岸', '미우라카이간', 'みうらかいがん'],
+  三崎口: ['三崎口', '미사키구치', 'みさきぐち'],
+  '羽田空港第１・第２ターミナル': [
+    '羽田机场第1・第2航站楼',
+    '하네다공항 제1·제2터미널',
+    'はねだくうこう だい1・だい2ターミナル',
+  ],
+  武蔵小杉: ['武藏小杉', '무사시코스기', 'むさしこすぎ'],
+  日吉: ['日吉', '히요시', 'ひよし'],
+  新横浜: ['新横滨', '신요코하마', 'しんよこはま'],
+  西谷: ['西谷', '니시야', 'にしや'],
+  大和: ['大和', '야마토', 'やまと'],
+  海老名: ['海老名', '에비나', 'えびな'],
+  湘南台: ['湘南台', '쇼난다이', 'しょうなんだい'],
+  笹塚: ['笹塚', '사사즈카', 'ささづか'],
+  若葉台: ['若叶台', '와카바다이', 'わかばだい'],
+  京王多摩センター: ['京王多摩中心', '게이오타마센터', 'けいおうたませんたー'],
+  橋本: ['桥本', '하시모토', 'はしもと'],
 };
 
 export function toeiStationName(name: string, language: 'zh-Hans' | 'ko') {
   return STATION_NAMES[name]?.[language === 'zh-Hans' ? 0 : 1];
+}
+
+export function toeiStationReading(name: string) {
+  return STATION_NAMES[name]?.[2];
 }

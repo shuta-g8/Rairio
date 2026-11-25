@@ -12,7 +12,11 @@
   --app-selected: #e8f0fe;
   --app-selected-hover: #d2e3fc;
   --app-radius: 12px;
+  --app-bottom-inset: env(safe-area-inset-bottom, 0px);
   background: var(--app-background);
+}
+:root.standalone {
+  --app-bottom-inset: calc(env(safe-area-inset-bottom, 0px) + 20px);
 }
 
 .page-shell {

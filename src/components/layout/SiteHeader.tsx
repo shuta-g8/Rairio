@@ -196,16 +196,18 @@ export const SiteHeader = memo(function SiteHeader({
             className={
               panel === 'directory'
                 ? 'station-directory-dialog'
-                : `header-panel ${menuOpen ? `header-menu-panel${info ? ' header-menu-information' : ''}` : 'header-search-panel'}`
+                : `header-panel ${menuOpen ? `header-menu-panel${menuDetail ? ' header-menu-detail' : ''}` : 'header-search-panel'}`
             }
             mobileCloseLabel={
               info
                 ? SITE_INFORMATION[info].closeLabel
-                : menuOpen
-                  ? 'メニューを閉じる'
-                  : panel === 'directory'
-                    ? '駅一覧を閉じる'
-                    : undefined
+                : panel === 'about'
+                  ? '説明を閉じる'
+                  : menuOpen
+                    ? 'メニューを閉じる'
+                    : panel === 'directory'
+                      ? '駅一覧を閉じる'
+                      : undefined
             }
           >
             {panel === 'directory' ? (

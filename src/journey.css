@@ -645,12 +645,8 @@
 
 @media (max-width: 760px) {
   :root {
-    --app-view-tabs-bottom: env(safe-area-inset-bottom, 0px);
-    --app-view-tabs-height: calc(4.25rem + var(--app-view-tabs-bottom));
+    --app-view-tabs-height: calc(4.25rem + var(--app-bottom-inset));
     scroll-padding-bottom: var(--app-view-tabs-height);
-  }
-  :root.standalone {
-    --app-view-tabs-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
   }
   .page-shell {
     padding-bottom: calc(var(--app-view-tabs-height) + 16px);
@@ -669,7 +665,7 @@
     gap: 0;
     min-height: var(--app-view-tabs-height);
     margin: 0;
-    padding: 0 env(safe-area-inset-right, 0px) var(--app-view-tabs-bottom)
+    padding: 0 env(safe-area-inset-right, 0px) var(--app-bottom-inset)
       env(safe-area-inset-left, 0px);
     border: 0;
     border-top: 1px solid var(--app-border);

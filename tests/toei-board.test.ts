@@ -24,6 +24,29 @@ test('大江戸線以外は方面名に置き換えず、実際の行先とそ�
   assert.equal(result.stations[0].code, 'I-25');
 });
 
+test('直通先の駅番号は行先と都営線の進行方向で決まる', () => {
+  for (const [railwayId, direction, line, destination, code] of [
+    ['Mita', 'Southbound', '都営三田線', '海老名', 'SO-18'],
+    ['Mita', 'Southbound', '都営三田線', '日吉', 'MG-13'],
+    ['Mita', 'Southbound', '都営三田線', '新横浜', 'SH-01'],
+    ['Mita', 'Southbound', '都営三田線', '目黒', 'I-01'],
+    ['Asakusa', 'Northbound', '都営浅草線', '京成成田', 'KS-40'],
+    ['Asakusa', 'Northbound', '都営浅草線', '成田空港(鉄道)', 'KS-42'],
+    ['Asakusa', 'Northbound', '都営浅草線', '印旛日本医大', 'HS-14'],
+    ['Asakusa', 'Northbound', '都営浅草線', '芝山千代田', 'SR-01'],
+    ['Asakusa', 'Southbound', '都営浅草線', '三浦海岸', 'KK-71'],
+    ['Asakusa', 'Southbound', '都営浅草線', '羽田空港第１・第２ターミナル(京急)', 'KK-17'],
+    ['Shinjuku', 'Westbound', '都営新宿線', '橋本', 'KO-45'],
+    ['Shinjuku', 'Eastbound', '都営新宿線', '橋本', undefined],
+  ] as const) {
+    const { stations } = toeiBoardDestination(
+      { ...route, id: `Toei.${railwayId}.${direction}`, railwayId, line },
+      destination,
+    );
+    assert.equal(stations[0].code, code, destination);
+  }
+});
+
 test('勝どきの外回りは、駅順を確認して大門経由の光が丘・都庁前行を表示する', () => {
   for (const destination of ['光が丘', '都庁前']) {
     const result = toeiBoardDestination(route, destination);

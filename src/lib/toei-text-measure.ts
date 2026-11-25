@@ -98,8 +98,9 @@ function naturalWidth(lines: ToeiTextLines) {
 
 export function toeiTextWidths(lines: ToeiTextLines) {
   const normal = naturalWidth(lines);
+  const padding = lines.length ? TEXT_WIDTH_PADDING : 0;
   return Object.fromEntries(
-    TOEI_TEXT_WIDTHS.map((width) => [width, (normal * width) / 100 + TEXT_WIDTH_PADDING]),
+    TOEI_TEXT_WIDTHS.map((width) => [width, (normal * width) / 100 + padding]),
   ) as Record<ToeiTextWidth, number>;
 }
 

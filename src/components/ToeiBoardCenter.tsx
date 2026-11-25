@@ -11,6 +11,7 @@ import { TOEI_CONTINUATIONS } from '../lib/toei-map-labels';
 import type { ToeiObservedPosition } from '../lib/toei-position';
 import { ToeiPositionIndicator } from './ToeiPositionIndicator';
 import { toeiDiagramDirection } from '../lib/toei-diagram';
+import { toeiDisplayLanguage } from '../lib/toei-language';
 
 const STATIONS_PER_PAGE = 10;
 
@@ -79,7 +80,11 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
       {possibleDelay ? (
         <ToeiPossibleDelayNotice />
       ) : kind === 'position' && position ? (
-        <ToeiPositionIndicator position={position} direction={direction} />
+        <ToeiPositionIndicator
+          position={position}
+          direction={direction}
+          language={toeiDisplayLanguage(now)}
+        />
       ) : (
         <ToeiBoardInformation
           messages={messages}

@@ -23,10 +23,7 @@ export const ToeiDestination = memo(function ToeiDestination({
   const details = toeiBoardDestination(route, destination);
   const { stations, via, terminal } = details;
   const translation = toeiDestinationTranslation(details, language);
-  const destinationRef = useToeiTextFit(
-    stations.map(({ name }) => name).join('・'),
-    translation?.language || language,
-  );
+  const destinationRef = useToeiTextFit();
   return (
     <div ref={destinationRef} className="departure-destination toei-destination">
       <div
@@ -43,14 +40,7 @@ export const ToeiDestination = memo(function ToeiDestination({
       >
         {stations.map(({ name, code }, stationIndex) => (
           <span className="toei-direction-station" key={name}>
-            {code && (
-              <span className="toei-station-number" role="img" aria-label={`駅番号 ${code}`}>
-                <span aria-hidden="true">
-                  {code.split('-')[0]}
-                  <b>{code.split('-')[1]}</b>
-                </span>
-              </span>
-            )}
+            {code && <ToeiDestinationNumber code={code} />}
             <ToeiDestinationName name={name} />
             {via && stationIndex === 0 && <span className="toei-destination-via">経由</span>}
           </span>
@@ -66,6 +56,23 @@ export const ToeiDestination = memo(function ToeiDestination({
     </div>
   );
 });
+
+function ToeiDestinationNumber({ code }: { code: string }) {
+  const [symbol, number] = code.split('-');
+  return (
+    <span
+      className="toei-station-number"
+      data-symbol={symbol.length > 1 ? symbol : undefined}
+      role="img"
+      aria-label={`駅番号 ${code}`}
+    >
+      <span aria-hidden="true">
+        {symbol}
+        <b>{number}</b>
+      </span>
+    </span>
+  );
+}
 
 function ToeiDestinationName({ name }: { name: string }) {
   const lines = toeiDestinationNameLines(name);

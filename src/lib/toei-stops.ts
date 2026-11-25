@@ -1,5 +1,6 @@
 import type { Route, Train } from '../types.ts';
 import { STATION_RAILWAYS } from './stations.ts';
+import { toeiThroughDestinationCode } from './toei-through-destinations.ts';
 
 export interface ToeiStop {
   id: string;
@@ -31,34 +32,6 @@ const asakusaTypes = new Set([
   '急行',
   'エアポート快特',
 ]);
-const throughDestinations: Record<string, readonly string[]> = {
-  'Asakusa.Northbound': [
-    '印旛日本医大',
-    '印西牧の原',
-    '青砥',
-    '京成高砂',
-    '成田空港(鉄道)',
-    '京成成田',
-    '京成佐倉',
-    '芝山千代田',
-    '宗吾参道',
-  ],
-  'Asakusa.Southbound': [
-    '羽田空港第１・第２ターミナル(京急)',
-    '三崎口',
-    '京急久里浜',
-    '三浦海岸',
-    '逗子・葉山',
-    '品川',
-    '金沢文庫',
-    '神奈川新町',
-    '京急川崎',
-    '浦賀',
-  ],
-  'Mita.Southbound': ['新横浜', '日吉', '海老名', '西谷', '湘南台', '武蔵小杉', '大和'],
-  'Shinjuku.Westbound': ['笹塚', '橋本', '若葉台', '京王多摩センター'],
-};
-
 // Immutable fetched routes can be collected when their station is no longer displayed.
 const routeOrders = new WeakMap<Route, ReturnType<typeof orderedRouteStations>>();
 
@@ -115,8 +88,7 @@ export function toeiStopGuide(
   const origin = route.sourceStationId!.split('.').at(-1)!.toLowerCase();
   const start = order.findIndex((station) => station.id === origin);
   if (start < 0) return;
-  const through =
-    throughDestinations[`${railwayId}.${direction}`]?.includes(train.destination) ?? false;
+  const through = toeiThroughDestinationCode(route, train.destination) !== undefined;
   const boundary =
     railwayId === 'Asakusa' && direction === 'Southbound' ? '泉岳寺' : order.at(-1)!.name;
   const gtfsMask = train.gtfs?.stopMask;

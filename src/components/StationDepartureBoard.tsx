@@ -1,11 +1,15 @@
-import type { Route } from '../types';
+import type { Departure, Route } from '../types';
 import type { BoardMode } from '../lib/board-mode';
 import type { LineOperation } from '../../shared/railways';
 import type { TrainPositionsSnapshot } from '../../shared/train-positions';
 import { useLiveDepartures } from '../hooks/useLiveDepartures';
 import { RouteCard } from './DepartureBoard';
 import { ToeiDepartureBoard } from './ToeiDepartureBoard';
-import { schedulesForDate, editionServiceDate } from '../../shared/timetable-editions';
+import {
+  schedulesForDate,
+  editionServiceDate,
+  timetableEditionForDate,
+} from '../../shared/timetable-editions';
 import { TimetableUnavailable } from './TimetableUnavailable';
 import { RailMark } from './RailMark';
 import { lineName, lineSymbol } from '../lib/stations';
@@ -17,6 +21,19 @@ import {
 } from '../lib/toei-position';
 import type { DepartureBoardDisplay } from '../lib/live-departures';
 import type { PositionEstimate } from '../../shared/position-estimate';
+import { asakusaTrainType } from '../lib/asakusa-train-types';
+
+function withTrainType(route: Route, departure: Departure, liveType?: string): Departure {
+  if (!departure.gtfs) return departure;
+  const type =
+    liveType ||
+    asakusaTrainType(
+      timetableEditionForDate(route, departure.serviceDate),
+      departure.day,
+      departure,
+    );
+  return type ? { ...departure, type } : departure;
+}
 
 /** Keep the live deadline across display-mode changes without retaining hidden boards. */
 export function StationDepartureBoard({
@@ -97,21 +114,23 @@ export function StationDepartureBoard({
       }
     : display;
   const board = diagram.board;
-  const withTrainTypes =
+  const presentedBoard =
     board.kind === 'active' && board.departures.some((departure) => departure.gtfs)
       ? {
-          ...diagram,
-          board: {
-            ...board,
-            departures: board.departures.map((departure) => {
-              const type =
-                departure.gtfs &&
-                matchedTrainPosition(scoped, departure, positions, now)?.trainType;
-              return type ? { ...departure, type } : departure;
-            }),
-          },
+          ...board,
+          departures: board.departures.map((departure) =>
+            withTrainType(
+              scoped,
+              departure,
+              departure.gtfs
+                ? matchedTrainPosition(scoped, departure, positions, now)?.trainType
+                : undefined,
+            ),
+          ),
         }
-      : diagram;
+      : board.kind === 'ended' && board.nextDeparture.gtfs
+        ? { ...board, nextDeparture: withTrainType(scoped, board.nextDeparture) }
+        : board;
   const at =
     props.operation?.state === 'normal'
       ? statisticalArrivalTime(scoped, first, positions, now)
@@ -125,6 +144,11 @@ export function StationDepartureBoard({
           minute: '2-digit',
         });
   return (
-    <Board {...props} route={scoped} now={now} display={{ ...withTrainTypes, arrivalEstimate }} />
+    <Board
+      {...props}
+      route={scoped}
+      now={now}
+      display={{ ...diagram, board: presentedBoard, arrivalEstimate }}
+    />
   );
 }

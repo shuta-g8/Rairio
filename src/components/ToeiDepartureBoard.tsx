@@ -2,8 +2,10 @@ import type { CSSProperties } from 'react';
 import { ArrowRightIcon } from '@phosphor-icons/react/dist/csr/ArrowRight';
 import type { Route } from '../types';
 import type { LineOperation } from '../../shared/railways';
-import { DESTINATIONS_EN } from '../lib/destinations';
 import { lineName, lineSymbol } from '../lib/stations';
+import { toeiBoardDestination } from '../lib/toei-board';
+import { toeiDestinationTranslation } from '../lib/toei-destination-text';
+import { toeiDisplayLanguage } from '../lib/toei-language';
 import { FlippingToeiDepartureRow, ToeiDepartureRow } from './ToeiDepartureRow';
 import { ToeiArrivalNotice } from './ToeiArrivalNotice';
 import { RailMark } from './RailMark';
@@ -42,11 +44,10 @@ export function ToeiDepartureBoard({
     showsCurrentFirst &&
     (presentation?.kind === 'approaching' ||
       (!livePhase && (presentation?.kind === 'departing' || presentation?.kind === 'progress')));
-  const englishDirection = route.direction
-    .split('・')
-    .map((name) => DESTINATIONS_EN[name])
-    .filter(Boolean)
-    .join(', ');
+  const direction = toeiDestinationTranslation(
+    toeiBoardDestination(route),
+    toeiDisplayLanguage(now),
+  );
 
   return (
     <article
@@ -69,7 +70,11 @@ export function ToeiDepartureBoard({
                 {route.direction}
                 <span>方面</span>
               </h3>
-              {englishDirection && <small lang="en">For {englishDirection}</small>}
+              {direction && (
+                <small lang={direction.language}>
+                  {direction.lines.map(({ text }) => text).join('・')}
+                </small>
+              )}
             </div>
             <OperationBadge operation={operation} previous={previous} />
             {possibleDelay && <StatusBadge state="delayed">遅延の可能性</StatusBadge>}

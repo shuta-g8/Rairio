@@ -5,7 +5,10 @@
   --toei-map-node-size: 2cqw;
   --toei-map-line-center: calc(var(--toei-map-line-bottom) + var(--toei-map-line-height) / 2);
   --toei-map-line-top: calc(var(--toei-map-line-bottom) + var(--toei-map-line-height));
+  --toei-map-cut-width: 0.8cqw;
+  --toei-map-chevron-depth: calc(var(--toei-map-cut-width) * 0.6);
   --toei-map-branch-center: 3.2cqw;
+  --toei-map-branch-bottom: var(--toei-map-line-top);
   --toei-map-branch-stroke: 0.1cqw;
   grid-row: 2 / -1;
   position: relative;
@@ -71,6 +74,13 @@
   .toei-stop-diagram
   > li:last-child::before {
   left: -1.2cqw;
+  clip-path: polygon(
+    var(--toei-map-chevron-depth) 0,
+    100% 0,
+    100% 100%,
+    var(--toei-map-chevron-depth) 100%,
+    0 50%
+  );
 }
 .toei-stop-information[data-direction='left'] .toei-stop-cut {
   transform: scaleX(-1);
@@ -92,23 +102,39 @@
   height: var(--toei-map-line-height);
   background: var(--line-color);
 }
+.toei-stop-information:not([data-terminal]) .toei-stop-diagram > li:last-child::before {
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--toei-map-chevron-depth)) 0,
+    100% 50%,
+    calc(100% - var(--toei-map-chevron-depth)) 100%,
+    0 100%
+  );
+}
 .toei-stop-diagram > li::after,
 .toei-stop-cut {
   z-index: 1;
   content: '';
   position: absolute;
-  right: 0.2cqw;
+  right: 0.4cqw;
   bottom: var(--toei-map-line-bottom);
-  width: 0.8cqw;
+  width: var(--toei-map-cut-width);
   height: var(--toei-map-line-height);
   background: #030504;
-  clip-path: polygon(0 0, 40% 0, 100% 50%, 40% 100%, 0 100%, 60% 50%);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--toei-map-chevron-depth)) 0,
+    100% 50%,
+    calc(100% - var(--toei-map-chevron-depth)) 100%,
+    0 100%,
+    var(--toei-map-chevron-depth) 50%
+  );
 }
 .toei-stop-diagram > li:not(:first-child):not(:last-child)::after {
   content: none;
 }
 .toei-stop-cut {
-  left: calc(var(--toei-current-cut-center) - 0.4cqw);
+  left: calc(var(--toei-current-cut-center) - var(--toei-map-cut-width) / 2);
   right: auto;
 }
 .toei-stop-information[data-terminal] .toei-stop-diagram > li:last-child::after {
@@ -173,13 +199,17 @@
 .toei-stop-branch {
   position: absolute;
   left: calc(var(--toei-map-node-center) - var(--toei-map-branch-stroke) / 2);
-  bottom: var(--toei-map-line-top);
+  bottom: var(--toei-map-branch-bottom);
   width: var(--toei-map-branch-width, calc(100% - 1.8cqw));
   height: calc(
-    var(--toei-map-branch-center) - var(--toei-map-line-top) + var(--toei-map-branch-stroke) / 2
+    var(--toei-map-branch-center) - var(--toei-map-branch-bottom) + var(--toei-map-branch-stroke) /
+      2
   );
   border-top: var(--toei-map-branch-stroke) solid currentColor;
   border-left: var(--toei-map-branch-stroke) solid currentColor;
+}
+.toei-stop-diagram > [data-kind='current'] .toei-stop-branch {
+  --toei-map-branch-bottom: 0px;
 }
 .toei-stop-name {
   flex-shrink: 0;
