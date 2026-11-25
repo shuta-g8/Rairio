@@ -4,6 +4,7 @@ export const TRAIN_POSITIONS_SOURCE = `${ODPT_API}odpt:Train?odpt:operator=${TOE
 export const TRAIN_POSITIONS_CATALOG = 'https://ckan.odpt.org/dataset/r_train_location-toei';
 export const TRAIN_POSITIONS_INTERVAL = 30000;
 export const TRAIN_POSITION_MAX_AGE = 90000;
+export const POSITION_DISPLAY_ADVANCE_MS = 50_000;
 export interface TrainPosition {
   id: string;
   railwayId: string;
@@ -18,7 +19,7 @@ export interface TrainPosition {
 }
 export interface CollectedTrainPosition extends TrainPosition {
   vicinityArrival?: { station: string; at: number };
-  projection?: { at: number; fromStation: string; toStation: string | null };
+  projection?: { at: number; fromStation: string; toStation: string | null; advanceMs?: number };
   model?: {
     runId: string;
     visit: number;
@@ -124,6 +125,10 @@ export function validCollectedPositions(value: unknown): value is CollectedPosit
       (projection === undefined ||
         (projection != null &&
           Number.isFinite(projection.at) &&
+          (projection.advanceMs === undefined ||
+            (Number.isSafeInteger(projection.advanceMs) &&
+              projection.advanceMs >= 0 &&
+              projection.advanceMs <= POSITION_DISPLAY_ADVANCE_MS)) &&
           typeof projection.fromStation === 'string' &&
           (projection.toStation === null || typeof projection.toStation === 'string'))),
   );

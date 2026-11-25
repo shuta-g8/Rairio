@@ -5,7 +5,6 @@ import type { LineOperation } from '../../shared/railways';
 import { lineName, lineSymbol } from '../lib/stations';
 import { toeiBoardDestination } from '../lib/toei-board';
 import { toeiDestinationTranslation } from '../lib/toei-destination-text';
-import { toeiDisplayLanguage } from '../lib/toei-language';
 import { FlippingToeiDepartureRow, ToeiDepartureRow } from './ToeiDepartureRow';
 import { ToeiArrivalNotice } from './ToeiArrivalNotice';
 import { RailMark } from './RailMark';
@@ -44,10 +43,7 @@ export function ToeiDepartureBoard({
     showsCurrentFirst &&
     (presentation?.kind === 'approaching' ||
       (!livePhase && (presentation?.kind === 'departing' || presentation?.kind === 'progress')));
-  const direction = toeiDestinationTranslation(
-    toeiBoardDestination(route),
-    toeiDisplayLanguage(now),
-  );
+  const direction = toeiDestinationTranslation(toeiBoardDestination(route), 'en');
 
   return (
     <article

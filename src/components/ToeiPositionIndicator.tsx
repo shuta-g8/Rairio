@@ -1,14 +1,11 @@
 import type { ToeiObservedPosition } from '../lib/toei-position';
 import { TrainIcon } from '@phosphor-icons/react/dist/csr/Train';
 import type { ToeiDiagramDirection } from '../lib/toei-diagram';
-import type { ToeiDisplayLanguage } from '../lib/toei-language';
 
 const POSITION_LABELS = {
   ja: ['ぜんぜんえき', 'ぜんえき', 'とうえき'],
   en: ['Two stops away', 'Previous stop', 'This station'],
-  'zh-Hans': ['前两站', '上一站', '本站'],
-  ko: ['두 정거장 전', '이전 역', '이 역'],
-} satisfies Record<ToeiDisplayLanguage, readonly [string, string, string]>;
+} as const;
 
 function TrainInFrame() {
   return (
@@ -25,7 +22,7 @@ export function ToeiPositionIndicator({
 }: {
   position: ToeiObservedPosition;
   direction: ToeiDiagramDirection;
-  language: ToeiDisplayLanguage;
+  language: keyof typeof POSITION_LABELS;
 }) {
   const [beforePrevious, previous, current] = POSITION_LABELS[language];
   return (

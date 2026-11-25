@@ -31,12 +31,15 @@ export function positionAdvanceAt(
     (evidence?.confirmed && evidence.stalled && evidence.phase === model.visit)
   )
     return;
-  if (delaySeconds <= 0) return projection.at;
+  const displayAdvance = projection.advanceMs ?? 0;
+  if (delaySeconds <= 0) return projection.at - displayAdvance;
   // The phase entry already includes accumulated lateness. Shift the historical exit when known.
   const delayMs = delaySeconds * 1000;
-  return model.usualExit === undefined
-    ? projection.at + Math.min(model.lead, delayMs)
-    : Math.max(projection.at, model.usualExit + delayMs - model.lead);
+  const estimatedAt =
+    model.usualExit === undefined
+      ? projection.at + Math.min(model.lead, delayMs)
+      : Math.max(projection.at, model.usualExit + delayMs - model.lead);
+  return estimatedAt - displayAdvance;
 }
 
 /** Both inputs are observations on the source clock. Only the last step uses the display lead. */

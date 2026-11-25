@@ -142,6 +142,7 @@ export function collectedDiagramEstimate(
   return {
     estimate,
     sourceAt: Date.parse(p.updatedAt),
+    displayAdvanceMs: p.projection?.advanceMs ?? 0,
     position: position && { ...position, estimated: true },
     progress,
     projectedApproach,
