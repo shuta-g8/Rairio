@@ -3,6 +3,7 @@ import type { BoardMode } from '../lib/board-mode';
 import type { LineOperation } from '../../shared/railways';
 import type { TrainPositionsSnapshot } from '../../shared/train-positions';
 import { useLiveDepartures } from '../hooks/useLiveDepartures';
+import { useDepartureBoardPreview } from '../hooks/useDepartureBoardPreview';
 import { RouteCard } from './DepartureBoard';
 import { ToeiDepartureBoard } from './ToeiDepartureBoard';
 import {
@@ -22,6 +23,7 @@ import {
 import type { DepartureBoardDisplay } from '../lib/live-departures';
 import type { PositionEstimate } from '../../shared/position-estimate';
 import { asakusaTrainType } from '../lib/asakusa-train-types';
+import type { StationDepartureBoardDisplay } from '../../shared/departure-board';
 
 function withTrainType(route: Route, departure: Departure, liveType?: string): Departure {
   if (!departure.gtfs) return departure;
@@ -35,22 +37,63 @@ function withTrainType(route: Route, departure: Departure, liveType?: string): D
   return type ? { ...departure, type } : departure;
 }
 
-/** Keep the live deadline across display-mode changes without retaining hidden boards. */
-export function StationDepartureBoard({
-  mode,
-  route,
-  now,
-  positions,
-  ...props
-}: {
+type BoardProps = {
   mode: BoardMode;
   route: Route;
   now: Date;
   positions?: TrainPositionsSnapshot | null;
+  serverDisplay?: StationDepartureBoardDisplay;
   onOpen: () => void;
   operation?: LineOperation;
   previous: boolean;
-}) {
+};
+
+export function StationDepartureBoard(props: BoardProps) {
+  if (
+    import.meta.env.DEV &&
+    props.route.sourceStationId === 'odpt.Station:Toei.Oedo.Daimon' &&
+    props.route.id === 'Toei.Oedo.OuterLoop' &&
+    new URLSearchParams(window.location.search).get('departureBoard') === 'server'
+  )
+    return <ServerDepartureBoard {...props} />;
+  return <LocalDepartureBoard {...props} />;
+}
+
+function ServerDepartureBoard({ mode, route, now, onOpen, operation, previous }: BoardProps) {
+  const { display, pending, transport } = useDepartureBoardPreview(route.id, now);
+  const Board = mode === 'toei' ? ToeiDepartureBoard : RouteCard;
+  return (
+    <div
+      style={{ display: 'contents' }}
+      data-departure-board-state={display ? 'server' : pending ? 'loading' : 'unavailable'}
+      data-departure-board-transport={transport}
+    >
+      {display ? (
+        <Board {...{ route, now, display, onOpen, operation, previous }} />
+      ) : (
+        <article className="route-card" aria-busy={pending}>
+          <header>
+            <RailMark color={route.color} symbol={lineSymbol(route.line)} />
+            <h3>
+              {lineName(route.line)} {route.direction}方面
+            </h3>
+          </header>
+          <p role="status">
+            {pending
+              ? '発車案内を読み込み中です。'
+              : '発車案内を受信できません。時刻表をご確認ください。'}
+          </p>
+          <button type="button" onClick={onOpen}>
+            時刻表
+          </button>
+        </article>
+      )}
+    </div>
+  );
+}
+
+/** Keep the live deadline across display-mode changes without retaining hidden boards. */
+function LocalDepartureBoard({ mode, route, now, positions, serverDisplay, ...props }: BoardProps) {
   const schedules = schedulesForDate(route, editionServiceDate(now.getTime()));
   const scoped = useMemo(
     () => ({ ...route, schedules: schedules ?? { weekday: [], saturday: [], holiday: [] } }),
@@ -63,7 +106,8 @@ export function StationDepartureBoard({
       return false;
     }
   });
-  const display = useLiveDepartures(scoped, positions, now, !legacyDiagram);
+  const localDisplay = useLiveDepartures(scoped, positions, now, !legacyDiagram);
+  const display = serverDisplay ?? localDisplay;
   const first = display.board.kind === 'active' ? display.board.departures[0] : undefined;
   const collectedMode =
     mode === 'toei' &&
@@ -106,7 +150,11 @@ export function StationDepartureBoard({
       </article>
     );
   const Board = mode === 'toei' ? ToeiDepartureBoard : RouteCard;
-  const estimated = 'estimatedDiagram' in display ? display.estimatedDiagram : forecast?.position;
+  const estimated = serverDisplay
+    ? serverDisplay.estimatedDiagram
+    : 'estimatedDiagram' in localDisplay
+      ? localDisplay.estimatedDiagram
+      : forecast?.position;
   const diagram: DepartureBoardDisplay = collectedMode
     ? {
         ...display,
@@ -114,8 +162,9 @@ export function StationDepartureBoard({
       }
     : display;
   const board = diagram.board;
-  const presentedBoard =
-    board.kind === 'active' && board.departures.some((departure) => departure.gtfs)
+  const presentedBoard = serverDisplay
+    ? board
+    : board.kind === 'active' && board.departures.some((departure) => departure.gtfs)
       ? {
           ...board,
           departures: board.departures.map((departure) =>
@@ -132,23 +181,30 @@ export function StationDepartureBoard({
         ? { ...board, nextDeparture: withTrainType(scoped, board.nextDeparture) }
         : board;
   const at =
-    props.operation?.state === 'normal'
+    !serverDisplay && props.operation?.state === 'normal'
       ? statisticalArrivalTime(scoped, first, positions, now)
       : undefined;
   const arrivalEstimate =
-    at === undefined
-      ? undefined
-      : new Date(at).toLocaleTimeString('ja-JP', {
-          timeZone: 'Asia/Tokyo',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+    props.operation?.state === 'normal' && serverDisplay
+      ? serverDisplay.arrivalEstimate
+      : at === undefined
+        ? undefined
+        : new Date(at).toLocaleTimeString('ja-JP', {
+            timeZone: 'Asia/Tokyo',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
   return (
-    <Board
-      {...props}
-      route={scoped}
-      now={now}
-      display={{ ...diagram, board: presentedBoard, arrivalEstimate }}
-    />
+    <div
+      style={{ display: 'contents' }}
+      data-departure-board-state={serverDisplay ? 'server' : 'local'}
+    >
+      <Board
+        {...props}
+        route={scoped}
+        now={now}
+        display={{ ...diagram, board: presentedBoard, arrivalEstimate }}
+      />
+    </div>
   );
 }

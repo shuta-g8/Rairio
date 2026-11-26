@@ -11,17 +11,6 @@ export interface ToeiDestinationTranslation {
   lines: TranslationLine[];
 }
 
-const AIRPORT_NAME = '羽田空港第１・第２ターミナル';
-const AIRPORT_LINES = {
-  en: ['For Haneda Airport ', 'Terminal 1・2'],
-  'zh-Hans': ['开往羽田机场', '第1・第2航站楼'],
-  ko: ['하네다공항 ', '제1·제2터미널행'],
-};
-
-export function toeiDestinationNameLines(name: string): readonly string[] {
-  return name === AIRPORT_NAME ? ['羽田空港', '第１・第２ターミナル'] : [name];
-}
-
 /** Select one complete language before adding its direction or via wording. */
 export function toeiDestinationTranslation(
   { stations, via, terminal }: Destination,
@@ -37,15 +26,6 @@ export function toeiDestinationTranslation(
   )
     language = hasEnglish ? 'en' : 'ja';
   if (language === 'ja' && !hasReading) language = 'en';
-  // Match the two-line airport name in every language.
-  if (terminal && stations.length === 1 && stations[0].name === AIRPORT_NAME)
-    return {
-      language,
-      lines:
-        language === 'ja'
-          ? [{ text: 'はねだくうこう' }, { text: 'だい1・だい2ターミナル', suffix: 'ゆき' }]
-          : AIRPORT_LINES[language].map((text) => ({ text })),
-    };
   if (language === 'ja')
     return {
       language,

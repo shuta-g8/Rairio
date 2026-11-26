@@ -82,6 +82,26 @@ test('新宿線急行の通過駅と三田線の都営区間内各駅停車を�
   assert.ok(mita.stations.every((s) => s.kind !== 'pass'));
 });
 
+test('三田線から目黒線内まで各停で直通する列車だけ、目黒線の停車駅をまとめる', () => {
+  const southbound = route('mita', 'Mita.Southbound');
+  for (const [destination, code, intermediateStops] of [
+    ['日吉', 'MG-13', 10],
+    ['武蔵小杉', 'MG-11', 8],
+  ] as const) {
+    const guide = toeiStopGuide(southbound, { destination, type: '普通' })!;
+    assert.equal(guide.stations.at(-1)!.code, 'I-01');
+    assert.deepEqual(guide.meguroLocalSection, { destination, code, intermediateStops });
+  }
+  for (const [destination, type] of [
+    ['日吉', '急行'],
+    ['新横浜', '普通'],
+    ['海老名', '普通'],
+    ['白金高輪', '普通'],
+  ]) {
+    assert.equal(toeiStopGuide(southbound, { destination, type })!.meguroLocalSection, undefined);
+  }
+});
+
 test('経路不明・逆方向・未対応種別・通常通過する駅からの出発は推測しない', () => {
   const north = route('daimon', 'Asakusa.Northbound');
   for (const train of [

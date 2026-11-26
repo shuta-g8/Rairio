@@ -20,6 +20,7 @@ import {
 } from '../../shared/timetable-editions';
 import { JOURNEY_GTFS_CATALOG } from '../../shared/journey-sources';
 import { readDeparturePolicy } from '../lib/departure-policy';
+import type { CurrentDepartureBoard } from '../../shared/departure-board';
 
 interface Props {
   active: boolean;
@@ -37,6 +38,8 @@ interface Props {
   onOpen: (route: Route) => void;
   operations: OperationsData;
   trainPositions?: TrainPositionsSnapshot | null;
+  serverClock?: Date;
+  serverBoards?: Record<string, CurrentDepartureBoard>;
 }
 export function StationDepartures({
   active,
@@ -54,8 +57,11 @@ export function StationDepartures({
   onOpen,
   operations,
   trainPositions,
+  serverClock,
+  serverBoards,
 }: Props) {
-  const now = useClock(active);
+  const localNow = useClock(active && !serverClock);
+  const now = serverClock ?? localNow;
   const [boardMode, setBoardMode] = useState(loadBoardMode);
   const [departurePolicy] = useState(readDeparturePolicy);
   const changeBoardMode = useCallback((mode: BoardMode) => {
@@ -203,6 +209,7 @@ export function StationDepartures({
               operation={byId.get(operationId)}
               previous={previousOperations}
               positions={trainPositions}
+              serverDisplay={serverBoards?.[route.id]?.display}
             />
           ))}
         </div>

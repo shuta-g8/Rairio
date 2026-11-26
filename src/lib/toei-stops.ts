@@ -12,9 +12,16 @@ export interface ToeiStopGuide {
   stations: ToeiStop[];
   through: boolean;
   preceding: ToeiStop[];
+  meguroLocalSection?: ToeiMeguroLocalSection;
 }
 
-// Scheduled stopping patterns within Toei only, not real-time train positions.
+export interface ToeiMeguroLocalSection {
+  destination: string;
+  code: string;
+  intermediateStops: number;
+}
+
+// Scheduled stopping patterns, not real-time train positions.
 // https://www.kotsu.metro.tokyo.jp/subway/map/index.html
 // https://www.kotsu.metro.tokyo.jp/about/koukai/vehicle_outline/asakusa_5500_announce.pdf
 // https://www.kotsu.metro.tokyo.jp/pickup_information/news/subway/2021/sub_i_202102059553_h.html
@@ -88,7 +95,19 @@ export function toeiStopGuide(
   const origin = route.sourceStationId!.split('.').at(-1)!.toLowerCase();
   const start = order.findIndex((station) => station.id === origin);
   if (start < 0) return;
-  const through = toeiThroughDestinationCode(route, train.destination) !== undefined;
+  const throughCode = toeiThroughDestinationCode(route, train.destination);
+  const through = throughCode !== undefined;
+  // The Toei timetable distinguishes locals from expresses on the Meguro Line.
+  // https://www.kotsu.metro.tokyo.jp/subway/timetable/mita/I04SD.html
+  // Its first Tokyu stop is MG-02, and the destination code gives the number of omitted stops.
+  const meguroLocalSection =
+    railwayId === 'Mita' && local && throughCode?.startsWith('MG-')
+      ? {
+          destination: train.destination,
+          code: throughCode,
+          intermediateStops: Number(throughCode.slice(3)) - 3,
+        }
+      : undefined;
   const boundary =
     railwayId === 'Asakusa' && direction === 'Southbound' ? '泉岳寺' : order.at(-1)!.name;
   const gtfsMask = train.gtfs?.stopMask;
@@ -116,6 +135,7 @@ export function toeiStopGuide(
     return;
   return {
     through,
+    meguroLocalSection,
     preceding: order.slice(Math.max(0, start - 3), start).map((station) => ({
       id: station.id,
       name: station.name,

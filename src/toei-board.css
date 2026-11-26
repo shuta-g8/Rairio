@@ -108,9 +108,14 @@
 }
 .route-card.toei-board .departure-row,
 .route-card.toei-board .departure-row.first {
+  --toei-japanese-column: 35%;
+  --toei-translation-column: 21%;
   display: grid;
-  grid-template-columns: 21% minmax(0, 1fr) 14% 8%;
-  gap: 1.2cqw;
+  /* The train-type track is an estimate based on the photographed layout. */
+  grid-template-columns:
+    [rank] 8.5% [type] 11.5% [japanese] var(--toei-japanese-column)
+    [translation] var(--toei-translation-column) [time] 16% [cars] 8% [end];
+  gap: 0;
   min-height: 0;
   padding: 0.1cqw 0;
   border: 0;
@@ -131,20 +136,23 @@
   --toei-type-height: 4.6cqw;
 }
 .route-card.toei-board[data-railway='Oedo'] .departure-row {
-  grid-template-columns: 7.5% minmax(0, 1fr) 14% 8%;
+  --toei-japanese-column: 36.5%;
+  --toei-translation-column: 19.5%;
 }
 .route-card.toei-board .departure-type {
   display: grid;
-  grid-template-columns: 7cqw minmax(0, 1fr);
+  grid-column: rank / japanese;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 0.8cqw;
+  gap: 0;
 }
 .route-card.toei-board[data-railway='Oedo'] .departure-type {
-  display: block;
+  grid-column: rank / type;
 }
 .route-card.toei-board .departure-rank,
 .route-card.toei-board .first .departure-rank {
   display: flex;
+  grid-column: rank / type;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -178,9 +186,12 @@
 .route-card.toei-board .train-type,
 .route-card.toei-board .first .train-type {
   display: flex;
+  grid-column: type / japanese;
   align-items: center;
   justify-content: center;
+  min-width: 0;
   min-height: var(--toei-type-height, 5.6cqw);
+  margin-inline: 0.25cqw;
   padding: 0.4cqw;
   border: 0.3cqw solid #fff;
   border-radius: 0;
@@ -189,10 +200,22 @@
   text-align: center;
 }
 .toei-destination {
-  display: flex;
+  display: grid;
+  grid-column: japanese / time;
+  grid-template-columns: subgrid;
   align-items: center;
-  justify-content: flex-start;
-  gap: 1.2cqw;
+  overflow: hidden;
+}
+.route-card.toei-board[data-railway='Oedo'] .toei-destination {
+  grid-column: type / time;
+}
+.toei-destination-side {
+  display: flex;
+  grid-column: translation / time;
+  align-items: center;
+  min-width: 0;
+  padding-inline: 0.5cqw;
+  gap: 0.35cqw;
   overflow: hidden;
 }
 .toei-train-type-content {
@@ -304,10 +327,27 @@
 }
 .toei-destination-heading {
   display: flex;
+  grid-column: japanese / translation;
   align-items: baseline;
+  justify-content: center;
   gap: 0.45cqw;
   min-width: 0;
-  flex-shrink: 0;
+  padding-inline: 0.45cqw;
+}
+.route-card.toei-board[data-railway='Oedo'] .toei-destination-heading {
+  grid-column: type / translation;
+}
+.toei-destination-heading[data-terminal]:has(.toei-station-number) {
+  --toei-terminal-number-share: 20%;
+  position: relative;
+  padding-inline-start: calc(var(--toei-terminal-number-share) + 0.45cqw);
+}
+.toei-destination-heading[data-terminal] .toei-station-number {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--toei-terminal-number-share) / 2);
+  margin: 0;
+  transform: translate(-50%, -50%);
 }
 .toei-direction-station {
   display: inline-flex;
@@ -414,16 +454,11 @@
   text-overflow: ellipsis;
   flex-shrink: 0;
 }
-.route-card.toei-board .destination-name[data-lines='2'] {
-  font-size: calc(var(--toei-name-size, 4.6cqw) * 0.55);
-  line-height: 1.05;
+.destination-name > .toei-fit-text {
+  width: max-content;
 }
-.toei-destination-heading:has(.destination-name[data-lines='2']),
-.toei-direction-station:has(> .destination-name[data-lines='2']) {
-  align-items: center;
-}
-.destination-name[data-lines='2'] .toei-fit-text > span {
-  display: block;
+.destination-name[data-kanji-count] > .toei-fit-text {
+  letter-spacing: var(--toei-name-spacing, normal);
 }
 .toei-destination-via {
   flex-shrink: 0;
@@ -481,12 +516,14 @@
 }
 .route-card.toei-board .platform {
   display: inline-flex;
+  flex-shrink: 0;
   gap: 0.4cqw;
   font-size: 0.85cqw;
   line-height: 1.1;
 }
 .route-card.toei-board .departure-time {
-  align-items: flex-end;
+  grid-column: time / cars;
+  align-items: center;
   justify-content: center;
   gap: 0.1cqw;
 }
@@ -499,8 +536,9 @@
 }
 .toei-car-count {
   display: flex;
+  grid-column: cars / end;
   align-items: baseline;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 0.2cqw;
   min-width: 0;
   color: #fff;

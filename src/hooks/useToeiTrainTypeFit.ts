@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { TOEI_TEXT_WIDTHS } from '../lib/toei-text-width';
+import { selectToeiTextWidth } from '../lib/toei-text-width';
 import {
   applyToeiTextWidth,
   observeToeiTextLayout,
@@ -17,7 +17,7 @@ function fitTrainTypeText(element: HTMLElement, available: number, multiline = f
   }
   const lines = readToeiTextLines(element, multiline);
   const widths = toeiTextWidths(lines);
-  const width = TOEI_TEXT_WIDTHS.find((width) => widths[width] <= available) || 60;
+  const width = selectToeiTextWidth(widths, available);
   const measured = applyToeiTextWidth(element, lines, width, multiline);
   const scale = Number(element.style.getPropertyValue('--toei-text-scale')) || 1;
   // Small fallback kana can occupy more layout pixels than canvas predicts.

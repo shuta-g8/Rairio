@@ -6,7 +6,7 @@ import { reuseUnchangedRoutes } from '../lib/station-refresh';
 
 const REFRESH_INTERVAL = 30 * 60_000;
 
-export function useStation(stationId: string) {
+export function useStation(stationId: string, serverDate?: string) {
   const [data, setData] = useState<StationData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -19,7 +19,7 @@ export function useStation(stationId: string) {
     setLoading(loadedFor.current !== stationId);
     setError('');
     setData((previous) => (previous?.id === stationId ? previous : null));
-    fetchStation(stationId, controller.signal)
+    fetchStation(stationId, controller.signal, serverDate)
       .then((value) => {
         if (controller.signal.aborted) return;
         loadedFor.current = stationId;
@@ -34,12 +34,13 @@ export function useStation(stationId: string) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [stationId, revision]);
+  }, [stationId, revision, serverDate]);
 
   useEffect(() => {
     const timer = window.setInterval(refresh, REFRESH_INTERVAL);
     let date = editionServiceDate(Date.now());
     const boundary = window.setInterval(() => {
+      if (serverDate) return;
       const next = editionServiceDate(Date.now());
       if (next !== date) {
         date = next;
@@ -59,7 +60,7 @@ export function useStation(stationId: string) {
       window.removeEventListener('online', refresh);
       navigator.serviceWorker?.removeEventListener('controllerchange', refresh);
     };
-  }, [refresh]);
+  }, [refresh, serverDate]);
 
   return { data, error, loading, refresh };
 }

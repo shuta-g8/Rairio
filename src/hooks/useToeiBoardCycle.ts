@@ -1,24 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const DISPLAY_SECONDS = 12;
 type Panel = 'diagram' | 'position' | 'information';
+type Step = Panel | 'opening-position' | 'information-after-position';
 
 /** Rotate static panels on a timer; let scrolling information finish at its original speed. */
 export function useToeiBoardCycle({
   available,
   positionAvailable,
+  attention,
+  possibleDelay,
   pages,
   now,
   priorityKey,
 }: {
   available: boolean;
   positionAvailable: boolean;
+  attention: boolean;
+  possibleDelay: boolean;
   pages: number;
   now: Date;
   priorityKey?: string;
 }) {
-  const [slot, setSlot] = useState<{ kind: Panel; since: number }>(() => ({
-    kind: 'diagram',
+  const [slot, setSlot] = useState<{ step: Step; since: number }>(() => ({
+    step: 'diagram',
     since: now.getTime(),
   }));
   const [page, setPage] = useState(0);
@@ -27,22 +32,31 @@ export function useToeiBoardCycle({
   const [reduced, setReduced] = useState(
     () => matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
-  const hadPosition = useRef(false);
+  const opening = useRef(!attention);
+  const previousNotice = useRef({ attention, possibleDelay });
   const latestPosition = useRef(positionAvailable);
   latestPosition.current = positionAvailable;
+  const { step } = slot;
+  const showingPosition = step === 'opening-position' || step === 'position';
   const kind: Panel = !available
     ? 'information'
-    : slot.kind === 'position' && !positionAvailable
+    : step === 'diagram'
       ? 'diagram'
-      : slot.kind;
+      : showingPosition && positionAvailable
+        ? 'position'
+        : 'information';
+  const show = useCallback((step: Step) => setSlot({ step, since: Date.now() }), []);
   const completeInformation = useCallback(() => {
+    if (attention || possibleDelay || focused || kind !== 'information') return;
+    opening.current = false;
     setMessageIndex((index) => index + 1);
-    setSlot({ kind: latestPosition.current ? 'position' : 'diagram', since: Date.now() });
-  }, []);
+    if (!available) show('information');
+    else show(step === 'information' && latestPosition.current ? 'position' : 'diagram');
+  }, [attention, possibleDelay, focused, kind, available, step, show]);
   useEffect(() => {
     setMessageIndex(0);
-    if (priorityKey) setSlot({ kind: 'information', since: Date.now() });
-  }, [priorityKey]);
+    if (priorityKey) show('information');
+  }, [priorityKey, show]);
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReduced(media.matches);
@@ -50,37 +64,49 @@ export function useToeiBoardCycle({
     return () => media.removeEventListener('change', update);
   }, []);
 
-  useEffect(() => {
-    if (!available) {
-      hadPosition.current = false;
+  useLayoutEffect(() => {
+    // Keep the current notice across the approach, then show the first map page once.
+    const approachEnded = previousNotice.current.attention && !attention;
+    const delayEnded = previousNotice.current.possibleDelay && !possibleDelay;
+    previousNotice.current = { attention, possibleDelay };
+    if (approachEnded) {
+      setPage(0);
+      show('diagram');
       return;
     }
-    if (focused) return;
-    if (positionAvailable && !hadPosition.current)
-      setSlot((slot) =>
-        slot.kind === 'information' ? slot : { kind: 'position', since: Date.now() },
-      );
-    else if (!positionAvailable)
-      setSlot((slot) => (slot.kind === 'position' ? { kind: 'diagram', since: Date.now() } : slot));
-    hadPosition.current = positionAvailable;
-  }, [available, positionAvailable, focused]);
+    if (attention || possibleDelay || !available) opening.current = false;
+    if (attention || possibleDelay) {
+      setFocused(false);
+      return;
+    }
+    if (opening.current && positionAvailable) {
+      opening.current = false;
+      show('opening-position');
+    } else if (showingPosition && !positionAvailable) {
+      show(step === 'opening-position' ? 'diagram' : 'information-after-position');
+    } else if (delayEnded) {
+      show(step);
+    }
+  }, [attention, possibleDelay, available, positionAvailable, showingPosition, step, show]);
 
+  const timed = !attention && !possibleDelay && !focused && (kind !== 'information' || reduced);
   useEffect(() => {
-    if (focused || (kind === 'information' && !reduced)) return;
+    if (!timed) return;
     const timer = window.setTimeout(() => {
       if (kind === 'diagram') {
-        setPage((page) => (page + 1) % pages);
-        setSlot({ kind: 'information', since: Date.now() });
+        opening.current = false;
+        setPage((page) => page + 1);
+        show('information');
       } else if (kind === 'information') {
         completeInformation();
-      } else setSlot({ kind: 'diagram', since: Date.now() });
+      } else show(step === 'opening-position' ? 'diagram' : 'information-after-position');
     }, DISPLAY_SECONDS * 1000);
     return () => window.clearTimeout(timer);
-  }, [available, focused, kind, pages, reduced, completeInformation, messageIndex]);
+  }, [timed, kind, completeInformation, slot, show]);
 
   return {
     kind,
-    page,
+    page: page % Math.max(1, pages),
     messageIndex,
     english: now.getTime() - slot.since >= DISPLAY_SECONDS * 500,
     setFocused,

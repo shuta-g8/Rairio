@@ -126,6 +126,7 @@ export function collectedDiagramEstimate(
   const progress = estimatedStationProgress(route, estimate);
   const model = p.model;
   const advanceAt = progress === 'approaching' ? positionAdvanceAt(p, estimate) : undefined;
+  const displayAdvanceMs = p.projection?.advanceMs ?? 0;
   const arrivalAt =
     estimate.visit === model?.visit && model.nextVisit === departureVisit(route)
       ? advanceAt
@@ -142,15 +143,16 @@ export function collectedDiagramEstimate(
   return {
     estimate,
     sourceAt: Date.parse(p.updatedAt),
-    displayAdvanceMs: p.projection?.advanceMs ?? 0,
+    displayAdvanceMs,
     position: position && { ...position, estimated: true },
     progress,
     projectedApproach,
+    projectedApproachAt:
+      projectedApproach && advanceAt !== undefined ? advanceAt + displayAdvanceMs : undefined,
     // The estimator may keep its previous position even after confirming a stall.
     stalledApproachProjection: projectedApproach && advanceAt === undefined,
     beforeProjectedDeparture,
-    // A live server estimate that still shows an approach can outlast its arrival forecast.
-    arrivalAt: arrivalAt !== undefined && now.getTime() < arrivalAt ? arrivalAt : undefined,
+    arrivalAt,
     freshUntil: Math.min(
       Date.parse(p.validUntil),
       Date.parse(p.updatedAt) + TRAIN_POSITION_MAX_AGE,

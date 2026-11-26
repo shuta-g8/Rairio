@@ -3,7 +3,6 @@ import type { Route } from '../types';
 import { toeiBoardDestination } from '../lib/toei-board';
 import type { ToeiDisplayLanguage } from '../lib/toei-language';
 import {
-  toeiDestinationNameLines,
   toeiDestinationTranslation,
   type ToeiDestinationTranslation,
 } from '../lib/toei-destination-text';
@@ -47,10 +46,14 @@ export const ToeiDestination = memo(function ToeiDestination({
         ))}
         <span className="toei-destination-via">{via || terminal ? '行' : '方面行'}</span>
       </div>
-      <ToeiDestinationTranslations translation={translation} />
-      {extra && (
-        <div className="platform">
-          <span className="conditional">運転日注意</span>
+      {(translation || extra) && (
+        <div className="toei-destination-side">
+          <ToeiDestinationTranslations translation={translation} />
+          {extra && (
+            <div className="platform">
+              <span className="conditional">運転日注意</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -75,15 +78,10 @@ function ToeiDestinationNumber({ code }: { code: string }) {
 }
 
 function ToeiDestinationName({ name }: { name: string }) {
-  const lines = toeiDestinationNameLines(name);
+  const kanjiCount = /^\p{Script=Han}{2,4}$/u.test(name) ? [...name].length : undefined;
   return (
-    <span
-      className="destination-name"
-      data-lines={lines.length > 1 ? String(lines.length) : undefined}
-    >
-      <span className="toei-fit-text">
-        {lines.length === 1 ? lines[0] : lines.map((line) => <span key={line}>{line}</span>)}
-      </span>
+    <span className="destination-name" data-kanji-count={kanjiCount}>
+      <span className="toei-fit-text">{name}</span>
     </span>
   );
 }

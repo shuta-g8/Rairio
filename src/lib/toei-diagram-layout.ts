@@ -117,9 +117,9 @@ function fitEnglishStops(
     const count = Number(cell.dataset.transferCount);
     return `${toeiEnglishStopWeight(count)}fr`;
   });
-  if (diagram.querySelector('.toei-stop-continuation')) widths.push('18fr');
+  if (diagram.querySelector('.toei-stop-continuation'))
+    widths.push('var(--toei-continuation-width, 18fr)');
   diagram.style.setProperty('--toei-fitted-columns', widths.join(' '));
-  const map = root.getBoundingClientRect();
   for (const cell of cells) {
     const bounds = cell.getBoundingClientRect();
     const transfers = cell.querySelector<HTMLElement>('.toei-stop-transfers');
@@ -132,6 +132,22 @@ function fitEnglishStops(
       const gap = Math.max(0, Math.min(0.35 * unit, (available - count * iconWidth) / (count - 1)));
       transfers.style.gap = `${gap}px`;
     }
+  }
+  fitEnglishLabels(root, cells, unit);
+  fitHorizontalText(root, '.toei-stop-name-text', '--toei-stop-text-x');
+  fitHorizontalText(root, '.toei-transfer-name-text', '--toei-transfer-text-x');
+  fitBranches(cells, unit, true);
+  fitCurrentBackground(cells, unit);
+}
+
+function fitEnglishLabels(root: HTMLElement, cells: HTMLElement[], unit: number) {
+  const map = root.getBoundingClientRect();
+  const labelCells = [
+    ...cells,
+    ...root.querySelectorAll<HTMLElement>('.toei-meguro-station, .toei-meguro-line'),
+  ];
+  for (const cell of labelCells) {
+    const bounds = cell.getBoundingClientRect();
     for (const label of cell.querySelectorAll<HTMLElement>(
       '.toei-stop-name, .toei-transfer-name',
     )) {
@@ -146,10 +162,6 @@ function fitEnglishStops(
         label.style.setProperty('--toei-english-label-width', `${Math.max(0.4 * unit, width)}px`);
     }
   }
-  fitHorizontalText(root, '.toei-stop-name-text', '--toei-stop-text-x');
-  fitHorizontalText(root, '.toei-transfer-name-text', '--toei-transfer-text-x');
-  fitBranches(cells, unit, true);
-  fitCurrentBackground(cells, unit);
 }
 
 /** Measure every station name before applying character sizes to the diagram. */
@@ -203,13 +215,13 @@ function fitJapaneseNames(cells: HTMLElement[], unit: number) {
 function resetDiagram(diagram: HTMLElement, cells: HTMLElement[], english: boolean) {
   // Always measure natural glyphs, so a wider layout or a newly loaded font can restore full size.
   diagram.style.removeProperty('--toei-fitted-columns');
+  for (const label of diagram.querySelectorAll<HTMLElement>('.toei-stop-name, .toei-transfer-name'))
+    label.style.removeProperty('--toei-english-label-width');
   for (const cell of cells) {
     cell.querySelector<HTMLElement>('.toei-stop-name')?.style.removeProperty('height');
     cell
       .querySelector<HTMLElement>('.toei-stop-name')
       ?.style.removeProperty('--toei-stop-name-width');
-    for (const label of cell.querySelectorAll<HTMLElement>('.toei-stop-name, .toei-transfer-name'))
-      label.style.removeProperty('--toei-english-label-width');
     cell
       .querySelector<HTMLElement>('.toei-stop-branch')
       ?.style.removeProperty('--toei-map-branch-width');
@@ -249,7 +261,8 @@ function fitJapaneseStops(
       (cell) =>
         `${Number(cell.dataset.stopWeight) + (cell.dataset.transferColumns === '2' ? 0.75 : 0)}fr`,
     );
-    if (diagram.querySelector('.toei-stop-continuation')) values.push('3.5fr');
+    if (diagram.querySelector('.toei-stop-continuation'))
+      values.push('var(--toei-continuation-width, 3.5fr)');
     diagram.style.setProperty('--toei-fitted-columns', values.join(' '));
   };
   columns();

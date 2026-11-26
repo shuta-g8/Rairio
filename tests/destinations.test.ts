@@ -14,7 +14,7 @@ test('発車標の行先では副駅名・事業者・地域の括弧書きを�
     ['押上', '押上'],
     ['大門', '大門'],
     ['成田空港(鉄道)', '成田空港'],
-    ['羽田空港第１・第２ターミナル(京急)', '羽田空港第１・第２ターミナル'],
+    ['羽田空港第１・第２ターミナル(京急)', '羽田空港'],
     ['海老名(相鉄・小田急)', '海老名'],
     ['橋本(神奈川県)', '橋本'],
     ['駅名（補足）', '駅名'],
@@ -22,6 +22,23 @@ test('発車標の行先では副駅名・事業者・地域の括弧書きを�
     assert.equal(destinationPresentation(source).name, name);
     assert.equal(destinationPresentation(source).english, DESTINATIONS_EN[source]);
   }
+});
+
+test('京急の羽田空港第1・第2ターミナル行きを日英とも短く表示する', () => {
+  for (const source of [
+    '羽田空港第１・第２ターミナル(京急)',
+    '羽田空港第1・第2ターミナル（京急）',
+    '羽田空港第1・第2ターミナル',
+  ]) {
+    const { name, english } = destinationPresentation(source);
+    assert.equal(name, '羽田空港');
+    assert.equal(english, 'Haneda Airport');
+  }
+  assert.equal(
+    destinationPresentation('羽田空港第3ターミナル(京急)').name,
+    '羽田空港第3ターミナル',
+  );
+  assert.equal(destinationPresentation('成田空港(鉄道)').english, 'Narita Airport Terminal 1');
 });
 
 test('全駅・全曜日の行先に英語表記を用意し、各番線を英語で案内する', () => {
@@ -95,9 +112,5 @@ test('地下・複数番線と、行先を持たない環状運転を区別す�
   assert.equal(englishPlatform('1・2'), 'Platforms 1 / 2');
   assert.equal(englishPlatform('地下1'), 'Underground platform 1');
   assert.equal(DESTINATIONS_EN['環状運転'], 'Loop service');
-  assert.equal(
-    DESTINATIONS_EN['羽田空港第１・第２ターミナル(京急)'],
-    'Haneda Airport Terminal 1・2',
-  );
   assert.equal(DESTINATIONS_EN['未登録の駅'], undefined);
 });

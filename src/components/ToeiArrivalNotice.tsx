@@ -5,7 +5,7 @@ export function ToeiArrivalNotice() {
     <div className="toei-board-notice toei-board-notice-attention">
       <TrainIcon weight="bold" aria-hidden="true" />
       <div>
-        <p role="status">電車が到着します。 ご注意下さい。</p>
+        <p role="status">電車が到着します。ご注意下さい。</p>
         <small lang="en">Train coming. Please be careful.</small>
         <div className="toei-board-notice-languages">
           <span lang="zh-Hans">电车进站。 请注意。</span>

@@ -1,17 +1,14 @@
 import { memo, useMemo } from 'react';
 import type { CSSProperties } from 'react';
-import type { ToeiStop } from '../lib/toei-stops';
+import type { ToeiMeguroLocalSection, ToeiStop } from '../lib/toei-stops';
 import {
   toeiDiagramStops,
   toeiEnglishStopWeight,
   type ToeiDiagramDirection,
 } from '../lib/toei-diagram';
-import {
-  TOEI_TRANSFER_NAMES_EN,
-  toeiMapColor,
-  type ToeiContinuation,
-} from '../lib/toei-map-labels';
+import { TOEI_TRANSFER_NAMES_EN, type ToeiContinuation } from '../lib/toei-map-labels';
 import { useToeiDiagramFit } from '../hooks/useToeiDiagramFit';
+import { englishDestination } from '../lib/destinations';
 
 export const ToeiStopDiagram = memo(function ToeiStopDiagram({
   stations,
@@ -19,6 +16,7 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
   through,
   english,
   continuation,
+  meguroLocalSection,
   terminalVisible,
   direction,
 }: {
@@ -27,6 +25,7 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
   through: boolean;
   english: boolean;
   continuation?: ToeiContinuation;
+  meguroLocalSection?: ToeiMeguroLocalSection;
   terminalVisible: boolean;
   direction: ToeiDiagramDirection;
 }) {
@@ -34,7 +33,7 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
   const columns = stops.map(
     (station) => `${english ? toeiEnglishStopWeight(station.transfers.length) : station.weight}fr`,
   );
-  if (continuation) columns.push(english ? '18fr' : '3.5fr');
+  if (continuation) columns.push(`var(--toei-continuation-width, ${english ? '18fr' : '3.5fr'})`);
   const ref = useToeiDiagramFit(english, stations, continuation, direction);
   return (
     <div
@@ -44,10 +43,12 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
       aria-label="先発列車の停車駅"
       lang={english ? 'en' : 'ja'}
       data-english={english || undefined}
-      data-terminal={terminalVisible || undefined}
+      data-terminal={terminalVisible || !!meguroLocalSection || undefined}
+      data-meguro-local={!!meguroLocalSection || undefined}
       data-direction={direction}
+      style={continuation && ({ '--continuation-color': continuation.lineColor } as CSSProperties)}
     >
-      {through && (
+      {through && !meguroLocalSection && (
         <span className="toei-stop-scope">
           {english ? 'Stops within Toei Subway' : '都営線内の停車駅'}
         </span>
@@ -63,13 +64,6 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
             data-stop-weight={station.weight}
             data-transfer-count={station.transfers.length}
             data-boundary={(continuation && index === stops.length - 1) || undefined}
-            style={
-              {
-                ...(continuation && index === stops.length - 1
-                  ? { '--continuation-color': toeiMapColor(continuation.id) }
-                  : {}),
-              } as CSSProperties
-            }
           >
             {station.kind === 'current' && (
               <span className="toei-stop-current-background" aria-hidden="true" />
@@ -119,13 +113,7 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
               </>
             )}
             {station.kind === 'stop' || station.kind === 'current' ? (
-              <span
-                className="toei-stop-code"
-                aria-label={`駅番号 ${station.code}${station.kind === 'current' ? ' 現在駅' : ''}`}
-              >
-                <span>{station.code.split('-')[0]}</span>
-                <b>{station.code.split('-')[1]}</b>
-              </span>
+              <ToeiStopCode code={station.code} current={station.kind === 'current'} />
             ) : (
               <span
                 className="toei-stop-dash"
@@ -135,25 +123,99 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
           </li>
         ))}
         {continuation && (
-          <li
-            className="toei-stop-continuation"
-            style={{ '--continuation-color': toeiMapColor(continuation.id) } as CSSProperties}
-          >
-            <div>
-              <strong>
-                <span className="toei-continuation-text">
-                  {english ? TOEI_TRANSFER_NAMES_EN[continuation.id] : continuation.name}
-                </span>
-              </strong>
-              {continuation.details.map((detail) => (
-                <span className="toei-continuation-detail" key={detail.ja}>
-                  <span className="toei-continuation-text">{english ? detail.en : detail.ja}</span>
-                </span>
-              ))}
-            </div>
+          <li className="toei-stop-continuation">
+            {meguroLocalSection ? (
+              <ToeiMeguroSection section={meguroLocalSection} english={english} />
+            ) : (
+              <div className="toei-continuation-label">
+                <strong>
+                  <span className="toei-continuation-text">
+                    {english ? TOEI_TRANSFER_NAMES_EN[continuation.id] : continuation.name}
+                  </span>
+                </strong>
+                {continuation.details.map((detail) => (
+                  <span className="toei-continuation-detail" key={detail.ja}>
+                    <span className="toei-continuation-text">
+                      {english ? detail.en : detail.ja}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
           </li>
         )}
       </ol>
     </div>
   );
 });
+
+function ToeiStopCode({ code, current }: { code: string; current?: boolean }) {
+  const [symbol, number] = code.split('-');
+  return (
+    <span className="toei-stop-code" aria-label={`駅番号 ${code}${current ? ' 現在駅' : ''}`}>
+      <span>{symbol}</span>
+      <b>{number}</b>
+    </span>
+  );
+}
+
+function ToeiMeguroSection({
+  section,
+  english,
+}: {
+  section: ToeiMeguroLocalSection;
+  english: boolean;
+}) {
+  const { destination, code, intermediateStops } = section;
+  // Limit the schematic markers to the nine dots shown on the platform LCD.
+  const dots = Math.min(intermediateStops, 9);
+  return (
+    <div className="toei-meguro-section">
+      <strong className="toei-meguro-line">
+        <ToeiMeguroName name={english ? 'Tokyu Line' : '東急線'} english={english} />
+      </strong>
+      <div className="toei-meguro-station toei-meguro-first-stop">
+        <ToeiMeguroName name={english ? 'Fudomae' : '不動前'} english={english} />
+        <ToeiStopCode code="MG-02" />
+      </div>
+      <div className="toei-meguro-gap">
+        <span className="toei-meguro-local-label">
+          <span className="toei-continuation-text">
+            {english ? 'Stops at all stations' : 'この間各駅にとまります'}
+          </span>
+        </span>
+        <span className="toei-stop-cut toei-meguro-cut" aria-hidden="true" />
+        <span className="toei-meguro-dots" aria-hidden="true">
+          {Array.from({ length: dots }, (_, index) => (
+            <span key={index} />
+          ))}
+        </span>
+      </div>
+      <div className="toei-meguro-station">
+        <ToeiMeguroName
+          name={english ? (englishDestination(destination) ?? destination) : destination}
+          english={english}
+        />
+        <ToeiStopCode code={code} />
+      </div>
+    </div>
+  );
+}
+
+function ToeiMeguroName({ name, english }: { name: string; english: boolean }) {
+  if (english)
+    return (
+      <span className="toei-stop-label">
+        <span className="toei-stop-name">
+          <span className="toei-stop-name-text">{name}</span>
+        </span>
+      </span>
+    );
+  return (
+    <span className="toei-meguro-name">
+      {[...name].map((character, index) => (
+        <span key={index}>{character}</span>
+      ))}
+    </span>
+  );
+}

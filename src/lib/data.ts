@@ -22,11 +22,15 @@ function savedStation(id: string): StationData | null {
   );
 }
 
-export async function fetchStation(id: string, signal: AbortSignal): Promise<StationData> {
+export async function fetchStation(
+  id: string,
+  signal: AbortSignal,
+  date?: string,
+): Promise<StationData> {
   // Avoid parsing a saved timetable on the normal, successful network path.
   if (!navigator.onLine) {
     const saved = savedStation(id);
-    if (saved) return verifyStationTimetables(saved, signal);
+    if (saved) return verifyStationTimetables(saved, signal, date);
   }
   try {
     const response = await fetch(`${import.meta.env.BASE_URL}data/${id}.json`, {
@@ -40,14 +44,14 @@ export async function fetchStation(id: string, signal: AbortSignal): Promise<Sta
       throw new Error(
         '時刻表データを確認できませんでした。しばらくしてから、もう一度お試しください。',
       );
-    const verified = await verifyStationTimetables(data, signal);
+    const verified = await verifyStationTimetables(data, signal, date);
     if (signal.aborted) throw signal.reason;
     writeStoredJson(`rairio:toei:station:v1:${id}`, verified);
     return verified;
   } catch (error) {
     if (signal.aborted) throw error;
     const saved = savedStation(id);
-    if (saved) return verifyStationTimetables(saved, signal);
+    if (saved) return verifyStationTimetables(saved, signal, date);
     throw error;
   }
 }

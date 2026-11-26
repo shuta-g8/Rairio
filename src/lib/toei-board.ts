@@ -1,6 +1,6 @@
 import type { Route } from '../types.ts';
 import { STATIONS, STATION_RAILWAYS, lineSymbol } from './stations.ts';
-import { DESTINATIONS_EN } from './destinations.ts';
+import { destinationDisplayAlias, englishDestination } from './destinations.ts';
 import { toeiThroughDestinationCode } from './toei-through-destinations.ts';
 import { toeiStationReading } from './toei-language.ts';
 
@@ -40,14 +40,12 @@ export function toeiBoardDestination(route: Route, destination?: string) {
     const membership = station?.memberships?.find((line) =>
       route.railwayId ? line.railwayId === route.railwayId : line.code.startsWith(`${symbol}-`),
     );
-    const displayName = name.replace(/\((?:鉄道|京急)\)/g, '');
+    const displayName = destinationDisplayAlias(name).replace(/\((?:鉄道|京急)\)/g, '');
     return {
       name: displayName,
       code: membership?.code ?? (terminal ? toeiThroughDestinationCode(route, name) : undefined),
       reading: station?.reading ?? toeiStationReading(displayName),
-      english:
-        station?.english ||
-        (Object.hasOwn(DESTINATIONS_EN, name) ? DESTINATIONS_EN[name] : undefined),
+      english: station?.english || englishDestination(name),
     };
   });
   return { stations, via, terminal };

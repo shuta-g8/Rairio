@@ -6,11 +6,9 @@ import { lineName, lineSymbol } from '../lib/stations';
 import { toeiBoardDestination } from '../lib/toei-board';
 import { toeiDestinationTranslation } from '../lib/toei-destination-text';
 import { FlippingToeiDepartureRow, ToeiDepartureRow } from './ToeiDepartureRow';
-import { ToeiArrivalNotice } from './ToeiArrivalNotice';
 import { RailMark } from './RailMark';
 import { OperationBadge, StatusBadge } from './operations/OperationBadge';
 import { ToeiBoardCenter } from './ToeiBoardCenter';
-import { ToeiPossibleDelayNotice } from './ToeiBoardInformation';
 import type { DepartureBoardDisplay } from '../lib/live-departures';
 import { TOEI_FLIP_HALF_MS, useToeiDepartureFlip } from '../hooks/useToeiDepartureFlip';
 import { departureIdentity } from '../lib/time';
@@ -86,23 +84,17 @@ export function ToeiDepartureBoard({
                     now={now}
                     route={route}
                   />
-                  {attention ? (
-                    <>
-                      {possibleDelay && <ToeiPossibleDelayNotice />}
-                      <ToeiArrivalNotice />
-                    </>
-                  ) : (
-                    <ToeiBoardCenter
-                      route={route}
-                      train={shownFirst}
-                      nextDepartures={board.departures.slice(1)}
-                      now={now}
-                      operation={operation}
-                      previous={previous}
-                      position={showsCurrentFirst ? position : undefined}
-                      possibleDelay={possibleDelay}
-                    />
-                  )}
+                  <ToeiBoardCenter
+                    route={route}
+                    train={shownFirst}
+                    nextDepartures={board.departures.slice(1)}
+                    now={now}
+                    operation={operation}
+                    previous={previous}
+                    position={showsCurrentFirst ? position : undefined}
+                    attention={!!attention}
+                    possibleDelay={possibleDelay}
+                  />
                 </>
               )}
               {board.kind === 'ended' && (

@@ -1,4 +1,6 @@
 .toei-stop-information {
+  --toei-map-line-color: var(--line-color);
+  --toei-map-current-station: #c5342d;
   --toei-map-line-bottom: 0.7cqw;
   --toei-map-line-height: 1.7cqw;
   --toei-map-node-center: 1.4cqw;
@@ -21,6 +23,19 @@
   background: #030504;
   color: #fff;
   overflow: hidden;
+}
+/* Representative colors sampled from the wide strokes on the platform displays. */
+.toei-board[data-railway='Asakusa'] .toei-stop-information {
+  --toei-map-line-color: #ff423f;
+}
+.toei-board[data-railway='Mita'] .toei-stop-information {
+  --toei-map-line-color: #005bff;
+}
+.toei-board[data-railway='Shinjuku'] .toei-stop-information {
+  --toei-map-line-color: #d7e236;
+}
+.toei-board[data-railway='Oedo'] .toei-stop-information {
+  --toei-map-line-color: #ff4176;
 }
 .toei-stop-scope {
   position: absolute;
@@ -89,10 +104,10 @@
   background: linear-gradient(
     to right,
     var(--continuation-color) 0 var(--toei-map-node-center),
-    var(--line-color) var(--toei-map-node-center) 100%
+    var(--toei-map-line-color) var(--toei-map-node-center) 100%
   );
 }
-.toei-stop-information[data-direction='left'] .toei-stop-continuation > div {
+.toei-stop-information[data-direction='left'] .toei-continuation-label {
   text-align: left;
 }
 .toei-stop-diagram > li::before {
@@ -100,7 +115,7 @@
   position: absolute;
   inset: auto 0 var(--toei-map-line-bottom);
   height: var(--toei-map-line-height);
-  background: var(--line-color);
+  background: var(--toei-map-line-color);
 }
 .toei-stop-information:not([data-terminal]) .toei-stop-diagram > li:last-child::before {
   clip-path: polygon(
@@ -153,11 +168,11 @@
 .toei-stop-diagram > li[data-boundary]::before {
   background: linear-gradient(
     to right,
-    var(--line-color) 0 var(--toei-map-node-center),
+    var(--toei-map-line-color) 0 var(--toei-map-node-center),
     var(--continuation-color) var(--toei-map-node-center) 100%
   );
 }
-.toei-stop-continuation > div {
+.toei-continuation-label {
   position: absolute;
   inset: 0.5cqw 0.3cqw 2.8cqw;
   display: flex;
@@ -186,6 +201,77 @@
 }
 .toei-stop-information[data-direction='left'] .toei-continuation-text {
   transform-origin: left center;
+}
+.toei-stop-information[data-meguro-local] {
+  --toei-continuation-width: 26%;
+}
+.toei-meguro-section {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 2fr) minmax(0, 1.15fr) minmax(0, 1.2fr);
+  grid-template-rows: minmax(0, 1fr);
+  direction: rtl;
+}
+.toei-meguro-section > * {
+  --toei-meguro-node-center: 50%;
+  position: relative;
+  direction: ltr;
+  min-width: 0;
+  text-align: center;
+}
+.toei-meguro-name {
+  position: absolute;
+  inset: 0.35cqw auto 3.8cqw var(--toei-meguro-node-center);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: max-content;
+  transform: translateX(-50%);
+  font-family: var(--font-bold);
+  font-size: 1.2cqw;
+  line-height: 1.1;
+}
+.toei-meguro-line {
+  grid-area: 1 / 4;
+}
+.toei-meguro-section > .toei-meguro-first-stop {
+  --toei-meguro-node-center: 40%;
+}
+.toei-stop-information[data-english] .toei-meguro-section .toei-stop-label {
+  left: var(--toei-meguro-node-center);
+}
+.toei-meguro-station .toei-stop-code {
+  left: var(--toei-meguro-node-center);
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 18%;
+  background: var(--continuation-color);
+  color: #fff;
+}
+.toei-meguro-local-label {
+  position: absolute;
+  inset: auto 0.2cqw calc(var(--toei-map-line-top) + 0.65cqw) -0.35cqw;
+  text-align: left;
+  font-family: var(--font-bold);
+  font-size: 0.9cqw;
+  line-height: 1.15;
+}
+.toei-meguro-gap .toei-meguro-cut {
+  left: -0.35cqw;
+}
+.toei-meguro-dots {
+  position: absolute;
+  inset: auto 0.2cqw calc(var(--toei-map-line-center) - 0.13cqw) 1cqw;
+  display: flex;
+  justify-content: space-between;
+}
+.toei-meguro-dots > span {
+  width: 0.26cqw;
+  height: 0.26cqw;
+  border-radius: 50%;
+  background: #fff;
 }
 .toei-stop-label {
   position: absolute;
@@ -251,18 +337,17 @@
   line-height: 1;
 }
 .toei-stop-diagram [data-kind='current'] .toei-stop-name {
-  background: var(--line-color);
+  background: var(--toei-map-current-station);
   color: #fff;
 }
-.toei-stop-diagram [data-kind='past'],
+.toei-stop-diagram [data-kind='past'] {
+  color: #b9c0bb;
+}
 .toei-stop-diagram [data-kind='pass'] {
   color: #939c96;
 }
-.toei-stop-diagram [data-kind='past']::before {
-  background: color-mix(in srgb, var(--line-color) 30%, #030504);
-}
 .toei-stop-diagram [data-kind='past'] .toei-transfer-symbol {
-  opacity: 0.45;
+  opacity: 0.7;
 }
 .toei-stop-code {
   position: absolute;
@@ -296,7 +381,7 @@
   left: calc(var(--toei-map-node-center) - 0.5cqw);
   width: 1cqw;
   height: 0.15cqw;
-  background: currentColor;
+  background: #fff;
 }
 .toei-stop-transfers {
   position: absolute;
@@ -365,7 +450,7 @@
   bottom: calc((var(--toei-map-line-top) + var(--toei-map-branch-center)) / 2);
   left: calc(var(--toei-map-node-center) - 1.1cqw - (3.55cqw - var(--toei-map-line-top)) * 0.57735);
   width: 1.4cqw;
-  background: var(--line-color);
+  background: var(--toei-map-current-station);
   transform: skewX(-30deg);
   transform-origin: left bottom;
 }

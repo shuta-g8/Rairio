@@ -11,6 +11,7 @@ import { TOEI_CONTINUATIONS } from '../lib/toei-map-labels';
 import type { ToeiObservedPosition } from '../lib/toei-position';
 import { ToeiPositionIndicator } from './ToeiPositionIndicator';
 import { toeiDiagramDirection } from '../lib/toei-diagram';
+import { ToeiArrivalNotice } from './ToeiArrivalNotice';
 
 const STATIONS_PER_PAGE = 10;
 
@@ -23,6 +24,7 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
   operation,
   previous,
   position,
+  attention,
   possibleDelay,
 }: {
   route: Route;
@@ -32,6 +34,7 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
   operation?: LineOperation;
   previous: boolean;
   position?: ToeiObservedPosition;
+  attention: boolean;
   possibleDelay: boolean;
 }) {
   const guide = useMemo(
@@ -44,6 +47,8 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
   const { kind, page, messageIndex, english, setFocused, completeInformation } = useToeiBoardCycle({
     available,
     positionAvailable: !!position,
+    attention,
+    possibleDelay,
     pages,
     now,
     priorityKey:
@@ -60,30 +65,33 @@ export const ToeiBoardCenter = memo(function ToeiBoardCenter({
   }, [stations, page]);
   const messages = useToeiGuidance(operation, previous, messageIndex, available);
   const direction = toeiDiagramDirection(route);
+  const lastPage = page === pages - 1;
+  const continuation =
+    guide?.through && lastPage ? TOEI_CONTINUATIONS[route.id.replace(/^Toei\./, '')] : undefined;
+  if (attention)
+    return (
+      <>
+        {possibleDelay && <ToeiPossibleDelayNotice />}
+        <ToeiArrivalNotice />
+      </>
+    );
   return !possibleDelay && kind === 'diagram' && guide ? (
     <ToeiStopDiagram
       stations={visibleStations}
       railwayId={route.railwayId!}
       through={guide.through}
-      terminalVisible={!guide.through && page === pages - 1}
+      terminalVisible={!guide.through && lastPage}
       english={english}
       direction={direction}
-      continuation={
-        guide.through && page === pages - 1
-          ? TOEI_CONTINUATIONS[route.id.replace(/^Toei\./, '')]
-          : undefined
-      }
+      continuation={continuation}
+      meguroLocalSection={continuation && guide.meguroLocalSection}
     />
   ) : (
     <>
       {possibleDelay ? (
         <ToeiPossibleDelayNotice />
       ) : kind === 'position' && position ? (
-        <ToeiPositionIndicator
-          position={position}
-          direction={direction}
-          language={english ? 'en' : 'ja'}
-        />
+        <ToeiPositionIndicator position={position} direction={direction} />
       ) : (
         <ToeiBoardInformation
           messages={messages}

@@ -1,18 +1,16 @@
 import seed from '../../shared/asakusa-timetable-manifest.json' with { type: 'json' };
 import {
-  canonicalTimetable,
   advanceTimetableManifest,
   editionServiceDate,
   managesTimetable,
   TIMETABLE_MANIFEST_PATH,
   timetableHash,
   validateTimetableManifest,
-  verifyEditionAsset,
+  verifiedStationEditions,
   type TimetableManifest,
-  type VerifiedRouteEdition,
 } from '../../shared/timetable-editions.ts';
 import { readStoredJson, writeStoredJson } from './storage';
-import type { StationData, Route } from '../types';
+import type { StationData } from '../types';
 
 const initial = validateTimetableManifest(seed);
 let latest = initial;
@@ -92,64 +90,27 @@ async function loadAsset(path: string, sha256: string, signal: AbortSignal) {
 export async function verifyStationTimetables(
   data: StationData,
   signal: AbortSignal,
+  date = editionServiceDate(Date.now()),
 ): Promise<StationData> {
   if (!data.routes.some(managesTimetable)) return data;
-  const manifest = await loadTimetableManifest(signal),
-    editions = new Map<string, VerifiedRouteEdition[]>();
-  const date = editionServiceDate(Date.now());
-  await Promise.all(
-    manifest.releases
-      .filter((r) => r.effectiveToExclusive === null || date < r.effectiveToExclusive)
-      .map(async (release) => {
-        const ref = release.stations[data.id];
-        if (!ref) return;
-        let routes: Route[] = [];
-        try {
-          routes = (await verifyEditionAsset(
-            await loadAsset(ref.path, ref.sha256, signal),
-            manifest,
-            release,
-            data.id,
-          )) as unknown as Route[];
-        } catch (error) {
-          if (signal.aborted) throw error;
-          // A legacy JSON can supply only the exact reviewed schedule it hashes to.
-          for (const route of data.routes.filter(managesTimetable))
-            if (
-              ref.routeHashes[route.id] &&
-              (await timetableHash(canonicalTimetable(route.schedules))) ===
-                ref.routeHashes[route.id]
-            )
-              routes.push(route);
-        }
-        for (const route of routes) {
-          if (
-            !data.routes.some(
-              (r) => r.id === route.id && r.sourceStationId === route.sourceStationId,
-            )
-          )
-            continue;
-          editions.set(route.id, [
-            ...(editions.get(route.id) ?? []),
-            {
-              id: release.id,
-              effectiveFrom: release.effectiveFrom,
-              effectiveToExclusive: release.effectiveToExclusive,
-              sha256: ref.routeHashes[route.id],
-              schedules: route.schedules,
-              sourceUpdated: route.sourceUpdated,
-              ...(release.gtfs && { gtfs: release.gtfs }),
-            },
-          ]);
-        }
-      }),
+  const manifest = await loadTimetableManifest(signal);
+  const editions = await verifiedStationEditions(
+    data.id,
+    data.routes,
+    manifest,
+    date,
+    (path, hash) => loadAsset(path, hash, signal),
+    signal,
   );
-  if (signal.aborted) throw signal.reason;
   return {
     ...data,
     routes: data.routes.map((route) =>
       managesTimetable(route)
-        ? { ...route, timetableEditions: editions.get(route.id) ?? [] }
+        ? {
+            ...route,
+            timetableUnavailable: editions.has(route.id) ? undefined : route.timetableUnavailable,
+            timetableEditions: editions.get(route.id) ?? [],
+          }
         : route,
     ),
   };

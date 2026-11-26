@@ -110,7 +110,8 @@ export const DESTINATIONS_EN: Readonly<Partial<Record<string, string>>> = {
   稲城長沼: 'Inagi-Naganuma',
   立川: 'Tachikawa',
   籠原: 'Kagohara',
-  '羽田空港第１・第２ターミナル(京急)': 'Haneda Airport Terminal 1・2',
+  羽田空港: 'Haneda Airport',
+  '羽田空港第１・第２ターミナル(京急)': 'Haneda Airport',
   自由が丘: 'Jiyugaoka',
   芝山千代田: 'Shibayama Chiyoda',
   菊名: 'Kikuna',
@@ -143,8 +144,15 @@ interface DestinationPresentation {
   englishPrefix: string;
 }
 
-function englishDestination(destination: string): string | undefined {
-  return Object.hasOwn(DESTINATIONS_EN, destination) ? DESTINATIONS_EN[destination] : undefined;
+export function destinationDisplayAlias(destination: string): string {
+  return /^羽田空港第[1１]・第[2２]ターミナル(?:\(京急\)|（京急）)?$/.test(destination)
+    ? '羽田空港'
+    : destination;
+}
+
+export function englishDestination(destination: string): string | undefined {
+  const name = destinationDisplayAlias(destination);
+  return Object.hasOwn(DESTINATIONS_EN, name) ? DESTINATIONS_EN[name] : undefined;
 }
 
 export function destinationPresentation(
@@ -164,9 +172,10 @@ export function destinationPresentation(
     };
   }
   return {
-    // Source disambiguators and station secondary names belong to the catalog,
-    // not the departure destination. Keep the original key for English lookup.
-    name: destination.replace(/\([^()]*\)|（[^（）]*）|\[[^\[\]]*\]|［[^［］]*］/g, '').trim(),
+    // Remove annotations from the visible name after applying the destination alias.
+    name: destinationDisplayAlias(destination)
+      .replace(/\([^()]*\)|（[^（）]*）|\[[^\[\]]*\]|［[^［］]*］/g, '')
+      .trim(),
     suffix: isYamanote ? '行' : ' 行き',
     english: englishDestination(destination),
     englishPrefix: destination === '環状運転' ? '' : 'For ',

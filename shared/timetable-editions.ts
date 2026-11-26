@@ -281,6 +281,75 @@ export async function verifyEditionAsset(
   }
   return asset.routes;
 }
+
+export async function verifiedStationEditions(
+  stationId: string,
+  routes: (EditionAwareRoute & { sourceStationId?: string; sourceUpdated?: string })[],
+  manifest: TimetableManifest,
+  date: string,
+  load: (path: string, hash: string) => Promise<string>,
+  signal?: AbortSignal,
+) {
+  const managed = routes.filter(managesTimetable);
+  const entries = await Promise.all(
+    manifest.releases
+      .filter((release) => !release.effectiveToExclusive || date < release.effectiveToExclusive)
+      .map(async (release) => {
+        const ref = release.stations[stationId];
+        if (!ref) return [];
+        let verified: {
+          id: string;
+          sourceStationId?: string;
+          schedules: EditionSchedules;
+          sourceUpdated?: unknown;
+        }[];
+        try {
+          verified = await verifyEditionAsset(
+            await load(ref.path, ref.sha256),
+            manifest,
+            release,
+            stationId,
+          );
+        } catch {
+          signal?.throwIfAborted();
+          verified = [];
+          for (const route of managed) {
+            if (
+              ref.routeHashes[route.id] &&
+              (await timetableHash(canonicalTimetable(route.schedules))) ===
+                ref.routeHashes[route.id]
+            )
+              verified.push(route);
+          }
+        }
+        return verified
+          .filter((route) =>
+            managed.some((r) => r.id === route.id && r.sourceStationId === route.sourceStationId),
+          )
+          .map(
+            (route) =>
+              [
+                route.id,
+                {
+                  id: release.id,
+                  effectiveFrom: release.effectiveFrom,
+                  effectiveToExclusive: release.effectiveToExclusive,
+                  sha256: ref.routeHashes[route.id],
+                  schedules: route.schedules,
+                  sourceUpdated:
+                    typeof route.sourceUpdated === 'string' ? route.sourceUpdated : undefined,
+                  ...(release.gtfs && { gtfs: release.gtfs }),
+                },
+              ] as const,
+          );
+      }),
+  );
+  signal?.throwIfAborted();
+  const editions = new Map<string, VerifiedRouteEdition[]>();
+  for (const [id, entry] of entries.flat()) editions.set(id, [...(editions.get(id) ?? []), entry]);
+  return editions;
+}
+
 /** Sanitize the legacy /data URL for clients controlled by the updated worker.
  * Preserve every other route; never return an expired/unknown Asakusa schedule. */
 export async function sanitizeStationTimetables(data: any, m: TimetableManifest, at: number) {

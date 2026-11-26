@@ -13,6 +13,7 @@ import type { DayKind, Route } from '../types';
 import { trainTypeName } from '../lib/train-type';
 import { RailMark } from './RailMark';
 import { asakusaTrainType } from '../lib/asakusa-train-types';
+import { destinationDisplayAlias } from '../lib/destinations';
 
 export const TimetableContent = memo(function TimetableContent({
   route,
@@ -116,7 +117,7 @@ export const TimetableContent = memo(function TimetableContent({
                           </span>
                         )}
                         <span>
-                          {stationDisplayName(train.destination)}
+                          {stationDisplayName(destinationDisplayAlias(train.destination))}
                           {train.extra ? ' ※' : ''}
                         </span>
                       </div>

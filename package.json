@@ -1,7 +1,7 @@
 {
   "name": "rairio",
   "private": true,
-  "version": "1.4.10",
+  "version": "1.5.0",
   "type": "module",
   "engines": {
     "node": ">=24"

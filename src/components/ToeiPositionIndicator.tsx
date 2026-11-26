@@ -2,11 +2,6 @@ import type { ToeiObservedPosition } from '../lib/toei-position';
 import { TrainIcon } from '@phosphor-icons/react/dist/csr/Train';
 import type { ToeiDiagramDirection } from '../lib/toei-diagram';
 
-const POSITION_LABELS = {
-  ja: ['ぜんぜんえき', 'ぜんえき', 'とうえき'],
-  en: ['Two stops away', 'Previous stop', 'This station'],
-} as const;
-
 function TrainInFrame() {
   return (
     <span className="toei-position-train-frame" aria-hidden="true">
@@ -18,13 +13,10 @@ function TrainInFrame() {
 export function ToeiPositionIndicator({
   position,
   direction,
-  language,
 }: {
   position: ToeiObservedPosition;
   direction: ToeiDiagramDirection;
-  language: keyof typeof POSITION_LABELS;
 }) {
-  const [beforePrevious, previous, current] = POSITION_LABELS[language];
   return (
     <div
       className="toei-position-indicator"
@@ -39,7 +31,7 @@ export function ToeiPositionIndicator({
         data-active={(!position.segment && position.stage === 'before-previous') || undefined}
       >
         <strong>前々駅</strong>
-        <small lang={language}>{beforePrevious}</small>
+        <small lang="ja">ぜんぜんえき</small>
         {!position.segment && position.stage === 'before-previous' && <TrainInFrame />}
       </div>
       <span
@@ -56,7 +48,7 @@ export function ToeiPositionIndicator({
         data-active={(!position.segment && position.stage === 'previous') || undefined}
       >
         <strong>前　駅</strong>
-        <small lang={language}>{previous}</small>
+        <small lang="ja">ぜんえき</small>
         {!position.segment && position.stage === 'previous' && <TrainInFrame />}
       </div>
       <span
@@ -70,7 +62,7 @@ export function ToeiPositionIndicator({
       </span>
       <div className="toei-position-box toei-position-current">
         <strong>当　駅</strong>
-        <small lang={language}>{current}</small>
+        <small lang="ja">とうえき</small>
         {!position.segment && position.stage === 'here' && <TrainInFrame />}
       </div>
     </div>

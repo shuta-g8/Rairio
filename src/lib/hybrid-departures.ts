@@ -33,7 +33,7 @@ export function hybridTimeline(timestamp: number, delayMs = 0, endLeadMs = APPRO
   const switchAt = timestamp + delayMs + SWITCH_OFFSET_MS;
   const approachEnd = switchAt - AFTER_APPROACH_HOLD_MS - endLeadMs;
   return {
-    approachStart: approachEnd - APPROACH_DURATION_MS,
+    approachStart: approachEnd - APPROACH_DURATION_MS + endLeadMs,
     approachEnd,
     switchAt,
   };
@@ -56,7 +56,9 @@ interface TrainState {
   noticeDeadline?: number;
   projectedApproachSourceAt?: number;
   approachContradictedAt?: number;
-  lastDisplayedApproachAt?: number;
+  lastApproachAt?: number;
+  lastShownApproachAt?: number;
+  expiredNoticeSourceAt?: number;
   approachHiddenAt?: number;
   approachEndedAt?: number;
   retirement?: { sourceAt: number; reason: 'observed' | 'projected' | 'deadline' };
@@ -153,7 +155,7 @@ export function resolveHybridDepartures(
 } {
   const scope = scopeFor(route);
   // Nov 21 LCD comparisons showed an early start on these two approaches.
-  // Adjust only timetable starts; a matched incoming train can still start immediately.
+  // Shift the timetable-only window; a matched incoming train can still start earlier.
   const measuredApproach =
     (route.sourceStationId === 'odpt.Station:Toei.Mita.Mita' &&
       route.id === 'Toei.Mita.Northbound') ||
@@ -302,8 +304,9 @@ export function resolveHybridDepartures(
     const currentObservation = fresh && observation?.updatedAt === fresh.updatedAt;
     const wasApproaching =
       prior?.active === key &&
-      state.lastDisplayedApproachAt === prior.lastNow &&
+      state.lastApproachAt === prior.lastNow &&
       state.approachHiddenAt === undefined;
+    const wasShownApproaching = !!prior && state.lastShownApproachAt === prior.lastNow;
     // Compare source observations. A new SSE heartbeat can still carry an older position.
     const newerObservation = fresh && forecast && state.seenAt > forecast.sourceAt;
     const directlyApproaching = fresh && state.progress === 'approaching';
@@ -416,23 +419,24 @@ export function resolveHybridDepartures(
     if (progress === 'here') state.fallbackClosed = true;
     const timetableStart = timeline.approachStart + timetableStartOffset;
     const timetableEnd = timeline.approachEnd + timetableStartOffset;
-    const withinEarlyStart =
-      timestamp >= timeline.approachStart + endLeadMs - HYBRID_LIMITS.earlyApproachMs;
+    const withinEarlyStart = timestamp >= timeline.approachStart - HYBRID_LIMITS.earlyApproachMs;
     if (!departure.gtfs && !state.fallbackClosed && !state.fallbackWindow) {
       const early =
         fresh && state.progress === 'approaching' && state.coordinate === -0.5 && withinEarlyStart;
       if (timestamp >= timetableEnd) state.fallbackClosed = true;
       else if (early || timestamp >= timetableStart)
         state.fallbackWindow = {
-          start: Math.min(timestamp, early ? timeline.approachStart : timetableStart),
-          end: Math.min(timestamp, timetableStart) + APPROACH_DURATION_MS,
+          start: Math.min(timestamp, timetableStart),
+          end: Math.min(timestamp + APPROACH_DURATION_MS, timetableEnd),
         };
     }
     const fallbackEnd = state.fallbackWindow?.end ?? timetableEnd;
     if (state.fallbackWindow && timestamp >= fallbackEnd) state.fallbackClosed = true;
 
     const forecastEnd =
-      guidance?.arrivalAt === undefined ? undefined : guidance.arrivalAt - endLeadMs;
+      guidance?.arrivalAt !== undefined && timestamp < guidance.arrivalAt
+        ? guidance.arrivalAt - endLeadMs
+        : undefined;
     const inWindow = !!state.fallbackWindow && !state.fallbackClosed;
     let approaching: boolean;
     if (endLeadMs > 0) {
@@ -517,13 +521,57 @@ export function resolveHybridDepartures(
       trains.set(key, state);
       continue;
     }
+    // The display can wait for a less speculative approach or hide an overdue one.
+    // Use the original approach transitions for the lead train's hold interval.
+    let showApproach = approaching;
+    let waitingForApproach = false;
+    if (endLeadMs > 0) {
+      const estimate = guidance?.progress === 'approaching' ? guidance : undefined;
+      const arrivalWithoutDisplayLead =
+        estimate?.arrivalAt === undefined
+          ? undefined
+          : estimate.arrivalAt + estimate.displayAdvanceMs;
+      const noticeSourceAt = Math.max(
+        estimate?.sourceAt ?? -Infinity,
+        directlyApproaching ? state.seenAt : -Infinity,
+      );
+      if (
+        approaching &&
+        arrivalWithoutDisplayLead !== undefined &&
+        arrivalWithoutDisplayLead > noticeSourceAt &&
+        timestamp >= arrivalWithoutDisplayLead &&
+        timestamp - noticeSourceAt >= TRAIN_POSITIONS_INTERVAL
+      )
+        state.expiredNoticeSourceAt = Math.max(
+          state.expiredNoticeSourceAt ?? -Infinity,
+          noticeSourceAt,
+        );
+
+      const newIncomingPosition = Math.max(
+        directlyApproaching ? state.seenAt : -Infinity,
+        estimate && !estimate.projectedApproach ? estimate.sourceAt : -Infinity,
+      );
+      const expiredNotice =
+        state.expiredNoticeSourceAt !== undefined &&
+        newIncomingPosition <= state.expiredNoticeSourceAt;
+      waitingForApproach =
+        approaching &&
+        !wasShownApproaching &&
+        !directlyApproaching &&
+        ((estimate?.displayAdvanceMs &&
+          estimate.projectedApproachAt !== undefined &&
+          timestamp < estimate.projectedApproachAt) ||
+          (progress === undefined && !inWindow));
+      showApproach = approaching && !expiredNotice && !waitingForApproach;
+    }
+    state.lastShownApproachAt = showApproach ? timestamp : undefined;
     trains.set(key, state);
     if (selected.length === 0) {
       if (approaching) {
         if (endLeadMs > 0 && guidance?.projectedApproach && !directlyApproaching)
           state.projectedApproachSourceAt = guidance.sourceAt;
         else if (progress === 'approaching') state.projectedApproachSourceAt = undefined;
-        state.lastDisplayedApproachAt = timestamp;
+        state.lastApproachAt = timestamp;
         state.approachHiddenAt = undefined;
       }
       const arrived = endLeadMs > 0 && state.approachEndedAt !== undefined;
@@ -554,10 +602,11 @@ export function resolveHybridDepartures(
         delayMs,
         turnoverDelayMs,
         delayUntil: state.delayUntil,
-        phase: approaching
+        phase: showApproach
           ? 'approaching'
           : state.approachEndedAt === undefined &&
-              (progress === 'before' ||
+              (waitingForApproach ||
+                progress === 'before' ||
                 (state.noticeDeadline === undefined && !state.fallbackClosed))
             ? 'waiting'
             : 'holding',
@@ -566,7 +615,7 @@ export function resolveHybridDepartures(
     }
     selected.push(departure);
     presentations.push({
-      kind: approaching
+      kind: showApproach
         ? 'approaching'
         : departure.gtfs && departure.timestamp <= timestamp
           ? 'expired'

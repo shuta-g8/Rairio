@@ -56,6 +56,7 @@ export const TOEI_TRANSFER_NAMES_EN: Readonly<Record<string, string>> = {
 export interface ToeiContinuation {
   id: string;
   name: string;
+  lineColor: string;
   // Network destinations, not a claim that the selected train serves each branch.
   details: readonly { ja: string; en: string }[];
 }
@@ -64,6 +65,7 @@ export const TOEI_CONTINUATIONS: Readonly<Record<string, ToeiContinuation>> = {
   'Asakusa.Northbound': {
     id: 'Keisei.Oshiage',
     name: '京成線',
+    lineColor: '#005eff',
     details: [
       { ja: '成田スカイアクセス線 成田空港方面', en: 'Narita SKY ACCESS Line / Narita Airport' },
       { ja: '北総線 印旛日本医大方面', en: 'Hokuso Line / Imba nihon-idai' },
@@ -73,6 +75,9 @@ export const TOEI_CONTINUATIONS: Readonly<Record<string, ToeiContinuation>> = {
   'Asakusa.Southbound': {
     id: 'Keikyu.Main',
     name: '京急線',
+    // Asakusa platform 1 LCD, cyan beyond Sengakuji at 5:40.
+    // https://www.youtube.com/watch?v=P0LMD8rYaaY&t=340s
+    lineColor: toeiMapColor('Keikyu.Main'),
     details: [
       { ja: '空港線 羽田空港方面', en: 'Airport Line / Haneda Airport' },
       { ja: '本線・久里浜線 三崎口方面', en: 'Main / Kurihama Line / Misakiguchi' },
@@ -82,6 +87,7 @@ export const TOEI_CONTINUATIONS: Readonly<Record<string, ToeiContinuation>> = {
   'Mita.Southbound': {
     id: 'Tokyu.Meguro',
     name: '東急目黒線',
+    lineColor: '#0088ff',
     details: [
       { ja: '目黒線 日吉方面', en: 'Meguro Line / Hiyoshi' },
       { ja: '東急新横浜線 新横浜方面', en: 'Tokyu Shin-yokohama Line / Shin-yokohama' },
@@ -91,6 +97,7 @@ export const TOEI_CONTINUATIONS: Readonly<Record<string, ToeiContinuation>> = {
   'Shinjuku.Westbound': {
     id: 'Keio.KeioNew',
     name: '京王線',
+    lineColor: '#ff317c',
     details: [
       { ja: '京王新線 笹塚方面', en: 'Keio New Line / Sasazuka' },
       {
