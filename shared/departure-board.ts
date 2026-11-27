@@ -10,13 +10,17 @@ import {
 } from './timetable-editions.ts';
 
 export const DEPARTURE_BOARD_LEASE_MS = 40_000;
+export const DEPARTURE_BOARD_REFRESH_MS = 30_000;
 export const DEPARTURE_BOARD_MAX_BYTES = 262_144;
 const CLOCK_LEASE_MS = 5 * 60_000;
+const MIN_REFRESH_DELAY_MS = 1_000;
 const MAX_ROUTES = 16;
 const MAX_FRAMES = 41;
 
 export type StationDepartureBoardDisplay = DepartureBoardDisplay & {
   estimatedDiagram?: DepartureBoardDisplay['position'];
+  /** Terminal notice decisions, ordered like the active departure rows. */
+  closedApproaches?: ('arrival' | 'limit' | null)[];
 };
 
 export interface DepartureBoardPlanFrame {
@@ -34,6 +38,7 @@ export interface StationBoardPlan {
   version: 1;
   stationId: string;
   serverNow: number;
+  refreshAt?: number;
   routes: Record<string, DepartureBoardPlan>;
 }
 
@@ -150,6 +155,7 @@ function isDisplay(value: unknown) {
     estimatedDiagram,
     livePhase,
     arrivalEstimate,
+    closedApproaches,
   } = value;
   return (
     (board.kind === 'empty' ||
@@ -167,7 +173,15 @@ function isDisplay(value: unknown) {
     (position === undefined || isPosition(position)) &&
     (estimatedDiagram === undefined || isPosition(estimatedDiagram)) &&
     (livePhase === undefined || livePhase === 'approaching' || livePhase === 'holding') &&
-    (arrivalEstimate === undefined || displayText(arrivalEstimate))
+    (arrivalEstimate === undefined || displayText(arrivalEstimate)) &&
+    (closedApproaches === undefined ||
+      (board.kind === 'active' &&
+        Array.isArray(board.departures) &&
+        Array.isArray(closedApproaches) &&
+        closedApproaches.length === board.departures.length &&
+        closedApproaches.every(
+          (value) => value === null || value === 'arrival' || value === 'limit',
+        )))
   );
 }
 
@@ -207,6 +221,10 @@ export function isStationBoardPlan(value: unknown, stationId: string): value is 
     value.version !== 1 ||
     value.stationId !== stationId ||
     !epoch(value.serverNow) ||
+    (value.refreshAt !== undefined &&
+      (!epoch(value.refreshAt) ||
+        value.refreshAt <= value.serverNow ||
+        value.refreshAt > value.serverNow + DEPARTURE_BOARD_REFRESH_MS)) ||
     !record(value.routes)
   )
     return false;
@@ -260,6 +278,14 @@ export function acceptStationBoardPlan(
   // Conservatively spend the entire request turnaround from the lease.
   const expiryAtReceipt = Math.max(serverAtReceipt, value.serverNow + (receivedAt - sentAt));
   return { plan: value, receivedAt, serverAtReceipt, expiryAtReceipt };
+}
+
+export function stationBoardNextPollAt(sample: StationBoardSample, sentAt: number) {
+  const { refreshAt } = sample.plan;
+  if (refreshAt === undefined) return sentAt + DEPARTURE_BOARD_REFRESH_MS;
+  // Switch to the shared refresh cycle on a good response, with a minimum wait
+  // when the boundary is already near or past on the established server clock.
+  return sample.receivedAt + Math.max(MIN_REFRESH_DELAY_MS, refreshAt - sample.serverAtReceipt);
 }
 
 export function readStationBoardPlan(sample: StationBoardSample, monotonicNow: number) {

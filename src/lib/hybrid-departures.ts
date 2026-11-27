@@ -25,6 +25,7 @@ export const HYBRID_LIMITS = {
   delayRetentionMs: 5 * 60_000,
   positionRetentionMs: 3 * 60_000,
   maxTrainHoldMs: 15 * 60_000,
+  maxApproachNoticeMs: 90_000,
   earlyApproachMs: 30_000,
 } as const;
 const LOOKBACK_MS = HYBRID_LIMITS.maxTrainHoldMs + SWITCH_OFFSET_MS;
@@ -54,6 +55,8 @@ interface TrainState {
   fallbackWindow?: { start: number; end: number };
   fallbackClosed: boolean;
   noticeDeadline?: number;
+  noticeStartedAt?: number;
+  noticeTimedOutAt?: number;
   noticeIncomingSourceAt?: number;
   projectedApproachSourceAt?: number;
   approachContradictedAt?: number;
@@ -119,6 +122,10 @@ const initialState = (): TrainState => ({
   cleared: false,
   fallbackClosed: false,
 });
+
+function sameObservedPosition(a: TrainPosition, b: TrainPosition) {
+  return a.fromStation === b.fromStation && a.toStation === b.toStation && a.delay === b.delay;
+}
 
 function activeObservationCoordinate(
   route: Route,
@@ -225,7 +232,24 @@ export function resolveHybridDepartures(
             state.estimate,
           )
         : undefined;
-    const raw = observedToeiTrainGuidance(route, departure, acceptedPositions, now);
+    let raw = observedToeiTrainGuidance(route, departure, acceptedPositions, now);
+    if (usesEstimate && useCollected && !forecast?.progress) {
+      // A collector observation can still establish movement without a historical projection.
+      const collected = observedToeiTrainGuidance(route, departure, positions.collected, now);
+      const observed = collected.observation;
+      const sourceAt = Date.parse(observed?.updatedAt ?? '');
+      const directAt = Date.parse(raw.observation?.updatedAt ?? '');
+      if (
+        observed &&
+        sourceAt <= now.getTime() &&
+        !(directAt >= sourceAt && directAt <= now.getTime()) &&
+        (sourceAt > state.seenAt ||
+          (sourceAt === state.seenAt &&
+            state.position &&
+            sameObservedPosition(observed, state.position)))
+      )
+        raw = collected;
+    }
     const observation = raw.observation;
     if (
       observation &&
@@ -237,9 +261,7 @@ export function resolveHybridDepartures(
       const sameStampConflict =
         stamp === state.seenAt &&
         state.position &&
-        (observation.fromStation !== state.position.fromStation ||
-          observation.toStation !== state.position.toStation ||
-          observation.delay !== state.position.delay);
+        !sameObservedPosition(observation, state.position);
       if (sameStampConflict) {
         state.conflicted = true;
         state.pendingDelay = undefined;
@@ -320,21 +342,30 @@ export function resolveHybridDepartures(
       (state.progress === 'here' || state.progress === 'departed') &&
       (forecast.observedProgress === 'before' || forecast.observedProgress === 'approaching');
     const directlyApproaching = fresh && state.progress === 'approaching';
-    // A newer observation upstream can withdraw an extrapolated approach. Other
-    // projections from upstream cannot start it again without evidence of movement.
+    const upstreamSourceAt =
+      fresh && state.progress === 'before' && (!forecast || state.seenAt > forecast.sourceAt)
+        ? state.seenAt
+        : forecast?.observedProgress === 'before'
+          ? forecast.sourceAt
+          : -Infinity;
+    const refutedProjection =
+      forecast?.projectedApproachAt !== undefined &&
+      upstreamSourceAt >= forecast.projectedApproachAt;
+    // An observation still upstream at the projected movement time can withdraw
+    // the notice, even when both feeds agree on the same newer sample.
     if (
-      fresh &&
-      state.progress === 'before' &&
       state.projectedApproachSourceAt !== undefined &&
-      state.seenAt > state.projectedApproachSourceAt &&
-      (newerObservation || !forecast)
+      upstreamSourceAt > state.projectedApproachSourceAt &&
+      (refutedProjection ||
+        (state.noticeStartedAt !== undefined && upstreamSourceAt >= state.noticeStartedAt))
     )
-      state.approachContradictedAt ??= state.seenAt;
+      state.approachContradictedAt ??= upstreamSourceAt;
     const blockedProjection =
       endLeadMs > 0 &&
       forecast?.projectedApproach &&
       !directlyApproaching &&
       (state.approachContradictedAt !== undefined ||
+        refutedProjection ||
         forecast.stalledApproachProjection ||
         (forecast.displayAdvanceMs > 0 &&
           forecast.estimate.delaySeconds === 0 &&
@@ -506,6 +537,16 @@ export function resolveHybridDepartures(
       else if (state.noticeDeadline !== undefined) state.approachEndedAt ??= timestamp;
     }
 
+    // Repeated observations in the same approach interval show no further movement.
+    // After an extended notice, fall back to the normal board without confirming arrival.
+    if (endLeadMs > 0) {
+      if (approaching && state.noticeStartedAt !== undefined) {
+        const noticeLimitAt = state.noticeStartedAt + HYBRID_LIMITS.maxApproachNoticeMs;
+        if (timestamp >= noticeLimitAt) state.noticeTimedOutAt ??= noticeLimitAt;
+      }
+      if (state.noticeTimedOutAt !== undefined) approaching = false;
+    }
+
     // Show the old train without its notice for one poll interval, even if a poll skips the stop.
     // A resumed tab can move past observations the user has already missed.
     if (cleared || (!followingFirst && timestamp >= Math.min(hardStop, holdUntil)))
@@ -545,6 +586,7 @@ export function resolveHybridDepartures(
         state.skippedNextAt = timestamp;
       if (cleared || (endLeadMs === 0 && state.noticeDeadline !== undefined))
         state.approachEndedAt ??= timestamp;
+      state.noticeStartedAt = undefined;
       state.skippedBeforeFirstResponse =
         useEstimates &&
         (!positions || positions.collected === null) &&
@@ -578,11 +620,12 @@ export function resolveHybridDepartures(
         approaching &&
         !wasShownApproaching &&
         !directlyApproaching &&
-        ((estimate?.displayAdvanceMs &&
-          estimate.projectedApproachAt !== undefined &&
+        ((estimate?.projectedApproachAt !== undefined &&
           timestamp < estimate.projectedApproachAt) ||
           (noticeProgress === undefined && !inWindow));
       showApproach = approaching && !expiredNotice && !waitingForApproach;
+      if (showApproach) state.noticeStartedAt ??= timestamp;
+      else if (state.noticeTimedOutAt === undefined) state.noticeStartedAt = undefined;
     }
     state.lastShownApproachAt = showApproach ? timestamp : undefined;
     trains.set(key, state);
@@ -597,6 +640,7 @@ export function resolveHybridDepartures(
       const arrived = endLeadMs > 0 && state.approachEndedAt !== undefined;
       const unconfirmedRegression =
         progress === 'before' &&
+        !forecast?.stalledApproachProjection &&
         state.approachContradictedAt !== undefined &&
         Math.max(state.seenAt, forecast?.sourceAt ?? -Infinity) <= state.approachContradictedAt;
       position =
@@ -618,7 +662,12 @@ export function resolveHybridDepartures(
         ...timeline,
         switchAt,
         approachStart: state.fallbackWindow?.start ?? timetableStart,
-        approachEnd: state.approachEndedAt ?? state.noticeDeadline ?? forecastEnd ?? fallbackEnd,
+        approachEnd:
+          state.approachEndedAt ??
+          state.noticeTimedOutAt ??
+          state.noticeDeadline ??
+          forecastEnd ??
+          fallbackEnd,
         delayMs,
         turnoverDelayMs,
         delayUntil: state.delayUntil,

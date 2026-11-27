@@ -135,9 +135,10 @@ export function collectedDiagramEstimate(
     observedProgress === 'approaching' && model.nextVisit === departureVisit(route)
       ? advanceAt
       : undefined;
-  // The notice can use the historical exit as a timeout, on the source clock.
-  const noticeArrivalAt =
-    approachAdvanceAt === undefined ? undefined : approachAdvanceAt + displayAdvanceMs + model.lead;
+  // Both position leads are for the diagram. A notice uses the source clock.
+  const projectedTransitionAt =
+    advanceAt === undefined ? undefined : advanceAt + displayAdvanceMs + model.lead;
+  const noticeArrivalAt = approachAdvanceAt === undefined ? undefined : projectedTransitionAt;
   const projectedApproach = progress === 'approaching' && estimate.visit > model.visit;
   const beforeProjectedDeparture =
     progress === 'departed' && observedProgress && observedProgress !== 'departed'
@@ -157,8 +158,7 @@ export function collectedDiagramEstimate(
     observedProgress,
     beforeProjectedArrival,
     projectedApproach,
-    projectedApproachAt:
-      projectedApproach && advanceAt !== undefined ? advanceAt + displayAdvanceMs : undefined,
+    projectedApproachAt: projectedApproach ? projectedTransitionAt : undefined,
     // The estimator may keep its previous position even after confirming a stall.
     stalledApproachProjection: projectedApproach && advanceAt === undefined,
     beforeProjectedDeparture,

@@ -2,20 +2,34 @@ import { estimatePosition } from '../shared/position-estimate.ts';
 import { trainPositionIsFresh } from '../shared/train-positions.ts';
 import { FEED_TTL } from '../shared/position-feed.ts';
 
+const directionKey = (p) => `${p.railwayId}/${p.direction}`;
+
 // Shared by the production reader and the entirely local preview. No mutation
 // of observations, projection models, or collector storage.
 export class PositionFeedEngine {
   previous = new Map();
   calculate(snapshot, ids, now) {
-    const direct = new Map(snapshot.trains.map((p) => [p.id, p]));
+    const direct = new Map();
+    for (const position of snapshot.trains) {
+      if (!direct.has(position.id)) direct.set(position.id, new Map());
+      const directions = direct.get(position.id);
+      const key = directionKey(position);
+      // HTTP rejects duplicate matches in a direction. Apply the same rule before streaming.
+      directions.set(key, directions.has(key) ? undefined : position);
+    }
     const collected = new Map((snapshot.collected?.trains ?? []).map((p) => [p.id, p]));
     const rows = new Map();
     for (const [id, p] of this.previous) if (now - p.at >= 90000) this.previous.delete(id);
     for (const id of ids) {
-      const d = direct.get(id),
-        c = collected.get(id);
-      const raw = d && trainPositionIsFresh(d, now) ? d : undefined;
+      const c = collected.get(id);
       const observed = c && trainPositionIsFresh(c, now) ? c : undefined;
+      let raw;
+      for (const candidate of direct.get(id)?.values() ?? []) {
+        if (!candidate || !trainPositionIsFresh(candidate, now)) continue;
+        raw = candidate;
+        // The stream carries one direct row per ID. Prefer the collector's direction.
+        if (observed && directionKey(candidate) === directionKey(observed)) break;
+      }
       if (!raw && !observed) continue;
       const estimate =
         observed && estimatePosition(observed, raw, now, this.previous.get(id)?.estimate);

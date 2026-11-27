@@ -92,6 +92,9 @@ export function createTrainPositionsProvider({ fetchImpl = fetch, now = Date.now
     }
   };
   return {
+    get refreshAt() {
+      return cacheUntil;
+    },
     async get() {
       if (!snapshot || now() >= cacheUntil) {
         pending ??= refresh().finally(() => {

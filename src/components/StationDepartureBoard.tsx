@@ -106,7 +106,7 @@ function LocalDepartureBoard({ mode, route, now, positions, serverDisplay, ...pr
       return false;
     }
   });
-  const localDisplay = useLiveDepartures(scoped, positions, now, !legacyDiagram);
+  const localDisplay = useLiveDepartures(scoped, positions, now, !legacyDiagram, serverDisplay);
   const display = serverDisplay ?? localDisplay;
   const first = display.board.kind === 'active' ? display.board.departures[0] : undefined;
   const collectedMode =

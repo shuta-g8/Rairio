@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   acceptStationBoardPlan,
   DEPARTURE_BOARD_MAX_BYTES,
+  DEPARTURE_BOARD_REFRESH_MS,
   readStationBoardPlan,
+  stationBoardNextPollAt,
   type CurrentDepartureBoard,
   type StationBoardSample,
 } from '../../shared/departure-board.ts';
 
-const POLL_INTERVAL_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 
 export interface StationBoardPlans {
@@ -76,7 +77,7 @@ export function useStationBoardPlans(
       }
       const controller = new AbortController();
       request = controller;
-      nextPollAt = sentAt + POLL_INTERVAL_MS;
+      nextPollAt = sentAt + DEPARTURE_BOARD_REFRESH_MS;
       const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       try {
         const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
@@ -98,6 +99,7 @@ export function useStationBoardPlans(
         const accepted = acceptStationBoardPlan(value, station, sentAt, performance.now(), sample);
         if (accepted) {
           sample = accepted;
+          nextPollAt = stationBoardNextPollAt(accepted, sentAt);
           updateClock();
         }
       } catch {

@@ -125,7 +125,7 @@ test('先読みで位置図を進めても、前駅から予測した接近案�
           ...before.trains[0],
           model: { ...visit, visit: 19, nextVisit: 19.5 },
           projection: {
-            at: at(-50).getTime(),
+            at: at(-110).getTime(),
             advanceMs: 50000,
             fromStation: before.trains[0].fromStation,
             toStation: r.sourceStationId!,
@@ -172,7 +172,7 @@ test('先読みで位置図を進めても、前駅から予測した接近案�
 
 test('推定位置図が当駅へ進んでも、到着観測までは進入中の案内を続ける', () => {
   const r = route();
-  let d = resolve(r, at(-75), approachingForecast(-75, 20));
+  let d = resolve(r, at(-65), approachingForecast(-65, 20));
   assert.equal(d.presentation?.kind, 'approaching');
   d = resolve(r, at(-25), approachingForecast(-25, 20), d.session);
   assert.equal(d.presentation?.kind, 'approaching');
@@ -495,6 +495,40 @@ test('収集の進入観測と同じ更新時刻の直接観測で当駅に到�
   assert.ok(!d.estimatedDiagram?.estimated);
 });
 
+test('直接観測が欠落または古いときも、推定のない収集側の当駅観測で接近案内を解除する', () => {
+  const r = route();
+  const incoming = approachingForecast(-20, 30);
+  const started = resolve(r, at(-20), incoming);
+  assert.equal(started.presentation?.kind, 'approaching');
+
+  const arrived = positions(0, 'here');
+  for (const trains of [[], incoming.trains]) {
+    const collectedOnly = { fetchedAt: arrived.fetchedAt, trains, collected: arrived };
+    const stopped = resolve(r, at(0), collectedOnly, started.session);
+    assert.equal(first(stopped), '10:05');
+    assert.equal(stopped.presentation?.kind, 'countdown');
+    assert.equal(stopped.estimatedDiagram?.stage, 'here');
+    assert.equal(stopped.diagnostic?.sourceAt, at(0).getTime());
+
+    const repeated = resolve(r, at(1), collectedOnly, stopped.session);
+    assert.equal(repeated.presentation?.kind, 'countdown');
+    assert.equal(repeated.estimatedDiagram?.stage, 'here');
+  }
+
+  const direct = positions(0);
+  const conflicting = resolve(r, at(0), { ...direct, collected: arrived }, started.session);
+  assert.equal(conflicting.presentation?.kind, 'approaching');
+  assert.equal(conflicting.estimatedDiagram?.segment, 'second');
+
+  const withoutDirect = { ...arrived, trains: [], collected: arrived };
+  const repeatedConflict = resolve(r, at(1), withoutDirect, conflicting.session);
+  assert.equal(repeatedConflict.presentation?.kind, 'approaching');
+  assert.equal(
+    repeatedConflict.session.trains.get(repeatedConflict.session.active!)?.conflicted,
+    false,
+  );
+});
+
 test('前駅からの接近予測を解除した便は、同じ観測を元に再点灯しない', () => {
   const r = route();
   const previous = positions(-70, 'previous');
@@ -507,7 +541,7 @@ test('前駅からの接近予測を解除した便は、同じ観測を元に�
     dwellUntil: T,
   };
   const projection = {
-    at: at(-65).getTime(),
+    at: at(-125).getTime(),
     fromStation: p.fromStation,
     toStation: positions(-70).trains[0].toStation,
   };
@@ -524,10 +558,22 @@ test('前駅からの接近予測を解除した便は、同じ観測を元に�
     },
   };
   assert.equal(resolve(r, at(-35), newer).presentation?.kind, 'countdown');
+  const beforeDeparture = positions(-66, 'previous');
+  const earlierObservation = {
+    ...beforeDeparture,
+    collected: {
+      fetchedAt: beforeDeparture.fetchedAt,
+      trains: [{ ...beforeDeparture.trains[0], model, projection }],
+    },
+  };
+  assert.equal(resolve(r, at(-64), earlierObservation).presentation?.kind, 'approaching');
+  assert.equal(resolve(r, at(-35), caughtUp).presentation?.kind, 'countdown');
 
   let d = resolve(r, at(-64), incoming);
   assert.equal(d.presentation?.kind, 'approaching');
-  assert.equal(resolve(r, at(-35), caughtUp, d.session).presentation?.kind, 'approaching');
+  const equallyFresh = resolve(r, at(-35), caughtUp, d.session);
+  assert.equal(equallyFresh.presentation?.kind, 'countdown');
+  assert.equal(resolve(r, at(-34), caughtUp, equallyFresh.session).presentation?.kind, 'countdown');
   const stalled = {
     ...caughtUp,
     serverEstimates: {
@@ -591,6 +637,28 @@ test('収集側の推定が欠けても進入観測の有効期間は先発を�
   assert.equal(d.presentation?.kind, 'countdown');
   assert.equal(d.session.lastTurnover, undefined);
   assert.equal(first(resolve(r, at(72), forecast(72, 72), d.session)), '10:06');
+});
+
+test('同じ進入区間を更新し続けても90秒で接近を解除し、到着を確定せず先発を残す', () => {
+  for (const snapshot of [(time: number) => approachingForecast(time, 150), positions]) {
+    const r = route();
+    let d = resolve(r, at(-75), snapshot(-75));
+    for (const second of [-45, -15, 14]) {
+      d = resolve(r, at(second), snapshot(second), d.session);
+      assert.equal(d.presentation?.kind, 'approaching');
+    }
+    d = resolve(r, at(15), snapshot(14), d.session);
+    assert.equal(d.presentation?.kind, 'countdown');
+    assert.equal(first(d), '10:05');
+    const active = d.session.active!;
+    assert.equal(d.session.trains.get(active)?.noticeTimedOutAt, at(15).getTime());
+    assert.equal(d.session.trains.get(active)?.approachEndedAt, undefined);
+    d = resolve(r, at(16), snapshot(16), d.session);
+    assert.equal(d.presentation?.kind, 'countdown');
+    assert.equal(first(d), '10:05');
+    d = resolve(r, at(17), positions(17, 'here'), d.session);
+    assert.equal(d.session.trains.get(active)?.approachEndedAt, at(17).getTime());
+  }
 });
 
 test('古い発車推定と新しい進入観測が重なったときは、案内と繰り上げの両方に進入観測を使う', () => {

@@ -52,20 +52,20 @@ export function estimatePosition(
   const { model, projection } = p;
   if (!model || !projection) return;
   const prior = previous?.runId === model.runId ? previous : undefined;
-  let evidence = prior?.evidence;
+  let evidence = prior?.evidence?.phase === model.visit ? prior.evidence : undefined;
   if (evidence && now - evidence.at >= TRAIN_POSITION_MAX_AGE) evidence = undefined;
   const rawAt = direct && Date.parse(direct.updatedAt);
   const collectedAt = Date.parse(p.updatedAt);
-  if (
+  const matchedDirect =
     direct &&
     rawAt !== undefined &&
     rawAt <= now &&
     direct.id === p.id &&
     direct.railwayId === p.railwayId &&
-    direct.direction === p.direction &&
-    direct.fromStation === p.fromStation &&
-    direct.toStation === p.toStation
-  ) {
+    direct.direction === p.direction;
+  const observedInPhase =
+    matchedDirect && direct.fromStation === p.fromStation && direct.toStation === p.toStation;
+  if (observedInPhase) {
     // Both sources must still place this run in this phase. Use the earlier timestamp
     // so a newer poll alone cannot turn ordinary polling skew into a delay.
     const at = Math.min(rawAt, collectedAt);
@@ -92,16 +92,21 @@ export function estimatePosition(
     }
   }
   const confirmed = evidence?.confirmed ? evidence : undefined;
-  const reported = Math.max(
-    p.delay ?? 0,
-    rawAt !== undefined && rawAt <= now ? (direct?.delay ?? 0) : 0,
-  );
+  // Both feeds relay the same provider's report. A newer explicit zero can clear an old delay.
+  let reported = p.delay ?? 0;
+  if (matchedDirect && direct.delay !== undefined) {
+    if (p.delay === undefined || rawAt > collectedAt) reported = direct.delay;
+    else if (rawAt === collectedAt) reported = Math.max(reported, direct.delay);
+  }
   const delaySeconds = Math.max(reported, Math.floor((confirmed?.lag ?? 0) / 1000));
   const advanceAt = positionAdvanceAt(p, { evidence, delaySeconds });
   const advance = advanceAt !== undefined && now >= advanceAt;
   const selected = advance ? projection : p;
   const visit = advance ? model.nextVisit : model.visit;
-  const floor = prior && prior.visit > visit ? prior : undefined;
+  // A confirmed stall in the observed phase corrects an earlier one-step projection.
+  const correctProjection =
+    observedInPhase && confirmed?.stalled && prior?.visit === model.nextVisit;
+  const floor = prior && prior.visit > visit && !correctProjection ? prior : undefined;
   return {
     runId: model.runId,
     visit: floor?.visit ?? visit,
