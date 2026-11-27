@@ -69,7 +69,7 @@ function ServerDepartureBoard({ mode, route, now, onOpen, operation, previous }:
       data-departure-board-transport={transport}
     >
       {display ? (
-        <Board {...{ route, now, display, onOpen, operation, previous }} />
+        <Board {...{ route, now, display, onOpen, operation, previous }} source="server" />
       ) : (
         <article className="route-card" aria-busy={pending}>
           <header>
@@ -194,16 +194,15 @@ function LocalDepartureBoard({ mode, route, now, positions, serverDisplay, ...pr
             hour: '2-digit',
             minute: '2-digit',
           });
+  const source = serverDisplay ? 'server' : 'local';
   return (
-    <div
-      style={{ display: 'contents' }}
-      data-departure-board-state={serverDisplay ? 'server' : 'local'}
-    >
+    <div style={{ display: 'contents' }} data-departure-board-state={source}>
       <Board
         {...props}
         route={scoped}
         now={now}
         display={{ ...diagram, board: presentedBoard, arrivalEstimate }}
+        source={source}
       />
     </div>
   );

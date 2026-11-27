@@ -156,11 +156,13 @@ test('先読みで位置図を進めても、前駅から予測した接近案�
   d = resolve(r, at(-46), incoming, d.session);
   assert.equal(d.presentation?.kind, 'approaching');
   d = resolve(r, at(-45), incoming, d.session);
-  assert.equal(d.presentation?.kind, 'countdown');
+  assert.equal(d.presentation?.kind, 'approaching');
   assert.equal(d.estimatedDiagram?.stage, 'here');
   assert.equal(first(d), '10:05');
   const stopped: TrainPositionsSnapshot = forecast(-35, 60);
   stopped.collected!.trains[0].projection!.advanceMs = 50000;
+  d = resolve(r, at(-35), stopped, d.session);
+  assert.equal(d.presentation?.kind, 'countdown');
   d = resolve(r, at(9), stopped, d.session);
   assert.equal(first(d), '10:05');
   d = resolve(r, at(10), stopped, d.session);
@@ -168,7 +170,7 @@ test('先読みで位置図を進めても、前駅から予測した接近案�
   assert.equal(d.session.lastTurnover?.reason, 'estimate');
 });
 
-test('予測到着の10秒前を過ぎても進入区間にいる間は案内し、到着推定で解除する', () => {
+test('推定位置図が当駅へ進んでも、到着観測までは進入中の案内を続ける', () => {
   const r = route();
   let d = resolve(r, at(-75), approachingForecast(-75, 20));
   assert.equal(d.presentation?.kind, 'approaching');
@@ -178,7 +180,7 @@ test('予測到着の10秒前を過ぎても進入区間にいる間は案内し
   d = resolve(r, at(9), approaching, d.session);
   assert.equal(d.presentation?.kind, 'approaching');
   d = resolve(r, at(10), approaching, d.session);
-  assert.equal(d.diagnostic?.approachEnd, T + 10000);
+  assert.equal(d.diagnostic?.approachEnd, T + 80000);
   assert.equal(d.estimatedDiagram?.segment, 'second');
   assert.equal(d.presentation?.kind, 'approaching');
   assert.equal(
@@ -188,8 +190,11 @@ test('予測到着の10秒前を過ぎても進入区間にいる間は案内し
   assert.equal(resolve(r, at(20), approaching, undefined, true, 0).presentation?.kind, 'countdown');
   d = resolve(r, at(20), approaching, d.session);
   assert.equal(d.estimatedDiagram?.stage, 'here');
-  assert.equal(d.presentation?.kind, 'countdown');
+  assert.equal(d.presentation?.kind, 'approaching');
   assert.equal(first(d), '10:05');
+  d = resolve(r, at(21), positions(21, 'here'), d.session);
+  assert.equal(d.presentation?.kind, 'countdown');
+  assert.equal(resolve(r, at(22), approaching, d.session).presentation?.kind, 'countdown');
 });
 
 test('SSEが進入区間を示す間は点灯し、欠測時だけ最新の予測期限を使う', () => {
@@ -209,10 +214,10 @@ test('SSEが進入区間を示す間は点灯し、欠測時だけ最新の予�
   assert.equal(d.presentation?.kind, 'approaching');
   d = resolve(r, at(5), data, d.session);
   assert.equal(d.presentation?.kind, 'approaching');
-  assert.equal(d.diagnostic?.approachEnd, T + 5000);
+  assert.equal(d.diagnostic?.approachEnd, T + 60000);
   assert.equal(d.estimatedDiagram?.segment, 'second');
   assert.equal(first(d), '10:05');
-  assert.equal(resolve(r, at(6), null, d.session).presentation?.kind, 'countdown');
+  assert.equal(resolve(r, at(6), null, d.session).presentation?.kind, 'approaching');
   const later = {
     ...data,
     serverEstimates: { ...data.serverEstimates, trains: [{ ...estimate, delaySeconds: 40 }] },
@@ -224,7 +229,7 @@ test('SSEが進入区間を示す間は点灯し、欠測時だけ最新の予�
 
 test('到着見込みを過ぎた古い接近は解除し、新しい進入観測でのみ表示を戻す', () => {
   const r = route();
-  const incoming = approachingForecast(-80, -20);
+  const incoming = approachingForecast(-80, -80);
   const p = incoming.collected!.trains[0];
   p.projection!.advanceMs = 50000;
   const estimate = {
@@ -246,7 +251,7 @@ test('到着見込みを過ぎた古い接近は解除し、新しい進入観�
   assert.equal(d.presentation?.kind, 'approaching');
   d = resolve(r, at(-21), heartbeat(-21), d.session);
   assert.equal(d.presentation?.kind, 'approaching');
-  const recent = approachingForecast(-21, -20);
+  const recent = approachingForecast(-21, -80);
   recent.collected!.trains[0].projection!.advanceMs = 50000;
   const renewed = { ...heartbeat(-20), ...recent };
   assert.equal(resolve(r, at(-20), renewed, d.session).presentation?.kind, 'approaching');
@@ -263,7 +268,7 @@ test('到着見込みを過ぎた古い接近は解除し、新しい進入観�
 
   const collected = {
     ...heartbeat(-16),
-    collected: approachingForecast(-16, -20).collected,
+    collected: approachingForecast(-16, -80).collected,
   };
   assert.equal(resolve(r, at(-16), collected, d.session).presentation?.kind, 'approaching');
   d = resolve(r, at(-15), { ...heartbeat(-15), ...positions(-15, 'incoming') }, d.session);
@@ -303,7 +308,7 @@ test('遅着のSSE推定は端末予測より優先し、失効しても開始�
   const http = { ...data, serverEstimates: undefined };
   const here = resolve(r, at(5), http, incoming.session);
   assert.equal(here.estimatedDiagram?.stage, 'here');
-  assert.equal(here.presentation?.kind, 'countdown');
+  assert.equal(here.presentation?.kind, 'approaching');
 });
 
 test('到着予測のないSSEの進入区間は40秒を越えても案内し、生存通知だけでは欠測時の期限を延ばさない', () => {
@@ -316,7 +321,16 @@ test('到着予測のないSSEの進入区間は40秒を越えても案内し、
     visit: 19.5,
     fromStation: p.fromStation,
     toStation: p.toStation,
-    delaySeconds: 0,
+    delaySeconds: 60,
+    evidence: {
+      firstDirect: at(-110).getTime(),
+      firstCollected: at(-110).getTime(),
+      confirmed: true,
+      at: at(-80).getTime(),
+      lag: 60_000,
+      stalled: true,
+      phase: 19.5,
+    },
   };
   let session: HybridDepartureSession | undefined;
   for (let seconds = -80; seconds <= -25; seconds += 5) {
@@ -382,13 +396,13 @@ test('時刻表だけで案内を終えた後も、同じ便が実際に進入�
   assert.equal(first(d), '10:05');
   assert.equal(d.estimatedDiagram?.segment, 'second');
   assert.equal(d.presentation?.kind, 'approaching');
-  assert.equal(d.diagnostic?.approachEnd, at(10).getTime());
+  assert.equal(d.diagnostic?.approachEnd, at(60).getTime());
   d = resolve(r, at(0), forecast(0, 0), d.session);
   assert.equal(first(d), '10:06');
   assert.equal(d.presentation?.kind, 'approaching');
 });
 
-test('到着予測が欠けても直前の終了期限を使い、後から予測が復旧しても再表示しない', () => {
+test('到着予測が欠けても同じ終了期限を使い、古い進入観測では再表示しない', () => {
   const r = route();
   let d = resolve(r, at(0), approachingForecast(0, 20));
   assert.equal(d.presentation?.kind, 'approaching');
@@ -399,18 +413,18 @@ test('到着予測が欠けても直前の終了期限を使い、後から予�
   assert.equal(first(d), '10:05');
   assert.equal(d.estimatedDiagram?.segment, 'second');
   assert.equal(d.presentation?.kind, 'approaching');
-  d = resolve(r, at(9), null, d.session);
+  d = resolve(r, at(79), null, d.session);
   assert.equal(d.presentation?.kind, 'approaching');
-  d = resolve(r, at(10), null, d.session);
+  d = resolve(r, at(80), null, d.session);
   assert.equal(first(d), '10:05');
   assert.equal(d.presentation?.kind, 'countdown');
-  d = resolve(r, at(20), refreshed, d.session);
+  d = resolve(r, at(81), refreshed, d.session);
   assert.equal(d.estimatedDiagram?.stage, 'here');
   assert.equal(d.presentation?.kind, 'countdown');
-  d = resolve(r, at(21), forecast(21, 45), d.session);
+  d = resolve(r, at(82), forecast(82, 110), d.session);
   assert.equal(first(d), '10:05');
   assert.equal(d.presentation?.kind, 'countdown');
-  d = resolve(r, at(22), approachingForecast(22, 90), d.session);
+  d = resolve(r, at(83), approachingForecast(83, 90), d.session);
   assert.equal(d.presentation?.kind, 'countdown');
 });
 
@@ -422,6 +436,19 @@ test('停車の観測を飛ばして当駅発の区間に移ったら、先発�
   assert.equal(first(d), '10:05');
   assert.equal(d.presentation?.kind, 'countdown');
   assert.equal(resolve(r, at(-54), null, d.session).presentation?.kind, 'countdown');
+});
+
+test('欠測で接近案内を解除したあとは同じ進入観測の再配信で点灯しない', () => {
+  const r = route();
+  const incoming = positions(-75);
+  let d = resolve(r, at(-75), incoming);
+  assert.equal(d.presentation?.kind, 'approaching');
+  d = resolve(r, at(-35), null, d.session);
+  assert.equal(d.presentation?.kind, 'countdown');
+  d = resolve(r, at(-34), incoming, d.session);
+  assert.equal(d.presentation?.kind, 'countdown');
+  d = resolve(r, at(-33), positions(-33), d.session);
+  assert.equal(d.presentation?.kind, 'approaching');
 });
 
 test('SSEの進入推定より新しい当駅の直接観測で、位置図と接近案内を揃える', () => {
@@ -455,6 +482,17 @@ test('SSEの進入推定より新しい当駅の直接観測で、位置図と�
   assert.equal(d.presentation?.kind, 'countdown');
   d = resolve(r, at(42), forecast(42, 42), d.session);
   assert.equal(first(d), '10:06');
+});
+
+test('収集の進入観測と同じ更新時刻の直接観測で当駅に到着したら接近案内を解除する', () => {
+  const r = route();
+  const incoming = resolve(r, at(-5), approachingForecast(-5, 20));
+  assert.equal(incoming.presentation?.kind, 'approaching');
+  const arrived = { ...approachingForecast(0, 20), ...positions(0, 'here') };
+  const d = resolve(r, at(0), arrived, incoming.session);
+  assert.equal(d.presentation?.kind, 'countdown');
+  assert.equal(d.estimatedDiagram?.stage, 'here');
+  assert.ok(!d.estimatedDiagram?.estimated);
 });
 
 test('前駅からの接近予測を解除した便は、同じ観測を元に再点灯しない', () => {

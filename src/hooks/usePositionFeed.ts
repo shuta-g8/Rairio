@@ -21,14 +21,18 @@ export function positionFeedIds(routes: Route[], now: Date): string[] {
 }
 
 export function usePositionFeed(enabled: boolean, routes: Route[]) {
-  const [clock, setClock] = useState(Date.now);
+  const [clock, setClock] = useState<number>();
   const [snapshot, setSnapshot] = useState<TrainPositionsSnapshot | null>(null);
   const [mode, setMode] = useState('starting');
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setClock(undefined);
+      return;
+    }
     const update = () => {
       if (document.visibilityState === 'visible') setClock(Date.now());
     };
+    update();
     const timer = window.setInterval(update, 30000);
     document.addEventListener('visibilitychange', update);
     return () => {
@@ -36,11 +40,12 @@ export function usePositionFeed(enabled: boolean, routes: Route[]) {
       document.removeEventListener('visibilitychange', update);
     };
   }, [enabled]);
-  const key = enabled ? positionFeedIds(routes, new Date(clock)).join(',') : '';
-  const date = serviceDate(new Date(clock));
+  const now = enabled && clock !== undefined ? new Date(clock) : undefined;
+  const key = now ? positionFeedIds(routes, now).join(',') : '';
+  const date = now ? serviceDate(now) : undefined;
   // The Pages endpoint supplies the destination needed for GTFS matching even
   // when the independently deployed streaming worker still uses its old schema.
-  const pollForGtfs = routes.some((route) => timetableEditionForDate(route, date)?.gtfs);
+  const pollForGtfs = !!date && routes.some((route) => timetableEditionForDate(route, date)?.gtfs);
   useEffect(() => {
     if (!enabled || !key) {
       setSnapshot(null);

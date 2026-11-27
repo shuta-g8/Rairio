@@ -18,6 +18,10 @@ import { OperationBadge } from './operations/OperationBadge';
 import { RailMark } from './RailMark';
 import { Destination } from './Destination';
 import type { DepartureBoardDisplay } from '../lib/live-departures';
+import {
+  useDepartureDisplayDiagnostics,
+  type DepartureDisplaySource,
+} from '../hooks/useDepartureDisplayDiagnostics';
 
 function Countdown({ departure, now }: { departure: Departure; now: Date }) {
   const { minutes, seconds } = remaining(departure.timestamp, now);
@@ -206,6 +210,7 @@ export function RouteCard({
   operation,
   previous,
   display,
+  source,
 }: {
   route: Route;
   now: Date;
@@ -213,8 +218,13 @@ export function RouteCard({
   operation?: LineOperation;
   previous: boolean;
   display: DepartureBoardDisplay;
+  source: DepartureDisplaySource;
 }) {
   const { board, presentation, presentations } = display;
+  const first = board.kind === 'active' ? board.departures[0] : undefined;
+  const firstPresentation =
+    first && (presentations?.[0] ?? presentation ?? departurePresentation(first.timestamp, now));
+  useDepartureDisplayDiagnostics(source, route, first, firstPresentation?.kind);
   return (
     <article className="route-card" style={{ '--line-color': route.color } as CSSProperties}>
       <RouteHeading route={route} operation={operation} previous={previous} />
@@ -247,7 +257,7 @@ export function RouteCard({
               index={index}
               now={now}
               route={route}
-              presentation={presentations?.[index] ?? (index === 0 ? presentation : undefined)}
+              presentation={index === 0 ? firstPresentation : presentations?.[index]}
             />
           ))}
         {board.kind === 'empty' && (

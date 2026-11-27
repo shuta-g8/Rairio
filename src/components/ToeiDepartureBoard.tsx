@@ -11,6 +11,10 @@ import { OperationBadge, StatusBadge } from './operations/OperationBadge';
 import { ToeiBoardCenter } from './ToeiBoardCenter';
 import type { DepartureBoardDisplay } from '../lib/live-departures';
 import { TOEI_FLIP_HALF_MS, useToeiDepartureFlip } from '../hooks/useToeiDepartureFlip';
+import {
+  useDepartureDisplayDiagnostics,
+  type DepartureDisplaySource,
+} from '../hooks/useDepartureDisplayDiagnostics';
 import { departureIdentity } from '../lib/time';
 
 const POSSIBLE_DELAY_NOTICE_MS = 3 * 60_000;
@@ -22,6 +26,7 @@ export function ToeiDepartureBoard({
   operation,
   previous,
   display,
+  source,
 }: {
   route: Route;
   now: Date;
@@ -29,6 +34,7 @@ export function ToeiDepartureBoard({
   operation?: LineOperation;
   previous: boolean;
   display: DepartureBoardDisplay;
+  source: DepartureDisplaySource;
 }) {
   const { board, presentation, position, livePhase } = display;
   const first = board.kind === 'active' ? board.departures[0] : undefined;
@@ -41,6 +47,12 @@ export function ToeiDepartureBoard({
     showsCurrentFirst &&
     (presentation?.kind === 'approaching' ||
       (!livePhase && (presentation?.kind === 'departing' || presentation?.kind === 'progress')));
+  useDepartureDisplayDiagnostics(
+    source,
+    route,
+    shownFirst,
+    shownFirst ? (attention ? 'approaching' : 'normal') : undefined,
+  );
   const direction = toeiDestinationTranslation(toeiBoardDestination(route), 'en');
 
   return (

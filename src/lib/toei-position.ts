@@ -111,34 +111,42 @@ export function collectedDiagramEstimate(
   const collected = snapshot.collected;
   if (!collected) return;
   const p: CollectedTrainPosition | undefined = matchedTrainPosition(route, train, collected, now);
-  if (!p || disrupted || Date.parse(p.updatedAt) > now.getTime()) return;
+  if (!p?.model || disrupted || Date.parse(p.updatedAt) > now.getTime()) return;
+  const { model } = p;
   const direct = matchedTrainPosition(route, train, snapshot, now);
   // A server result is authoritative until its lease expires. Do not extrapolate
   // it locally; HTTP fallback removes this field and resumes the shared algorithm.
   const server = snapshot.serverEstimates;
   const estimate = server
     ? server.validUntil > now.getTime()
-      ? server.trains.find((e) => e.id === p.id && e.runId === p.model?.runId)
+      ? server.trains.find((e) => e.id === p.id && e.runId === model.runId)
       : undefined
     : estimatePosition(p, direct, now.getTime(), previous);
   if (!estimate) return;
   const position = describeToeiPosition(route, train, { ...p, ...estimate });
   const progress = estimatedStationProgress(route, estimate);
-  const model = p.model;
-  const advanceAt = progress === 'approaching' ? positionAdvanceAt(p, estimate) : undefined;
+  const observedProgress = estimatedStationProgress(route, {
+    visit: model.visit,
+    toStation: p.toStation,
+  });
+  const advanceAt = positionAdvanceAt(p, estimate);
   const displayAdvanceMs = p.projection?.advanceMs ?? 0;
-  const arrivalAt =
-    estimate.visit === model?.visit && model.nextVisit === departureVisit(route)
+  const approachAdvanceAt =
+    observedProgress === 'approaching' && model.nextVisit === departureVisit(route)
       ? advanceAt
       : undefined;
-  const projectedApproach = progress === 'approaching' && !!model && estimate.visit > model.visit;
-  const observedProgress =
-    progress === 'departed' && model && model.visit < estimate.visit
-      ? estimatedStationProgress(route, { visit: model.visit, toStation: p.toStation })
-      : undefined;
+  // The notice can use the historical exit as a timeout, on the source clock.
+  const noticeArrivalAt =
+    approachAdvanceAt === undefined ? undefined : approachAdvanceAt + displayAdvanceMs + model.lead;
+  const projectedApproach = progress === 'approaching' && estimate.visit > model.visit;
   const beforeProjectedDeparture =
-    observedProgress && observedProgress !== 'departed'
+    progress === 'departed' && observedProgress && observedProgress !== 'departed'
       ? { progress: observedProgress, position: describeToeiPosition(route, train, p) }
+      : undefined;
+  const beforeProjectedArrival =
+    (progress === 'here' || progress === 'departed') &&
+    (observedProgress === 'before' || observedProgress === 'approaching')
+      ? observedProgress
       : undefined;
   return {
     estimate,
@@ -146,13 +154,17 @@ export function collectedDiagramEstimate(
     displayAdvanceMs,
     position: position && { ...position, estimated: true },
     progress,
+    observedProgress,
+    beforeProjectedArrival,
     projectedApproach,
     projectedApproachAt:
       projectedApproach && advanceAt !== undefined ? advanceAt + displayAdvanceMs : undefined,
     // The estimator may keep its previous position even after confirming a stall.
     stalledApproachProjection: projectedApproach && advanceAt === undefined,
     beforeProjectedDeparture,
-    arrivalAt,
+    arrivalAt:
+      progress === 'approaching' && estimate.visit === model.visit ? approachAdvanceAt : undefined,
+    noticeArrivalAt,
     freshUntil: Math.min(
       Date.parse(p.validUntil),
       Date.parse(p.updatedAt) + TRAIN_POSITION_MAX_AGE,

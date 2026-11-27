@@ -1,5 +1,12 @@
 export const RELEASE_NOTES = [
   {
+    version: '1.5.1',
+    date: '2026-11-27',
+    changes: [
+      '都営地下鉄の発車案内で、接近案内がすぐに消えたり、点灯を繰り返したりする問題を改善しました。',
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-11-27',
     changes: [
