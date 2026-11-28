@@ -100,6 +100,9 @@ function isDeparture(value: unknown) {
     (value.extra === undefined || typeof value.extra === 'boolean') &&
     (value.dayOffset === undefined || Number.isSafeInteger(value.dayOffset)) &&
     (value.carCount === undefined || Number.isSafeInteger(value.carCount)) &&
+    (value.naritaVia === undefined ||
+      value.naritaVia === 'hokuso' ||
+      value.naritaVia === 'keisei') &&
     (value.gtfs === undefined ||
       (record(value.gtfs) &&
         typeof value.gtfs.stopMask === 'number' &&

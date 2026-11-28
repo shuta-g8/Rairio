@@ -13,7 +13,6 @@ import { englishDestination } from '../lib/destinations';
 export const ToeiStopDiagram = memo(function ToeiStopDiagram({
   stations,
   railwayId,
-  through,
   english,
   continuation,
   meguroLocalSection,
@@ -22,7 +21,6 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
 }: {
   stations: ToeiStop[];
   railwayId: string;
-  through: boolean;
   english: boolean;
   continuation?: ToeiContinuation;
   meguroLocalSection?: ToeiMeguroLocalSection;
@@ -48,11 +46,6 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
       data-direction={direction}
       style={continuation && ({ '--continuation-color': continuation.lineColor } as CSSProperties)}
     >
-      {through && !meguroLocalSection && (
-        <span className="toei-stop-scope">
-          {english ? 'Stops within Toei Subway' : '都営線内の停車駅'}
-        </span>
-      )}
       <ol
         className="toei-stop-diagram"
         style={{ gridTemplateColumns: `var(--toei-fitted-columns, ${columns.join(' ')})` }}
@@ -63,6 +56,7 @@ export const ToeiStopDiagram = memo(function ToeiStopDiagram({
             data-kind={station.kind}
             data-stop-weight={station.weight}
             data-transfer-count={station.transfers.length}
+            data-route-start={station.routeStart}
             data-boundary={(continuation && index === stops.length - 1) || undefined}
           >
             {station.kind === 'current' && (
@@ -191,7 +185,7 @@ function ToeiMeguroSection({
           ))}
         </span>
       </div>
-      <div className="toei-meguro-station">
+      <div className="toei-meguro-station toei-meguro-terminal">
         <ToeiMeguroName
           name={english ? (englishDestination(destination) ?? destination) : destination}
           english={english}

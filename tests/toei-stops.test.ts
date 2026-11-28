@@ -19,6 +19,16 @@ test('大江戸線の環状部・支線・都庁前の3方向と途中止まり�
   assert.ok(
     long.findIndex((s) => s.name === '都庁前') < long.findIndex((s) => s.name === '中野坂上'),
   );
+  for (const [station, routeStart] of [
+    ['shinjukunishiguchi', true],
+    ['nishishinjukugochome', undefined],
+  ] as const) {
+    const guide = toeiStopGuide(route(station, 'Oedo.OuterLoop'), {
+      destination: '光が丘',
+      type: '普通',
+    })!;
+    assert.equal(guide.preceding.find((s) => s.name === '都庁前')!.routeStart, routeStart);
+  }
   for (const [direction, destination, next] of [
     ['InnerLoop', '清澄白河', '新宿'],
     ['OuterLoop', '光が丘', '新宿西口'],

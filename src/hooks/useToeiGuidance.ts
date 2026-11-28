@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { LineOperation } from '../../shared/railways';
-import { shuffledGuidanceIds, toeiInformationMessages } from '../lib/toei-guidance';
+import {
+  shuffledGuidanceIds,
+  toeiInformationMessages,
+  type ToeiInformationMessage,
+} from '../lib/toei-guidance';
 
 /** Keep only the current deck, including while a diagram temporarily replaces the notice. */
 export function useToeiGuidance(
@@ -8,19 +12,25 @@ export function useToeiGuidance(
   previous: boolean,
   messageIndex: number,
   single: boolean,
+  possibleDelay: boolean,
+  routeMessage?: ToeiInformationMessage,
 ) {
-  const messages = useMemo(
-    () => toeiInformationMessages(operation, previous),
-    [operation, previous],
-  );
-  const priority = messages.find((message) => message.id === 'operation');
-  const ids = useMemo(
-    () => messages.filter((message) => message.id !== 'operation').map((message) => message.id),
+  const messages = useMemo(() => {
+    const general = toeiInformationMessages(operation, previous, possibleDelay);
+    return routeMessage ? [...general, routeMessage] : general;
+  }, [operation, previous, possibleDelay, routeMessage]);
+  const priority = useMemo(
+    () => messages.filter(({ id }) => id === 'operation' || id === 'possible-delay'),
     [messages],
   );
-  const signature = JSON.stringify([!!priority, ids]);
-  const noticeIndex = priority ? Math.floor(messageIndex / 2) : messageIndex;
-  const round = priority || single ? Math.floor(noticeIndex / ids.length) : messageIndex;
+  const ids = useMemo(
+    () => messages.filter((message) => !priority.includes(message)).map(({ id }) => id),
+    [messages, priority],
+  );
+  const signature = JSON.stringify([priority.map(({ id }) => id), ids]);
+  const hasPriority = priority.length > 0;
+  const noticeIndex = hasPriority ? Math.floor(messageIndex / 2) : messageIndex;
+  const round = hasPriority || single ? Math.floor(noticeIndex / ids.length) : messageIndex;
   const createDeck = (previousLast?: string) => ({
     signature,
     round,
@@ -33,8 +43,8 @@ export function useToeiGuidance(
     setStored(deck);
   }
   return useMemo(() => {
-    if (priority && messageIndex % 2 === 0) return [priority];
-    const order = priority || single ? [deck.ids[noticeIndex % ids.length]] : deck.ids;
+    if (hasPriority && messageIndex % 2 === 0) return priority;
+    const order = hasPriority || single ? [deck.ids[noticeIndex % ids.length]] : deck.ids;
     return order.map((id) => messages.find((message) => message.id === id)!);
-  }, [messages, deck.ids, single, messageIndex, priority, noticeIndex, ids.length]);
+  }, [messages, deck.ids, single, messageIndex, priority, hasPriority, noticeIndex, ids.length]);
 }

@@ -342,6 +342,10 @@
   position: relative;
   padding-inline-start: calc(var(--toei-terminal-number-share) + 0.45cqw);
 }
+.toei-destination[data-line-via] .toei-destination-heading {
+  align-items: center;
+  --toei-terminal-number-share: calc(var(--toei-number-size, 4.3cqw) + 0.9cqw);
+}
 .toei-destination-heading[data-terminal] .toei-station-number {
   position: absolute;
   top: 50%;
@@ -454,7 +458,7 @@
   text-overflow: ellipsis;
   flex-shrink: 0;
 }
-.destination-name > .toei-fit-text {
+.toei-destination-heading .toei-fit-text {
   width: max-content;
 }
 .destination-name[data-kanji-count] > .toei-fit-text {
@@ -471,6 +475,22 @@
 .toei-destination-heading[data-terminal] > .toei-destination-via {
   color: #fff;
   font-size: 2.6cqw;
+}
+.departure-row.first
+  .toei-destination[data-line-via]
+  .toei-direction-station:first-child
+  .destination-name {
+  font-size: calc(var(--toei-name-size, 4.6cqw) * 0.76);
+}
+.toei-destination[data-line-via] .toei-destination-via {
+  color: #fff;
+  font-size: calc(var(--toei-name-size, 4.6cqw) * 0.64);
+}
+.departure-row.first
+  .toei-destination[data-line-via]
+  .toei-direction-station:first-child
+  .toei-destination-via {
+  font-size: calc(var(--toei-name-size, 4.6cqw) * 0.52);
 }
 .toei-destination-translations {
   display: flex;
@@ -504,14 +524,38 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.toei-destination-translations > [lang='en'] {
+.toei-destination-translations > [lang='en'],
+.toei-special-destination .toei-destination-translations > span > [lang='en'] {
   font-size: 1.6cqw;
 }
-.toei-destination-translations small {
-  font-size: 0.8em;
+.toei-destination-translations > [lang='ja'] small {
+  font-size: 0.62em;
 }
 .toei-destination-translations > [lang='zh-Hans'],
 .toei-destination-translations > [lang='ko'] {
+  font-family: var(--font-board);
+}
+.toei-special-destination {
+  color: #ff3030;
+}
+.route-card.toei-board .toei-special-destination .destination-name {
+  color: inherit;
+  font-weight: var(--toei-special-name-weight, 700);
+  text-shadow: none;
+}
+.departure-row[data-special-kind='terminates'] .toei-special-destination {
+  --toei-special-name-weight: 400;
+}
+.departure-row[data-special-kind='pass'] .toei-special-destination .toei-fit-text {
+  display: inline-flex;
+  gap: 1.1em;
+}
+.toei-special-destination .toei-destination-translations {
+  color: inherit;
+}
+.toei-special-destination .toei-special-secondary-languages {
+  display: flex;
+  gap: 1.2cqw;
   font-family: var(--font-board);
 }
 .route-card.toei-board .platform {
@@ -640,20 +684,39 @@
   border: 1px solid #fff;
   border-radius: 1.2cqw;
 }
-.toei-board-delay-notice + .toei-board-notice-attention {
+.toei-board-information + .toei-board-notice-attention {
   grid-row: 3;
+}
+.toei-board-notice-attention[data-compact] {
+  grid-row: 2;
+}
+:is(
+  .toei-board-information + .toei-board-notice-attention,
+  .toei-board-notice-attention[data-compact]
+) {
   padding-block: 0;
 }
-.toei-board-delay-notice + .toei-board-notice-attention > svg {
+:is(
+    .toei-board-information + .toei-board-notice-attention,
+    .toei-board-notice-attention[data-compact]
+  )
+  > svg {
   width: 3.9cqw;
   height: 3.9cqw;
   border-radius: 0.6cqw;
 }
-.toei-board-delay-notice + .toei-board-notice-attention p {
+:is(
+    .toei-board-information + .toei-board-notice-attention,
+    .toei-board-notice-attention[data-compact]
+  )
+  p {
   font-size: 2.2cqw;
 }
-.toei-board-delay-notice + .toei-board-notice-attention small,
-.toei-board-delay-notice + .toei-board-notice-attention .toei-board-notice-languages {
+:is(
+    .toei-board-information + .toei-board-notice-attention,
+    .toei-board-notice-attention[data-compact]
+  )
+  :is(small, .toei-board-notice-languages) {
   margin-top: 0;
   font-size: 1.3cqw;
   line-height: 1.1;

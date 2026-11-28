@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useLayoutEffect, useRef, useState } from 'react';
 import { version as appVersion } from '../../../package.json';
 import { Logo } from '../Logo';
 import { Modal } from '../Modal';
@@ -20,6 +20,8 @@ const footerLinks = [
   { section: 'licenses', label: 'ライセンス' },
   { section: 'updates', label: `バージョン ${appVersion}` },
 ] as const;
+
+const releaseNotesPageSize = 5;
 
 export const SiteFooter = memo(function SiteFooter() {
   const [section, setSection] = useState<SiteInformation | null>(null);
@@ -81,19 +83,46 @@ export function SiteFooterContent({
 
 export function SiteInformationContent({ section }: { section: SiteInformation }) {
   if (section !== 'updates') return <LegalContent section={section} />;
+  return <ReleaseNotes />;
+}
+
+function ReleaseNotes() {
+  const [visibleCount, setVisibleCount] = useState(releaseNotesPageSize);
+  const firstAddedHeading = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    firstAddedHeading.current?.focus();
+  }, [visibleCount]);
+
   return (
     <div className="release-notes">
-      {RELEASE_NOTES.map(({ version, date, changes }) => (
-        <section key={version}>
-          <h3>バージョン {version}</h3>
-          {date && <time dateTime={date}>{date.replaceAll('-', '/')}</time>}
-          <ul>
-            {changes.map((change) => (
-              <li key={change}>{change}</li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {RELEASE_NOTES.slice(0, visibleCount).map(({ version, date, changes }, index) => {
+        const firstAdded = index > 0 && index === visibleCount - releaseNotesPageSize;
+        return (
+          <section key={version}>
+            <h3
+              ref={firstAdded ? firstAddedHeading : undefined}
+              tabIndex={firstAdded ? -1 : undefined}
+            >
+              バージョン {version}
+            </h3>
+            {date && <time dateTime={date}>{date.replaceAll('-', '/')}</time>}
+            <ul>
+              {changes.map((change) => (
+                <li key={change}>{change}</li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+      {visibleCount < RELEASE_NOTES.length && (
+        <button
+          type="button"
+          className="release-notes-more"
+          onClick={() => setVisibleCount((count) => count + releaseNotesPageSize)}
+        >
+          さらに表示する
+        </button>
+      )}
     </div>
   );
 }

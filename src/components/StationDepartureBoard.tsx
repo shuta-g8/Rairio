@@ -42,6 +42,7 @@ type BoardProps = {
   route: Route;
   now: Date;
   positions?: TrainPositionsSnapshot | null;
+  specialPositions?: TrainPositionsSnapshot | null;
   serverDisplay?: StationDepartureBoardDisplay;
   onOpen: () => void;
   operation?: LineOperation;
@@ -59,7 +60,15 @@ export function StationDepartureBoard(props: BoardProps) {
   return <LocalDepartureBoard {...props} />;
 }
 
-function ServerDepartureBoard({ mode, route, now, onOpen, operation, previous }: BoardProps) {
+function ServerDepartureBoard({
+  mode,
+  route,
+  now,
+  onOpen,
+  operation,
+  previous,
+  specialPositions,
+}: BoardProps) {
   const { display, pending, transport } = useDepartureBoardPreview(route.id, now);
   const Board = mode === 'toei' ? ToeiDepartureBoard : RouteCard;
   return (
@@ -69,7 +78,10 @@ function ServerDepartureBoard({ mode, route, now, onOpen, operation, previous }:
       data-departure-board-transport={transport}
     >
       {display ? (
-        <Board {...{ route, now, display, onOpen, operation, previous }} source="server" />
+        <Board
+          {...{ route, now, display, onOpen, operation, previous, specialPositions }}
+          source="server"
+        />
       ) : (
         <article className="route-card" aria-busy={pending}>
           <header>

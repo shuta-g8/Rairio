@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { Route } from '../types';
+import type { Departure, Route } from '../types';
 import { toeiBoardDestination } from '../lib/toei-board';
 import type { ToeiDisplayLanguage } from '../lib/toei-language';
 import {
@@ -10,30 +10,33 @@ import { useToeiTextFit } from '../hooks/useToeiTextFit';
 
 export const ToeiDestination = memo(function ToeiDestination({
   route,
-  destination,
-  extra,
+  train,
   language,
 }: {
   route: Route;
-  destination: string;
-  extra?: boolean;
+  train: Departure;
   language: ToeiDisplayLanguage;
 }) {
-  const details = toeiBoardDestination(route, destination);
+  const details = toeiBoardDestination(route, train.destination, train);
   const { stations, via, terminal } = details;
   const translation = toeiDestinationTranslation(details, language);
   const destinationRef = useToeiTextFit();
+  const lineVia = terminal && via;
   return (
-    <div ref={destinationRef} className="departure-destination toei-destination">
+    <div
+      ref={destinationRef}
+      className="departure-destination toei-destination"
+      data-line-via={lineVia || undefined}
+    >
       <div
         className="toei-destination-heading"
         lang="ja"
         data-terminal={terminal || undefined}
         aria-label={
-          terminal
-            ? `${stations[0].name}行`
-            : via
-              ? `${stations[0].name}経由${stations[1].name}行`
+          via
+            ? `${stations[0].name}経由${stations[1].name}行`
+            : terminal
+              ? `${stations[0].name}行`
               : `${route.direction}方面行`
         }
       >
@@ -41,15 +44,16 @@ export const ToeiDestination = memo(function ToeiDestination({
           <span className="toei-direction-station" key={name}>
             {code && <ToeiDestinationNumber code={code} />}
             <ToeiDestinationName name={name} />
-            {via && stationIndex === 0 && <span className="toei-destination-via">経由</span>}
+            {via && stationIndex === 0 && <ToeiDestinationSuffix text="経由" />}
+            {lineVia && stationIndex === 1 && <ToeiDestinationSuffix text="行" />}
           </span>
         ))}
-        <span className="toei-destination-via">{via || terminal ? '行' : '方面行'}</span>
+        {!lineVia && <ToeiDestinationSuffix text={via || terminal ? '行' : '方面行'} />}
       </div>
-      {(translation || extra) && (
+      {(translation || train.extra) && (
         <div className="toei-destination-side">
           <ToeiDestinationTranslations translation={translation} />
-          {extra && (
+          {train.extra && (
             <div className="platform">
               <span className="conditional">運転日注意</span>
             </div>
@@ -82,6 +86,14 @@ function ToeiDestinationName({ name }: { name: string }) {
   return (
     <span className="destination-name" data-kanji-count={kanjiCount}>
       <span className="toei-fit-text">{name}</span>
+    </span>
+  );
+}
+
+function ToeiDestinationSuffix({ text }: { text: string }) {
+  return (
+    <span className="toei-destination-via">
+      <span className="toei-fit-text">{text}</span>
     </span>
   );
 }

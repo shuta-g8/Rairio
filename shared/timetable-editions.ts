@@ -3,6 +3,7 @@
 export const ASAKUSA_CUTOVER = '2026-11-21';
 export const TIMETABLE_MANIFEST_PATH = 'metadata/asakusa-timetable-editions.json';
 export const TIMETABLE_POLICY_VERSION = 1;
+export type NaritaVia = 'hokuso' | 'keisei';
 export interface GtfsDeparture {
   stopMask: number;
   destinationId?: string;
@@ -21,6 +22,7 @@ export type EditionSchedules = Record<
     trainId?: string;
     dayOffset?: number;
     gtfs?: GtfsDeparture;
+    naritaVia?: NaritaVia;
   }[]
 >;
 export interface EditionRoute {
@@ -262,6 +264,7 @@ export async function verifyEditionAsset(
               /^([01]\d|2[0-3]):[0-5]\d$/.test(t.time) &&
               typeof t.destination === 'string' &&
               typeof t.type === 'string' &&
+              (t.naritaVia === undefined || t.naritaVia === 'hokuso' || t.naritaVia === 'keisei') &&
               (release.gtfs
                 ? t.type === '' &&
                   !!t.gtfs &&

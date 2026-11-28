@@ -47,6 +47,77 @@ test('直通先の駅番号は行先と都営線の進行方向で決まる', ()
   }
 });
 
+const airportRoute: Route = {
+  ...route,
+  id: 'Toei.Asakusa.Northbound',
+  railwayId: 'Asakusa',
+  line: '都営浅草線',
+  direction: '押上',
+};
+const airport = '成田空港(鉄道)';
+
+test('成田空港行に経由線名と行先を順に表示し、公式の経由情報を優先する', () => {
+  for (const [train, name, reading, english] of [
+    [{ type: 'アクセス特急' }, '北総線', 'ほくそうせん', 'Hokuso Line'],
+    [{ type: '快速' }, '京成線', 'けいせいせん', 'Keisei Line'],
+    [{ type: 'エアポート快特', naritaVia: 'keisei' }, '京成線', 'けいせいせん', 'Keisei Line'],
+  ] as const) {
+    const result = toeiBoardDestination(airportRoute, airport, train);
+    assert.equal(result.via, true);
+    assert.equal(result.terminal, true);
+    assert.deepEqual(result.stations[0], { name, reading, english, code: undefined });
+    assert.equal(result.stations[1].name, '成田空港');
+    assert.equal(result.stations[1].code, 'KS-42');
+  }
+  assert.equal(toeiBoardDestination(airportRoute, '京成高砂', { type: '快速' }).via, false);
+  assert.equal(
+    toeiBoardDestination({ ...airportRoute, id: 'Toei.Asakusa.Southbound' }, airport, {
+      type: '快速',
+    }).via,
+    false,
+  );
+});
+
+test('エアポート快特は同じ種別でも公式に照合した番号と曜日で経由を分ける', () => {
+  const active: Route = {
+    ...airportRoute,
+    timetableEditions: [
+      {
+        id: 'asakusa-2026-11-21',
+        effectiveFrom: '2026-11-21',
+        effectiveToExclusive: null,
+        schedules: airportRoute.schedules,
+        sha256: '0'.repeat(64),
+      },
+    ],
+  };
+  for (const [number, day, viaRailway] of [
+    ['901K', 'weekday', 'hokuso'],
+    ['2071K', 'weekday', 'keisei'],
+    ['969H', 'saturday', 'hokuso'],
+    ['2071K', 'holiday', undefined],
+    ['2001K', 'weekday', undefined],
+  ] as const) {
+    const result = toeiBoardDestination(active, airport, {
+      type: 'エアポート快特',
+      trainId: `odpt.Train:Toei.Asakusa.${number}`,
+      day,
+      serviceDate: day === 'weekday' ? '2026-11-24' : '2026-11-28',
+    });
+    assert.equal(result.viaRailway, viaRailway);
+    assert.equal(result.stations.at(-1)?.name, '成田空港');
+  }
+  assert.equal(
+    toeiBoardDestination(airportRoute, airport, {
+      type: 'エアポート快特',
+      trainId: 'odpt.Train:Toei.Asakusa.901K',
+      day: 'weekday',
+      serviceDate: '2026-11-24',
+    }).via,
+    false,
+  );
+});
+
 test('勝どきの外回りは、駅順を確認して大門経由の光が丘・都庁前行を表示する', () => {
   for (const destination of ['光が丘', '都庁前']) {
     const result = toeiBoardDestination(route, destination);

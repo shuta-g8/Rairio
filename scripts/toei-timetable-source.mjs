@@ -1,3 +1,4 @@
+import { THROUGH_STATIONS } from '../shared/toei-through-station-names.ts';
 import {
   TIMETABLE_SOURCE,
   DATA_LICENSE,
@@ -33,39 +34,7 @@ const LINES = {
   },
 };
 
-// Names label identifiers in the Toei feed, including through services.
-export const THROUGH_STATIONS = {
-  ImbaNihonIdai: '印旛日本医大',
-  InzaiMakinohara: '印西牧の原',
-  Aoto: '青砥',
-  KeiseiTakasago: '京成高砂',
-  NaritaAirportTerminal1: '成田空港(鉄道)',
-  KeiseiNarita: '京成成田',
-  KeiseiSakura: '京成佐倉',
-  ShibayamaChiyoda: '芝山千代田',
-  Sogosando: '宗吾参道',
-  HanedaAirportTerminal1and2: '羽田空港第１・第２ターミナル(京急)',
-  Misakiguchi: '三崎口',
-  KeikyuKurihama: '京急久里浜',
-  Miurakaigan: '三浦海岸',
-  ZushiHayama: '逗子・葉山',
-  Shinagawa: '品川',
-  KanazawaBunko: '金沢文庫',
-  KanagawaShimmachi: '神奈川新町',
-  KeikyuKawasaki: '京急川崎',
-  Uraga: '浦賀',
-  ShinYokohama: '新横浜',
-  Hiyoshi: '日吉',
-  Ebina: '海老名',
-  Nishiya: '西谷',
-  Shonandai: '湘南台',
-  MusashiKosugi: '武蔵小杉',
-  Yamato: '大和',
-  Sasazuka: '笹塚',
-  Hashimoto: '橋本',
-  Wakabadai: '若葉台',
-  KeioTamaCenter: '京王多摩センター',
-};
+export { THROUGH_STATIONS };
 
 export function createLookups(stations, trainTypes, trainTimetables = [], railways = []) {
   const names = new Map(
@@ -84,6 +53,12 @@ export function createLookups(stations, trainTypes, trainTimetables = [], railwa
       .map((x) => [`${x['odpt:train']}|${x['odpt:calendar']}`, x]),
   );
   return { names, types, trains, railways };
+}
+
+function naritaViaRailway(railways) {
+  if (!Array.isArray(railways) || railways.length !== 1) return;
+  if (railways[0] === 'odpt.Railway:Keisei.NaritaSkyAccess') return 'hokuso';
+  if (railways[0] === 'odpt.Railway:Keisei.Main') return 'keisei';
 }
 
 export function parseTimetable(table, lookups) {
@@ -112,6 +87,12 @@ export function parseTimetable(table, lookups) {
         .join('・');
       const carCount =
         entry['odpt:carComposition'] ?? (matchingStop ? train['odpt:carComposition'] : undefined);
+      const naritaVia =
+        table['odpt:railway'] === 'odpt.Railway:Toei.Asakusa' &&
+        table['odpt:railDirection'] === 'odpt.RailDirection:Northbound' &&
+        destination === '成田空港(鉄道)'
+          ? naritaViaRailway(entry['odpt:viaRailway'] ?? (matchingStop && train['odpt:viaRailway']))
+          : undefined;
       if (
         !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ||
         !type ||
@@ -133,6 +114,7 @@ export function parseTimetable(table, lookups) {
           : {}),
         ...(entry['odpt:platformNumber'] ? { platform: String(entry['odpt:platformNumber']) } : {}),
         ...(Number.isInteger(carCount) && carCount > 0 && carCount <= 20 ? { carCount } : {}),
+        ...(naritaVia ? { naritaVia } : {}),
       };
     })
     .sort((a, b) => serviceMinute(a) - serviceMinute(b));

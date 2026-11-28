@@ -1,5 +1,10 @@
 import { toeiEnglishStopWeight } from './toei-diagram';
 
+const ROTATED_LABEL_COS = 0.5;
+const ROTATED_LABEL_SIN = Math.sin(Math.PI / 3);
+const ROTATED_LABEL_SLOPE = Math.tan(Math.PI / 6);
+const ENGLISH_WRAP_THRESHOLD = 0.65;
+
 function fitCurrentCut(cells: HTMLElement[]) {
   const index = cells.findIndex((cell) => cell.dataset.kind === 'current');
   const cell = cells[index];
@@ -55,55 +60,89 @@ function fitTransferColumns(cells: HTMLElement[], unit: number) {
   for (const { transfers, columns } of fitted) transfers.style.gridTemplateColumns = columns;
 }
 
+function alignJapaneseTransferText(diagram: HTMLElement) {
+  const range = document.createRange();
+  const offsets = [...diagram.querySelectorAll<HTMLElement>('.toei-transfer-name-text')].map(
+    (text) => {
+      range.selectNodeContents(text);
+      const row = text.closest('li')!.getBoundingClientRect();
+      return { text, offset: row.bottom - range.getBoundingClientRect().bottom };
+    },
+  );
+  for (const { text, offset } of offsets)
+    text.style.setProperty('--toei-transfer-text-offset-y', `${offset}px`);
+}
+
 function fitBranches(cells: HTMLElement[], unit: number, english: boolean) {
-  const fitted: { branch: HTMLElement; width: number }[] = [];
+  const fitted: { branch: HTMLElement; left: number; width: number }[] = [];
   for (const cell of cells) {
     const branch = cell.querySelector<HTMLElement>('.toei-stop-branch');
     if (!branch) continue;
+    const bounds = cell.getBoundingClientRect();
+    const node = cell.querySelector('.toei-stop-code, .toei-stop-dash')!.getBoundingClientRect();
+    // Browsers can round the painted border width, so measure it before centering the stroke.
+    const stroke = parseFloat(getComputedStyle(branch).borderLeftWidth);
+    const start = node.left + (node.width - stroke) / 2;
     const contents = [
       ...cell.querySelectorAll(
         english ? '.toei-transfer-symbol' : '.toei-transfer-symbol, .toei-transfer-name-text',
       ),
     ];
-    const start = branch.getBoundingClientRect().left;
     const right =
       Math.max(...contents.map((content) => content.getBoundingClientRect().right)) + 0.15 * unit;
-    const width = Math.max(
-      1,
-      Math.min(cell.getBoundingClientRect().right - 0.15 * unit, right) - start,
-    );
-    fitted.push({ branch, width });
+    const width = Math.max(1, Math.min(bounds.right - 0.15 * unit, right) - start);
+    fitted.push({ branch, left: start - bounds.left, width });
   }
-  for (const { branch, width } of fitted)
+  for (const { branch, left, width } of fitted) {
+    branch.style.setProperty('--toei-map-branch-left', `${left}px`);
     branch.style.setProperty('--toei-map-branch-width', `${width}px`);
+  }
 }
 
-/** Recover the rotated character's thickness instead of projecting its oversized axis-aligned box. */
-function fitCurrentBackground(cells: HTMLElement[], unit: number) {
-  const cell = cells.find((cell) => cell.dataset.kind === 'current');
-  const background = cell?.querySelector<HTMLElement>('.toei-stop-current-background');
-  const text = cell?.querySelector('.toei-stop-name-text')?.firstChild;
-  if (!cell || !background || !text?.textContent) return;
-  const slope = Math.tan(Math.PI / 6);
-  const bottom =
-    cell.getBoundingClientRect().bottom - parseFloat(getComputedStyle(background).bottom);
+/** Project a line's center along its reading direction to the bottom of the name area. */
+function englishLineCenter(line: DOMRect, bottom: number) {
+  return line.left + line.width / 2 + ROTATED_LABEL_SLOPE * (line.top + line.height / 2 - bottom);
+}
+
+function englishNameBand(range: Range, bottom: number) {
   let left = Infinity;
   let right = -Infinity;
-  const range = document.createRange();
-  for (let index = 0; index < text.textContent.length; index++) {
-    range.setStart(text, index);
-    range.setEnd(text, index + 1);
-    const glyph = range.getBoundingClientRect();
-    const center = glyph.left + glyph.width / 2 + slope * (glyph.top + glyph.height / 2);
+  for (const line of range.getClientRects()) {
+    const center = englishLineCenter(line, bottom);
     // For a -60° rotation: boxWidth = w/2 + h√3/2, boxHeight = w√3/2 + h/2.
-    const height = Math.max(0, Math.sqrt(3) * glyph.width - glyph.height);
+    const height = Math.max(0, Math.sqrt(3) * line.width - line.height);
     const halfWidth = height / (2 * Math.cos(Math.PI / 6));
     left = Math.min(left, center - halfWidth);
     right = Math.max(right, center + halfWidth);
   }
-  const padding = 0.12 * unit;
-  background.style.left = `${left - slope * bottom - cell.getBoundingClientRect().left - padding}px`;
-  background.style.width = `${right - left + 2 * padding}px`;
+  if (left !== Infinity) return { left, right };
+}
+
+function englishTransferLeft(item: Element, icon: DOMRect, bottom: number) {
+  const range = document.createRange();
+  range.selectNodeContents(item.querySelector('.toei-transfer-name-text')!);
+  const band = englishNameBand(range, bottom);
+  const halfWidth = band ? (band.right - band.left) / 2 : 0;
+  return icon.left + icon.width / 2 + ROTATED_LABEL_SLOPE * (icon.top - bottom) - halfWidth;
+}
+
+function fitEnglishTransferRow(
+  transfers: HTMLElement,
+  cellRight: number,
+  unit: number,
+  nameEdge: { x: number; y: number },
+) {
+  const first = transfers.firstElementChild!;
+  const icon = first.querySelector('.toei-transfer-symbol')!.getBoundingClientRect();
+  const count = transfers.childElementCount;
+  const available = cellRight - 0.3 * unit - transfers.getBoundingClientRect().left;
+  const free = Math.max(0, available - count * icon.width);
+  const nameRight = nameEdge.x + ROTATED_LABEL_SLOPE * (nameEdge.y - icon.top);
+  const firstLeft = Math.min(icon.left, englishTransferLeft(first, icon, icon.top));
+  const clearance = Math.max(0.5, 0.08 * unit);
+  const shift = Math.min(free, Math.max(0, nameRight + clearance - firstLeft));
+  transfers.style.setProperty('--toei-english-transfer-shift', `${shift}px`);
+  if (count > 1) transfers.style.gap = `${Math.min(0.35 * unit, (free - shift) / (count - 1))}px`;
 }
 
 /** Keep each rotated label inside its own station column and above the route bar. */
@@ -120,24 +159,34 @@ function fitEnglishStops(
   if (diagram.querySelector('.toei-stop-continuation'))
     widths.push('var(--toei-continuation-width, 18fr)');
   diagram.style.setProperty('--toei-fitted-columns', widths.join(' '));
-  for (const cell of cells) {
-    const bounds = cell.getBoundingClientRect();
-    const transfers = cell.querySelector<HTMLElement>('.toei-stop-transfers');
-    const count = Number(cell.dataset.transferCount);
-    if (transfers && count > 1) {
-      const iconWidth = transfers
-        .querySelector('.toei-transfer-symbol')!
-        .getBoundingClientRect().width;
-      const available = bounds.right - 0.3 * unit - transfers.getBoundingClientRect().left;
-      const gap = Math.max(0, Math.min(0.35 * unit, (available - count * iconWidth) / (count - 1)));
-      transfers.style.gap = `${gap}px`;
+  fitEnglishLabels(root, cells, unit);
+  fitBranches(cells, unit, true);
+}
+
+/** Preserve a single line unless wrapping materially improves its horizontal scale. */
+function fitEnglishText(text: HTMLElement, property: string, availableWidth: () => number) {
+  const naturalWidth = text.scrollWidth;
+  if (!naturalWidth) return;
+  const singleLine = Math.min(1, availableWidth() / naturalWidth);
+  let scale = singleLine;
+  if (singleLine < ENGLISH_WRAP_THRESHOLD) {
+    text.dataset.twoLines = '';
+    const lineHeight = parseFloat(getComputedStyle(text).lineHeight);
+    // Try a balanced width first, then allow room for longer words and hyphenated names.
+    for (const share of [0.58, 0.72, 0.86]) {
+      text.style.setProperty('--toei-english-wrap-width', `${Math.ceil(naturalWidth * share)}px`);
+      if (Math.abs(text.offsetHeight - 2 * lineHeight) > 1) continue;
+      const wrapped = Math.min(1, availableWidth() / text.scrollWidth);
+      if (wrapped > singleLine) scale = wrapped;
+      break;
+    }
+    if (scale === singleLine) {
+      delete text.dataset.twoLines;
+      text.style.removeProperty('--toei-english-wrap-width');
+      availableWidth();
     }
   }
-  fitEnglishLabels(root, cells, unit);
-  fitHorizontalText(root, '.toei-stop-name-text', '--toei-stop-text-x');
-  fitHorizontalText(root, '.toei-transfer-name-text', '--toei-transfer-text-x');
-  fitBranches(cells, unit, true);
-  fitCurrentBackground(cells, unit);
+  text.style.setProperty(property, String(scale));
 }
 
 function fitEnglishLabels(root: HTMLElement, cells: HTMLElement[], unit: number) {
@@ -148,18 +197,110 @@ function fitEnglishLabels(root: HTMLElement, cells: HTMLElement[], unit: number)
   ];
   for (const cell of labelCells) {
     const bounds = cell.getBoundingClientRect();
+    const background = cell.querySelector<HTMLElement>('.toei-stop-current-background');
+    const transfers = cell.querySelector<HTMLElement>('.toei-stop-transfers');
+    let previousAnchor: { x: number; y: number } | undefined;
     for (const label of cell.querySelectorAll<HTMLElement>(
       '.toei-stop-name, .toei-transfer-name',
     )) {
-      const rect = label.getBoundingClientRect();
-      const overRight = Math.max(0, rect.right - bounds.right + 0.2 * unit);
-      const overTop = Math.max(
-        0,
-        Math.max(map.top + 0.2 * unit, bounds.top + 0.15 * unit) - rect.top,
-      );
-      const width = label.clientWidth - Math.max(overRight / 0.5, overTop / Math.sin(Math.PI / 3));
-      if (overRight || overTop)
-        label.style.setProperty('--toei-english-label-width', `${Math.max(0.4 * unit, width)}px`);
+      const text = label.firstElementChild as HTMLElement;
+      const stationName = label.classList.contains('toei-stop-name');
+      const property = stationName ? '--toei-stop-text-x' : '--toei-transfer-text-x';
+      const node = stationName
+        ? cell.querySelector('.toei-stop-code, .toei-stop-dash')?.getBoundingClientRect()
+        : label.parentElement!.querySelector('.toei-transfer-symbol')!.getBoundingClientRect();
+      const range = node ? document.createRange() : undefined;
+      range?.selectNodeContents(text);
+      const bottom = stationName ? label.parentElement!.getBoundingClientRect().bottom : node!.top;
+      const center = node ? node.left + node.width / 2 : 0;
+      const base = label.getBoundingClientRect();
+      const x = base.left + parseFloat(getComputedStyle(label).height) * ROTATED_LABEL_SIN;
+      const y = base.bottom;
+      const top = Math.max(map.top + 0.2 * unit, bounds.top + 0.15 * unit);
+      let shift = 0;
+      fitEnglishText(text, property, () => {
+        label.style.removeProperty('--toei-english-label-width');
+        if (range) label.style.removeProperty('--toei-english-label-shift');
+        const height = parseFloat(getComputedStyle(label).height);
+        const left = bounds.left - (x - height * ROTATED_LABEL_SIN);
+        const firstLine = range?.getClientRects()[0];
+        const transferBand = !stationName && range ? englishNameBand(range, bottom) : undefined;
+        const axis = transferBand
+          ? (transferBand.left + transferBand.right) / 2
+          : firstLine && englishLineCenter(firstLine, bottom);
+        shift = axis === undefined ? Math.max(0, left) : center - axis;
+        if (transferBand && text.hasAttribute('data-two-lines')) {
+          // A wrapped route must leave room for the previous band and the next icon's single line.
+          const previousRight = previousAnchor
+            ? previousAnchor.x + ROTATED_LABEL_SLOPE * (previousAnchor.y - bottom)
+            : -Infinity;
+          const next = label.parentElement!.nextElementSibling;
+          const nextIcon = next?.querySelector('.toei-transfer-symbol')?.getBoundingClientRect();
+          const nextLeft =
+            next && nextIcon ? englishTransferLeft(next, nextIcon, bottom) : Infinity;
+          const clearance = 0.02 * unit;
+          if (
+            transferBand.left + shift < previousRight + clearance ||
+            transferBand.right + shift > nextLeft - clearance
+          )
+            return 0;
+        }
+        label.style.setProperty('--toei-english-label-shift', `${shift}px`);
+        const width = Math.max(
+          1,
+          Math.min(
+            label.clientWidth,
+            (bounds.right - 0.2 * unit - x - shift) / ROTATED_LABEL_COS,
+            (y - top - height * ROTATED_LABEL_COS) / ROTATED_LABEL_SIN,
+          ),
+        );
+        label.style.setProperty('--toei-english-label-width', `${width}px`);
+        return width;
+      });
+      previousAnchor = { x: x + shift, y };
+      const band = range && englishNameBand(range, bottom);
+      if (band) previousAnchor = { x: band.right, y: bottom };
+      if (stationName) {
+        if (band && background) {
+          const padding = 0.12 * unit;
+          background.style.setProperty(
+            '--toei-current-english-left',
+            `${band.left - bounds.left - padding}px`,
+          );
+          background.style.setProperty(
+            '--toei-current-english-width',
+            `${band.right - band.left + 2 * padding}px`,
+          );
+          previousAnchor = { x: band.right + padding, y: bottom };
+        }
+        if (transfers) fitEnglishTransferRow(transfers, bounds.right, unit, previousAnchor);
+      }
+    }
+  }
+  for (const text of root.querySelectorAll<HTMLElement>('.toei-continuation-text')) {
+    fitEnglishText(text, '--toei-continuation-text-x', () => text.parentElement!.clientWidth);
+  }
+}
+
+function resetEnglishLabels(diagram: HTMLElement) {
+  for (const label of diagram.querySelectorAll<HTMLElement>(
+    '.toei-stop-name, .toei-transfer-name',
+  )) {
+    label.style.removeProperty('--toei-english-label-width');
+    label.style.removeProperty('--toei-english-label-shift');
+  }
+  for (const text of diagram.querySelectorAll<HTMLElement>(
+    '.toei-stop-name-text, .toei-transfer-name-text, .toei-continuation-text',
+  )) {
+    delete text.dataset.twoLines;
+    for (const property of [
+      '--toei-english-wrap-width',
+      '--toei-stop-text-x',
+      '--toei-transfer-text-x',
+      '--toei-transfer-text-offset-y',
+      '--toei-continuation-text-x',
+    ]) {
+      text.style.removeProperty(property);
     }
   }
 }
@@ -171,11 +312,11 @@ function fitJapaneseNames(cells: HTMLElement[], unit: number) {
     // WebKit can resolve a vertical flex child's percentage height against the viewport.
     const height = name.parentElement!.getBoundingClientRect().height;
     const width = Math.max(1, Math.min(1.8 * unit, cell.clientWidth - 0.6 * unit));
-    return { name, height, width };
+    return { cell, name, height, width };
   });
-  for (const { name, height, width } of slots) {
+  for (const { cell, name, height, width } of slots) {
     name.style.height = `${height}px`;
-    name.style.setProperty('--toei-stop-name-width', `${width}px`);
+    cell.style.setProperty('--toei-stop-name-width', `${width}px`);
   }
   const range = document.createRange();
   const names = slots.map(({ name }) => {
@@ -215,28 +356,24 @@ function fitJapaneseNames(cells: HTMLElement[], unit: number) {
 function resetDiagram(diagram: HTMLElement, cells: HTMLElement[], english: boolean) {
   // Always measure natural glyphs, so a wider layout or a newly loaded font can restore full size.
   diagram.style.removeProperty('--toei-fitted-columns');
-  for (const label of diagram.querySelectorAll<HTMLElement>('.toei-stop-name, .toei-transfer-name'))
-    label.style.removeProperty('--toei-english-label-width');
+  resetEnglishLabels(diagram);
   for (const cell of cells) {
     cell.querySelector<HTMLElement>('.toei-stop-name')?.style.removeProperty('height');
-    cell
-      .querySelector<HTMLElement>('.toei-stop-name')
-      ?.style.removeProperty('--toei-stop-name-width');
-    cell
-      .querySelector<HTMLElement>('.toei-stop-branch')
-      ?.style.removeProperty('--toei-map-branch-width');
+    cell.style.removeProperty('--toei-stop-name-width');
+    const branch = cell.querySelector<HTMLElement>('.toei-stop-branch');
+    branch?.style.removeProperty('--toei-map-branch-left');
+    branch?.style.removeProperty('--toei-map-branch-width');
     const transfers = cell.querySelector<HTMLElement>('.toei-stop-transfers');
+    transfers?.style.removeProperty('--toei-english-transfer-shift');
     transfers?.style.removeProperty('gap');
     transfers?.style.removeProperty('grid-template-columns');
     const nameText = cell.querySelector<HTMLElement>('.toei-stop-name-text')!;
-    for (const property of ['--toei-stop-text-height', '--toei-stop-text-x', '--toei-stop-text-y'])
+    for (const property of ['--toei-stop-text-height', '--toei-stop-text-y'])
       nameText.style.removeProperty(property);
     for (const character of cell.querySelectorAll<HTMLElement>('.toei-stop-character'))
       character.style.removeProperty('height');
     for (const glyph of cell.querySelectorAll<HTMLElement>('.toei-stop-glyph'))
       glyph.style.removeProperty('--toei-glyph-offset-y');
-    for (const text of cell.querySelectorAll<HTMLElement>('.toei-transfer-name-text'))
-      text.style.removeProperty('--toei-transfer-text-x');
     cell
       .querySelector<HTMLElement>('.toei-stop-transfers')
       ?.style.removeProperty('--toei-transfer-scale');
@@ -249,13 +386,7 @@ function resetDiagram(diagram: HTMLElement, cells: HTMLElement[], english: boole
   }
 }
 
-function fitJapaneseStops(
-  root: HTMLElement,
-  diagram: HTMLElement,
-  cells: HTMLElement[],
-  unit: number,
-) {
-  const budget = Math.max(1, root.clientHeight - unit * 3.9);
+function fitJapaneseStops(diagram: HTMLElement, cells: HTMLElement[], unit: number) {
   const columns = () => {
     const values = cells.map(
       (cell) =>
@@ -270,6 +401,8 @@ function fitJapaneseStops(
     const transfers = cell.querySelector<HTMLElement>('.toei-stop-transfers');
     return transfers ? [{ cell, transfers }] : [];
   });
+  const transferBottom = transfersByCell[0]?.transfers.getBoundingClientRect().bottom;
+  const budget = Math.max(1, (transferBottom ?? 0) - diagram.getBoundingClientRect().top);
   const twoColumns = transfersByCell.filter(
     ({ cell, transfers }) =>
       cell.dataset.transferColumns === '1' && transfers.getBoundingClientRect().height > budget,
@@ -293,7 +426,8 @@ function fitJapaneseStops(
   }
   fitJapaneseNames(cells, unit);
   fitTransferColumns(cells, unit);
-  fitHorizontalText(root, '.toei-transfer-name-text', '--toei-transfer-text-x');
+  fitHorizontalText(diagram, '.toei-transfer-name-text', '--toei-transfer-text-x');
+  alignJapaneseTransferText(diagram);
   fitBranches(cells, unit, false);
 }
 
@@ -304,7 +438,9 @@ export function fitToeiDiagram(root: HTMLElement, english: boolean) {
   const unit = root.closest('.toei-board')!.getBoundingClientRect().width / 100;
   resetDiagram(diagram, cells, english);
   if (english) fitEnglishStops(root, diagram, cells, unit);
-  else fitJapaneseStops(root, diagram, cells, unit);
-  fitHorizontalText(root, '.toei-continuation-text', '--toei-continuation-text-x');
+  else {
+    fitJapaneseStops(diagram, cells, unit);
+    fitHorizontalText(root, '.toei-continuation-text', '--toei-continuation-text-x');
+  }
   fitCurrentCut(cells);
 }

@@ -26,6 +26,7 @@ import { MAX_SAVED_STATIONS } from './lib/saved-stations';
 import { dayKind, serviceDate } from './lib/time';
 import { editionServiceDate } from '../shared/timetable-editions';
 import { departureBoardRevision } from '../shared/departure-board';
+import { loadBoardMode, saveBoardMode, type BoardMode } from './lib/board-mode';
 import {
   departureDiagnosticsEnabled,
   earlyApproachEndEnabled,
@@ -85,6 +86,11 @@ export default function App() {
     change: savedStationChange,
   } = useSavedStations();
   const [useServerBoard] = useState(usesServerDepartureBoard);
+  const [boardMode, setBoardMode] = useState(loadBoardMode);
+  const changeBoardMode = useCallback((mode: BoardMode) => {
+    setBoardMode(mode);
+    saveBoardMode(mode);
+  }, []);
   const plan = useStationBoardPlans(
     stationId,
     departureBoardEnabled && useServerBoard && view === 'departures',
@@ -137,13 +143,13 @@ export default function App() {
     positionFeedEnabled && view === 'departures' && !hasServerBoards,
     visibleRoutes,
   );
-  const legacyPositions = useTrainPositions(
+  // Passing and terminating trains are outside a station's departure subscription.
+  const unscopedPositions = useTrainPositions(
     view === 'departures' &&
-      !hasServerBoards &&
-      !feed.active &&
+      (boardMode === 'toei' || (!hasServerBoards && !feed.active)) &&
       visibleRoutes.some((route) => route.railwayId),
   );
-  const trainPositions = hasServerBoards ? null : feed.active ? feed.snapshot : legacyPositions;
+  const trainPositions = hasServerBoards ? null : feed.active ? feed.snapshot : unscopedPositions;
   useEffect(() => {
     document.documentElement.dataset.positionTransport = hasServerBoards
       ? 'server'
@@ -263,6 +269,9 @@ export default function App() {
                 onOpen={openTimetable}
                 operations={operations}
                 trainPositions={trainPositions}
+                specialPositions={boardMode === 'toei' ? unscopedPositions : undefined}
+                boardMode={boardMode}
+                onBoardModeChange={changeBoardMode}
                 serverClock={plan.now}
                 serverBoards={serverBoards}
               >

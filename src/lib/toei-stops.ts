@@ -7,6 +7,7 @@ export interface ToeiStop {
   name: string;
   code: string;
   kind: 'current' | 'stop' | 'pass' | 'past';
+  routeStart?: boolean;
 }
 export interface ToeiStopGuide {
   stations: ToeiStop[];
@@ -133,19 +134,22 @@ export function toeiStopGuide(
     (stops && (!stops.has(order[start].number) || !stops.has(order[end].number)))
   )
     return;
+  const precedingStart = Math.max(0, start - 3);
   return {
     through,
     meguroLocalSection,
-    preceding: order.slice(Math.max(0, start - 3), start).map((station) => ({
+    preceding: order.slice(precedingStart, start).map((station, index) => ({
       id: station.id,
       name: station.name,
       code: station.code,
       kind: 'past',
+      routeStart: (precedingStart === 0 && index === 0) || undefined,
     })),
     stations: order.slice(start, end + 1).map((station, index) => ({
       id: station.id,
       name: station.name,
       code: station.code,
+      routeStart: (start === 0 && index === 0) || undefined,
       kind:
         index === 0
           ? 'current'

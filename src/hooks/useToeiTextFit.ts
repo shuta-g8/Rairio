@@ -19,7 +19,7 @@ function fixedHeadingWidth(heading: HTMLElement) {
     );
     return children.reduce(
       (width, child) => {
-        if (child.classList.contains('destination-name')) return width;
+        if (child.firstElementChild?.classList.contains('toei-fit-text')) return width;
         if (child.classList.contains('toei-direction-station')) return width + fixedWidth(child);
         const { marginLeft, marginRight } = getComputedStyle(child);
         return (
@@ -42,7 +42,7 @@ export function useToeiTextFit() {
     const translations = root.querySelector<HTMLElement>('.toei-destination-translations');
     const translation = translations?.firstElementChild as HTMLElement | null;
     const names = [...heading.querySelectorAll<HTMLElement>('.destination-name')];
-    const texts = names.map((name) => name.querySelector<HTMLElement>('.toei-fit-text')!);
+    const texts = [...heading.querySelectorAll<HTMLElement>('.toei-fit-text')];
     const nextRow = root.closest('.departure-row.second');
     function fit() {
       if (!root.isConnected || !root.clientWidth) return;
@@ -51,19 +51,20 @@ export function useToeiTextFit() {
       const widths = texts.map((text) => parseFloat(getComputedStyle(text).width));
       const total = widths.reduce((width, measured) => width + measured, 0);
       const scale = Math.min(1, available / Math.max(1, total));
-      const kanjiCount = names.length === 1 ? Number(names[0].dataset.kanjiCount) : 0;
+      const spacedName = nextRow && names.length === 1 && scale === 1 ? names[0] : undefined;
 
-      names.forEach((name, index) => {
-        const text = texts[index];
+      texts.forEach((text, index) => {
+        const group = text.parentElement!;
         let fittedWidth = widths[index] * scale;
-        if (nextRow && kanjiCount && scale === 1) {
+        const kanjiCount = Number(group.dataset.kanjiCount);
+        if (group === spacedName && kanjiCount) {
           const fontSize = parseFloat(getComputedStyle(text).fontSize);
-          const spacing = Math.min(fontSize * 0.35, (available - fittedWidth) / kanjiCount);
-          name.style.setProperty('--toei-name-spacing', `${spacing}px`);
+          const spacing = Math.min(fontSize * 0.35, (available - total) / kanjiCount);
+          group.style.setProperty('--toei-name-spacing', `${spacing}px`);
           fittedWidth = parseFloat(getComputedStyle(text).width);
         }
-        name.style.setProperty('--toei-text-scale', String(scale));
-        name.style.width = `${fittedWidth}px`;
+        group.style.setProperty('--toei-text-scale', String(scale));
+        group.style.width = `${fittedWidth}px`;
       });
 
       if (translations && translation) {

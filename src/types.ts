@@ -1,5 +1,5 @@
 import type { Station } from '../shared/stations';
-import type { GtfsDeparture, VerifiedRouteEdition } from '../shared/timetable-editions';
+import type { GtfsDeparture, NaritaVia, VerifiedRouteEdition } from '../shared/timetable-editions';
 export type { DirectoryStation as Station } from '../shared/station-directory';
 
 export type DayKind = 'weekday' | 'saturday' | 'holiday';
@@ -13,6 +13,7 @@ export interface Train {
   dayOffset?: number;
   carCount?: number;
   gtfs?: GtfsDeparture;
+  naritaVia?: NaritaVia;
 }
 export interface Route {
   id: string;

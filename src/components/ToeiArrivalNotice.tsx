@@ -1,8 +1,11 @@
 import { TrainIcon } from '@phosphor-icons/react/dist/csr/Train';
 
-export function ToeiArrivalNotice() {
+export function ToeiArrivalNotice({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="toei-board-notice toei-board-notice-attention">
+    <div
+      className="toei-board-notice toei-board-notice-attention"
+      data-compact={compact || undefined}
+    >
       <TrainIcon weight="bold" aria-hidden="true" />
       <div>
         <p role="status">電車が到着します。ご注意下さい。</p>

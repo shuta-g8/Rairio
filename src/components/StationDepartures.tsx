@@ -1,7 +1,7 @@
 import { ArrowSquareOutIcon } from '@phosphor-icons/react/dist/csr/ArrowSquareOut';
 import { InfoIcon } from '@phosphor-icons/react/dist/csr/Info';
 import { ArrowClockwiseIcon } from '@phosphor-icons/react/dist/csr/ArrowClockwise';
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { lineName, lineSymbol } from '../lib/stations';
 import { railwayForLine } from '../../shared/railways';
 import type { Route, Station, StationData } from '../types';
@@ -12,7 +12,7 @@ import { StationDepartureBoard } from './StationDepartureBoard';
 import { UpdatedAt } from './UpdatedAt';
 import { StationHeading } from './StationHeading';
 import { RailMark } from './RailMark';
-import { loadBoardMode, saveBoardMode, TOEI_VIEWING_NOTE, type BoardMode } from '../lib/board-mode';
+import { TOEI_VIEWING_NOTE, type BoardMode } from '../lib/board-mode';
 import {
   editionServiceDate,
   managesTimetable,
@@ -37,7 +37,10 @@ interface Props {
   onRefresh: () => void;
   onOpen: (route: Route) => void;
   operations: OperationsData;
+  boardMode: BoardMode;
+  onBoardModeChange: (mode: BoardMode) => void;
   trainPositions?: TrainPositionsSnapshot | null;
+  specialPositions?: TrainPositionsSnapshot | null;
   serverClock?: Date;
   serverBoards?: Record<string, CurrentDepartureBoard>;
 }
@@ -56,18 +59,16 @@ export function StationDepartures({
   onRefresh,
   onOpen,
   operations,
+  boardMode,
+  onBoardModeChange,
   trainPositions,
+  specialPositions,
   serverClock,
   serverBoards,
 }: Props) {
   const localNow = useClock(active && !serverClock);
   const now = serverClock ?? localNow;
-  const [boardMode, setBoardMode] = useState(loadBoardMode);
   const [departurePolicy] = useState(readDeparturePolicy);
-  const changeBoardMode = useCallback((mode: BoardMode) => {
-    setBoardMode(mode);
-    saveBoardMode(mode);
-  }, []);
   const previousOperations = operationsArePrevious(operations, now);
   const sectionRef = useRef<HTMLElement>(null);
   const sectionHeight = useRef(0);
@@ -135,7 +136,7 @@ export function StationDepartures({
           saveDisabled={stationSaveDisabled}
           onToggleSave={onToggleSave}
           boardMode={boardMode}
-          onBoardModeChange={changeBoardMode}
+          onBoardModeChange={onBoardModeChange}
         />
 
         {lines.length > 1 && (
@@ -209,6 +210,7 @@ export function StationDepartures({
               operation={byId.get(operationId)}
               previous={previousOperations}
               positions={trainPositions}
+              specialPositions={specialPositions}
               serverDisplay={serverBoards?.[route.id]?.display}
             />
           ))}

@@ -33,6 +33,8 @@ const STATION_NAMES: Readonly<Partial<Record<string, readonly [string, string, s
   瑞江: ['瑞江', '미즈에'],
 
   // Through destinations also supply kana when the Toei station catalog has no reading.
+  北総線: ['北总线', '호쿠소선', 'ほくそうせん'],
+  京成線: ['京成线', '게이세이선', 'けいせいせん'],
   青砥: ['青砥', '아오토', 'あおと'],
   京成高砂: ['京成高砂', '게이세이타카사고', 'けいせいたかさご'],
   京成佐倉: ['京成佐仓', '게이세이사쿠라', 'けいせいさくら'],

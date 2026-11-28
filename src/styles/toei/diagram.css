@@ -9,9 +9,14 @@
   --toei-map-line-top: calc(var(--toei-map-line-bottom) + var(--toei-map-line-height));
   --toei-map-cut-width: 0.8cqw;
   --toei-map-chevron-depth: calc(var(--toei-map-cut-width) * 0.6);
-  --toei-map-branch-center: 3.2cqw;
+  --toei-map-branch-center: 3cqw;
   --toei-map-branch-bottom: var(--toei-map-line-top);
   --toei-map-branch-stroke: 0.1cqw;
+  --toei-map-label-bottom: calc(var(--toei-map-branch-center) + 0.35cqw);
+  --toei-map-current-background-bottom: calc(var(--toei-map-branch-center) - 0.25cqw);
+  --toei-map-label-top: calc(
+    var(--toei-map-label-bottom) - var(--toei-map-current-background-bottom)
+  );
   grid-row: 2 / -1;
   position: relative;
   min-width: 0;
@@ -37,13 +42,6 @@
 .toei-board[data-railway='Oedo'] .toei-stop-information {
   --toei-map-line-color: #ff4176;
 }
-.toei-stop-scope {
-  position: absolute;
-  right: 0.8cqw;
-  bottom: 0;
-  font-size: 0.7cqw;
-  line-height: 1;
-}
 .toei-stop-diagram {
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
@@ -55,16 +53,14 @@
   list-style: none;
 }
 .toei-stop-diagram > li {
+  --toei-stop-name-width: 1.8cqw;
+  --toei-map-station-name-left: calc(var(--toei-map-node-center) - var(--toei-stop-name-width) / 2);
   position: relative;
   min-width: 0;
 }
 .toei-stop-information[data-direction='left'] {
   padding-right: 2cqw;
   padding-left: 2cqw;
-}
-.toei-stop-information[data-direction='left'] .toei-stop-scope {
-  right: auto;
-  left: 0.8cqw;
 }
 .toei-stop-information[data-direction='left'] .toei-stop-diagram {
   direction: rtl;
@@ -110,12 +106,18 @@
 .toei-stop-information[data-direction='left'] .toei-continuation-label {
   text-align: left;
 }
-.toei-stop-diagram > li::before {
+.toei-stop-diagram > li::before,
+.toei-meguro-section::before {
   content: '';
   position: absolute;
   inset: auto 0 var(--toei-map-line-bottom);
   height: var(--toei-map-line-height);
   background: var(--toei-map-line-color);
+}
+/* Overlap the cell strokes so fractional widths do not leave a seam in the route bar. */
+.toei-stop-information[data-direction='right'] .toei-stop-diagram > li:not(:last-child)::before,
+.toei-stop-information[data-direction='left'] .toei-stop-diagram > li:not(:first-child)::before {
+  right: -1px;
 }
 .toei-stop-information:not([data-terminal]) .toei-stop-diagram > li:last-child::before {
   clip-path: polygon(
@@ -162,7 +164,27 @@
   left: -1.4cqw;
   right: auto;
 }
-.toei-stop-diagram > .toei-stop-continuation::before {
+.toei-stop-information[data-direction='right'] .toei-stop-diagram > li[data-route-start]::before {
+  left: var(--toei-map-node-center);
+}
+.toei-stop-information[data-direction='left'] .toei-stop-diagram > li[data-route-start]::before {
+  right: calc(100% - var(--toei-map-node-center));
+}
+.toei-stop-information[data-direction='right'][data-terminal]
+  .toei-stop-diagram
+  > li[data-kind]:last-child::before {
+  right: calc(100% - var(--toei-map-node-center));
+}
+.toei-stop-information[data-direction='left'][data-terminal]
+  .toei-stop-diagram
+  > li[data-kind]:last-child::before {
+  left: var(--toei-map-node-center);
+}
+.toei-stop-diagram > li[data-route-start]::after {
+  content: none;
+}
+.toei-stop-diagram > .toei-stop-continuation::before,
+.toei-meguro-section::before {
   background: var(--continuation-color);
 }
 .toei-stop-diagram > li[data-boundary]::before {
@@ -205,13 +227,22 @@
 .toei-stop-information[data-meguro-local] {
   --toei-continuation-width: 26%;
 }
+.toei-stop-information[data-meguro-local] .toei-stop-continuation::before {
+  content: none;
+}
 .toei-meguro-section {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(0, 2fr) minmax(0, 1.15fr) minmax(0, 1.2fr);
+  grid-template-columns:
+    minmax(0, 1.8fr) minmax(0, 2fr) minmax(0, 0.575fr)
+    [terminal-center] minmax(0, 0.575fr) minmax(0, 1.2fr);
   grid-template-rows: minmax(0, 1fr);
   direction: rtl;
+}
+.toei-meguro-section::before {
+  grid-area: 1 / 1 / 2 / terminal-center;
+  right: -1px;
 }
 .toei-meguro-section > * {
   --toei-meguro-node-center: 50%;
@@ -222,7 +253,7 @@
 }
 .toei-meguro-name {
   position: absolute;
-  inset: 0.35cqw auto 3.8cqw var(--toei-meguro-node-center);
+  inset: var(--toei-map-label-top) auto var(--toei-map-label-bottom) var(--toei-meguro-node-center);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -234,7 +265,10 @@
   line-height: 1.1;
 }
 .toei-meguro-line {
-  grid-area: 1 / 4;
+  grid-area: 1 / 5;
+}
+.toei-meguro-terminal {
+  grid-area: 1 / 3 / 2 / 5;
 }
 .toei-meguro-section > .toei-meguro-first-stop {
   --toei-meguro-node-center: 40%;
@@ -275,8 +309,9 @@
 }
 .toei-stop-label {
   position: absolute;
-  z-index: 1;
-  inset: 0 auto 3.95cqw 0.3cqw;
+  z-index: 2;
+  inset: var(--toei-map-label-top) auto var(--toei-map-label-bottom)
+    var(--toei-map-station-name-left);
   display: flex;
   align-items: flex-end;
   gap: 0.25cqw;
@@ -284,7 +319,10 @@
 }
 .toei-stop-branch {
   position: absolute;
-  left: calc(var(--toei-map-node-center) - var(--toei-map-branch-stroke) / 2);
+  left: var(
+    --toei-map-branch-left,
+    calc(var(--toei-map-node-center) - var(--toei-map-branch-stroke) / 2)
+  );
   bottom: var(--toei-map-branch-bottom);
   width: var(--toei-map-branch-width, calc(100% - 1.8cqw));
   height: calc(
@@ -299,7 +337,7 @@
 }
 .toei-stop-name {
   flex-shrink: 0;
-  width: var(--toei-stop-name-width, 1.8cqw);
+  width: var(--toei-stop-name-width);
   height: 100%;
   padding: 0;
   font-family: var(--font-bold);
@@ -335,10 +373,6 @@
   display: block;
   flex-shrink: 0;
   line-height: 1;
-}
-.toei-stop-diagram [data-kind='current'] .toei-stop-name {
-  background: var(--toei-map-current-station);
-  color: #fff;
 }
 .toei-stop-diagram [data-kind='past'] {
   color: #b9c0bb;
@@ -376,18 +410,22 @@
   box-shadow: 0 0 0 0.06cqw #fff;
 }
 .toei-stop-dash {
+  --toei-map-dash-width: 1cqw;
   position: absolute;
   bottom: calc(var(--toei-map-line-center) - 0.075cqw);
-  left: calc(var(--toei-map-node-center) - 0.5cqw);
-  width: 1cqw;
+  left: calc(var(--toei-map-node-center) - var(--toei-map-dash-width) / 2);
+  width: var(--toei-map-dash-width);
   height: 0.15cqw;
   background: #fff;
+}
+.toei-stop-diagram > [data-kind='past'] .toei-stop-dash {
+  --toei-map-dash-width: 1.5cqw;
 }
 .toei-stop-transfers {
   position: absolute;
   left: 2.7cqw;
   right: 0.2cqw;
-  bottom: 3.55cqw;
+  bottom: var(--toei-map-label-bottom);
   display: flex;
   flex-direction: column;
   gap: calc(0.1cqw * var(--toei-transfer-scale, 1));
@@ -414,11 +452,16 @@
   flex: 1;
   min-width: 0;
 }
+.toei-stop-information:not([data-english]) .toei-transfer-name {
+  align-self: flex-end;
+}
 .toei-stop-information[data-direction='left'] .toei-transfer-name {
   text-align: left;
 }
 .toei-transfer-name-text {
   display: inline-block;
+  position: relative;
+  top: var(--toei-transfer-text-offset-y, 0px);
   white-space: nowrap;
   transform: scaleX(var(--toei-transfer-text-x, 1));
   transform-origin: left center;
@@ -441,32 +484,36 @@
   border-radius: 18%;
 }
 .toei-stop-current-background {
-  display: none;
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: var(--toei-map-current-background-bottom);
+  left: var(--toei-map-station-name-left);
+  width: var(--toei-stop-name-width);
+  background: var(--toei-map-current-station);
 }
 .toei-stop-information[data-english] .toei-stop-current-background {
-  display: block;
-  position: absolute;
-  top: 0;
-  bottom: calc((var(--toei-map-line-top) + var(--toei-map-branch-center)) / 2);
-  left: calc(var(--toei-map-node-center) - 1.1cqw - (3.55cqw - var(--toei-map-line-top)) * 0.57735);
-  width: 1.4cqw;
-  background: var(--toei-map-current-station);
+  left: var(--toei-current-english-left, var(--toei-map-station-name-left));
+  width: var(--toei-current-english-width, 1.4cqw);
   transform: skewX(-30deg);
   transform-origin: left bottom;
 }
-.toei-stop-information[data-english] [data-kind='current'] .toei-stop-name {
-  background: transparent;
-}
 .toei-stop-information[data-english] .toei-stop-label {
-  inset: auto auto 3.55cqw var(--toei-map-node-center);
+  --toei-map-english-axis-bottom: calc(
+    var(--toei-map-branch-center) + var(--toei-map-branch-stroke) / 2
+  );
+  inset: auto auto var(--toei-map-english-axis-bottom) var(--toei-map-node-center);
   display: block;
   width: 0;
   height: 0;
 }
+.toei-stop-information[data-english] [data-kind='current'] > .toei-stop-label {
+  --toei-map-english-axis-bottom: var(--toei-map-current-background-bottom);
+}
 .toei-stop-information[data-english] .toei-stop-name {
   position: absolute;
-  bottom: 0;
-  left: 0;
+  bottom: calc(var(--toei-map-label-bottom) - var(--toei-map-english-axis-bottom));
+  left: var(--toei-english-label-shift, 0px);
   width: max-content;
   height: auto;
   max-width: var(--toei-english-label-width, 7cqw);
@@ -491,8 +538,8 @@
 }
 .toei-stop-information[data-english] .toei-stop-transfers {
   --toei-transfer-icon-size: 1cqw;
+  left: calc(2.7cqw + var(--toei-english-transfer-shift, 0px));
   right: auto;
-  bottom: 3.55cqw;
   flex-direction: row;
   align-items: flex-end;
   gap: 0.35cqw;
@@ -509,7 +556,7 @@
 .toei-stop-information[data-english] .toei-stop-transfers li > span:last-child {
   position: absolute;
   bottom: calc(var(--toei-transfer-icon-size) + 0.15cqw);
-  left: calc(var(--toei-transfer-icon-size) / 2);
+  left: calc(var(--toei-transfer-icon-size) / 2 + var(--toei-english-label-shift, 0px));
   width: max-content;
   max-width: var(--toei-english-label-width, 6.8cqw);
   transform: rotate(-60deg);
@@ -520,4 +567,20 @@
   height: var(--toei-transfer-icon-size);
   border-width: 0.14cqw;
   font-size: 0.48cqw;
+}
+.toei-stop-information[data-english] [data-two-lines] {
+  display: block;
+  width: var(--toei-english-wrap-width);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.toei-stop-information[data-english] .toei-stop-name-text[data-two-lines] {
+  line-height: 0.86;
+}
+.toei-stop-information[data-english] .toei-transfer-name-text[data-two-lines] {
+  line-height: 0.83;
+}
+.toei-stop-information[data-english] .toei-continuation-text[data-two-lines] {
+  display: inline-block;
 }

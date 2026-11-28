@@ -1,23 +1,52 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { Departure } from '../types';
 import { departureIdentity } from '../lib/time';
+import type { ToeiSpecialCall } from '../lib/toei-special-calls';
 
 export const TOEI_FLIP_HALF_MS = 1500;
+const TOEI_NEXT_FLIP_MAX_DELAY_MS = 3000;
 
 type FlipState<T> =
   | { shown: T; phase?: undefined; startedAt?: never }
   | { shown: T; phase: 'out' | 'in'; startedAt: number };
 
+export type ToeiBoardRow = Departure | ToeiSpecialCall;
+
+export function toeiBoardRowIdentity(row: ToeiBoardRow) {
+  return 'kind' in row ? `${row.kind}/${row.trainId}` : departureIdentity(row);
+}
+
+export function toeiBoardRowTime(row: ToeiBoardRow) {
+  return 'kind' in row ? row.at : row.timestamp;
+}
+
+type FlipOptions = {
+  firstFlipStart?: number | 'pending';
+  animateEarlierChange?: boolean;
+  settleImmediately?: boolean;
+};
+
 /** One timer and one displayed row; coalesce updates before the edge-on swap. */
-export function useToeiDepartureFlip<T extends Departure | undefined>(departure: T) {
-  const identity = departure && departureIdentity(departure);
+export function useToeiDepartureFlip<T extends ToeiBoardRow | undefined>(
+  departure: T,
+  { firstFlipStart, animateEarlierChange = false, settleImmediately = false }: FlipOptions = {},
+) {
+  const identity = departure && toeiBoardRowIdentity(departure);
   const latest = useRef(departure);
   const resumed = useRef(false);
   latest.current = departure;
   const [state, setState] = useState<FlipState<T>>(() => ({ shown: departure }));
-  const matchesShown = identity === (state.shown && departureIdentity(state.shown));
+  const matchesShown = identity === (state.shown && toeiBoardRowIdentity(state.shown));
   const replaceImmediately =
-    !departure || !state.shown || departure.timestamp < state.shown.timestamp;
+    settleImmediately ||
+    !departure ||
+    !state.shown ||
+    // Withdraw an observed special call as soon as its evidence or row assignment changes.
+    ('kind' in state.shown && !matchesShown) ||
+    // A newly confirmed call and the row it pushes back use the normal flip.
+    (!animateEarlierChange &&
+      !('kind' in departure) &&
+      toeiBoardRowTime(departure) < toeiBoardRowTime(state.shown));
 
   useLayoutEffect(() => {
     // The clock publishes the resumed board in the same render. The visibility
@@ -27,8 +56,7 @@ export function useToeiDepartureFlip<T extends Departure | undefined>(departure:
       if (!matchesShown || state.phase) setState({ shown: latest.current });
       return;
     }
-    // A correction to an earlier retained train is not a departure turnover.
-    // Never keep the later row visible while rotating back to the correct one.
+    // Apply ordinary earlier-train corrections without replaying a departure turnover.
     if (replaceImmediately || (state.phase === 'out' && matchesShown)) {
       if (!matchesShown || state.phase) setState({ shown: latest.current });
       return;
@@ -41,8 +69,20 @@ export function useToeiDepartureFlip<T extends Departure | undefined>(departure:
       setState({ shown: latest.current });
       return;
     }
-    setState({ shown: state.shown, phase: 'out', startedAt: performance.now() });
-  }, [identity, state, matchesShown, replaceImmediately]);
+    if (firstFlipStart === 'pending') return;
+    const start = () =>
+      setState({ shown: state.shown, phase: 'out', startedAt: performance.now() });
+    const delay =
+      firstFlipStart === undefined
+        ? 0
+        : firstFlipStart + Math.random() * TOEI_NEXT_FLIP_MAX_DELAY_MS - performance.now();
+    if (delay <= 0) {
+      start();
+      return;
+    }
+    const timer = window.setTimeout(start, delay);
+    return () => window.clearTimeout(timer);
+  }, [state, matchesShown, replaceImmediately, firstFlipStart]);
 
   useLayoutEffect(() => {
     if (!state.phase) return;
@@ -87,5 +127,7 @@ export function useToeiDepartureFlip<T extends Departure | undefined>(departure:
   return {
     departure: replaceImmediately || (!state.phase && matchesShown) ? departure : state.shown,
     phase: replaceImmediately ? undefined : state.phase,
+    startedAt: replaceImmediately ? undefined : state.startedAt,
+    pending: !replaceImmediately && !matchesShown && state.phase !== 'out',
   };
 }

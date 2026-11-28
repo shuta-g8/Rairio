@@ -1,6 +1,6 @@
 {
-  "fetchedAt": "2026-11-26T14:38:58.269Z",
-  "generatedAt": "2026-11-26T14:39:00.668Z",
+  "fetchedAt": "2026-11-28T08:07:58.169Z",
+  "generatedAt": "2026-11-28T08:08:01.074Z",
   "asakusaTimetableEdition": {
     "generation": 3,
     "active": "asakusa-2026-11-21"
@@ -50,72 +50,72 @@
   "sources": [
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:StationTimetable?odpt:operator=odpt.Operator:Toei",
-      "fetchedAt": "2026-11-26T14:38:58.269Z",
+      "fetchedAt": "2026-11-28T08:07:58.169Z",
       "sha256": "10f0800a1295b14101112d2c0372e4982d8dd5649040081d46a9776f457ca857"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:Station?odpt:operator=odpt.Operator:Toei",
-      "fetchedAt": "2026-11-26T14:38:58.477Z",
+      "fetchedAt": "2026-11-28T08:07:58.367Z",
       "sha256": "dcf17c03668fb2021811553f97dffcb7f0958beab1df748fb3857beae9def7bf"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:Railway?odpt:operator=odpt.Operator:Toei",
-      "fetchedAt": "2026-11-26T14:38:58.580Z",
+      "fetchedAt": "2026-11-28T08:07:58.430Z",
       "sha256": "2bdfb82cf5f33c2f440981158df6701fbe6b25c45cb77b61304205978c44c691"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainType?odpt:operator=odpt.Operator:Toei",
-      "fetchedAt": "2026-11-26T14:38:58.639Z",
+      "fetchedAt": "2026-11-28T08:07:58.488Z",
       "sha256": "2b54cbf8cf0ce9c0af21e5ed390221c9b8bce00ebaee4308a296c035eb404e4c"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:RailDirection?odpt:operator=odpt.Operator:Toei",
-      "fetchedAt": "2026-11-26T14:38:58.697Z",
+      "fetchedAt": "2026-11-28T08:07:58.550Z",
       "sha256": "7e700eb02a243a1970f1e877324a7c4a906f3ad0994b089f4c40b9df618589c9"
     },
     {
       "url": "https://www.opendata.metro.tokyo.lg.jp/kotsu/080_001b.csv",
-      "fetchedAt": "2026-11-26T14:38:58.787Z",
+      "fetchedAt": "2026-11-28T08:07:58.674Z",
       "sha256": "8800e11685b525450a0307236fc1d321a19582be564ead551938f636cbdfaba0"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainTimetable?odpt:operator=odpt.Operator:Toei&odpt:railway=odpt.Railway:Toei.Asakusa&odpt:calendar=odpt.Calendar:Weekday",
-      "fetchedAt": "2026-11-26T14:38:58.962Z",
+      "fetchedAt": "2026-11-28T08:07:58.873Z",
       "sha256": "c54b15d29ebd5c15d692acdbd5f4e976c0e372e467c6a77840a485bffc18b61f"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainTimetable?odpt:operator=odpt.Operator:Toei&odpt:railway=odpt.Railway:Toei.Asakusa&odpt:calendar=odpt.Calendar:SaturdayHoliday",
-      "fetchedAt": "2026-11-26T14:38:59.120Z",
+      "fetchedAt": "2026-11-28T08:07:59.220Z",
       "sha256": "3f49e31bda49897452bfec67fe2848287225edf1bb6c607302be5dc86becd5bf"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainTimetable?odpt:operator=odpt.Operator:Toei&odpt:railway=odpt.Railway:Toei.Mita&odpt:calendar=odpt.Calendar:Weekday",
-      "fetchedAt": "2026-11-26T14:38:59.451Z",
+      "fetchedAt": "2026-11-28T08:07:59.422Z",
       "sha256": "0d4a379144a5cf100beb3ac829c301f1f7632f54cc35fa12578dae3e2469d932"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainTimetable?odpt:operator=odpt.Operator:Toei&odpt:railway=odpt.Railway:Toei.Mita&odpt:calendar=odpt.Calendar:SaturdayHoliday",
-      "fetchedAt": "2026-11-26T14:38:59.601Z",
+      "fetchedAt": "2026-11-28T08:07:59.608Z",
       "sha256": "7bec8957014d6c7f6ada38a56d65cf4eb31d823adde73c35aa494f8904ca8000"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainTimetable?odpt:operator=odpt.Operator:Toei&odpt:railway=odpt.Railway:Toei.Shinjuku&odpt:calendar=odpt.Calendar:Weekday",
-      "fetchedAt": "2026-11-26T14:38:59.774Z",
+      "fetchedAt": "2026-11-28T08:07:59.768Z",
       "sha256": "2b89c690e2018f9799ea443033478da1cd7c7e73e7f313ad5af9f8eca30d343e"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainTimetable?odpt:operator=odpt.Operator:Toei&odpt:railway=odpt.Railway:Toei.Shinjuku&odpt:calendar=odpt.Calendar:SaturdayHoliday",
-      "fetchedAt": "2026-11-26T14:38:59.890Z",
+      "fetchedAt": "2026-11-28T08:07:59.924Z",
       "sha256": "e3e76e4083d71a9cb800bcfdb5ab00943e29b4e56ce675a234553a5a769cf441"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainTimetable?odpt:operator=odpt.Operator:Toei&odpt:railway=odpt.Railway:Toei.Oedo&odpt:calendar=odpt.Calendar:Weekday",
-      "fetchedAt": "2026-11-26T14:39:00.116Z",
+      "fetchedAt": "2026-11-28T08:08:00.230Z",
       "sha256": "9eaff7f12cc9aa5170eb8ed3bccd360157f62e7323afc3402232c2ea229024a0"
     },
     {
       "url": "https://api-public.odpt.org/api/v4/odpt:TrainTimetable?odpt:operator=odpt.Operator:Toei&odpt:railway=odpt.Railway:Toei.Oedo&odpt:calendar=odpt.Calendar:SaturdayHoliday",
-      "fetchedAt": "2026-11-26T14:39:00.333Z",
+      "fetchedAt": "2026-11-28T08:08:00.502Z",
       "sha256": "770a138dbba855b9f094787da79c72dd35adce9b1741bb03a0ea89604317a735"
     }
   ]

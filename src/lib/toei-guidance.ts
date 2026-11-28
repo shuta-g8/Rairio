@@ -4,6 +4,7 @@ export type ToeiGuidanceTone = 'red' | 'green' | 'orange' | 'white';
 export interface ToeiGuidanceSegment {
   text: string;
   tone: ToeiGuidanceTone;
+  href?: string;
 }
 export interface ToeiGuidanceMessage {
   id: string;
@@ -12,6 +13,19 @@ export interface ToeiGuidanceMessage {
 }
 
 export type ToeiInformationMessage = Pick<ToeiGuidanceMessage, 'id' | 'segments'>;
+
+const POSSIBLE_DELAY: ToeiInformationMessage = {
+  id: 'possible-delay',
+  segments: [
+    { text: 'この方面では列車が遅れている可能性があるため、最新の状況は', tone: 'orange' },
+    {
+      text: '都営交通アプリ',
+      tone: 'orange',
+      href: 'https://www.kotsu.metro.tokyo.jp/pickup_information/app.html',
+    },
+    { text: 'でご確認ください。', tone: 'orange' },
+  ],
+};
 
 /** One shuffled deck per round; avoid repeating the previous round's final notice. */
 export function shuffledGuidanceIds(
@@ -35,8 +49,10 @@ export function shuffledGuidanceIds(
 export function toeiInformationMessages(
   operation: LineOperation | undefined,
   previous: boolean,
+  possibleDelay = false,
 ): readonly ToeiInformationMessage[] {
   const prefix: ToeiGuidanceSegment[] = previous ? [{ text: '前回取得時：', tone: 'orange' }] : [];
+  const guidance = possibleDelay ? [POSSIBLE_DELAY, ...TOEI_GUIDANCE] : TOEI_GUIDANCE;
   if (operation && operation.state !== 'normal') {
     return [
       {
@@ -50,12 +66,12 @@ export function toeiInformationMessages(
           },
         ],
       },
-      ...TOEI_GUIDANCE,
+      ...guidance,
     ];
   }
-  if (!operation) return TOEI_GUIDANCE;
+  if (!operation) return guidance;
   return [
-    ...TOEI_GUIDANCE,
+    ...guidance,
     {
       id: 'no-delays',
       segments: [...prefix, { text: '15分以上の遅延情報はありません。', tone: 'white' }],
