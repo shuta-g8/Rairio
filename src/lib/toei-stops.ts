@@ -42,6 +42,7 @@ const asakusaTypes = new Set([
 ]);
 // Immutable fetched routes can be collected when their station is no longer displayed.
 const routeOrders = new WeakMap<Route, ReturnType<typeof orderedRouteStations>>();
+const branchPositionOrders = new WeakMap<Route, ReturnType<typeof orderedRouteStations>>();
 
 /** Station order in the direction of travel, independent of a train's destination. */
 export function toeiRouteStations(route: Route) {
@@ -49,10 +50,42 @@ export function toeiRouteStations(route: Route) {
   return routeOrders.get(route);
 }
 
-function orderedRouteStations(route: Route) {
+export function isTochomaeBranchBoard(route: Route) {
+  return (
+    route.id === 'Toei.Oedo.Toei.Hikarigaoka' &&
+    route.sourceStationId === 'odpt.Station:Toei.Oedo.Tochomae'
+  );
+}
+
+/** Through-running trains reach the Hikarigaoka board on their second visit to Tochomae.
+ * The published branch stop diagram still begins at Tochomae. */
+export function toeiPositionStations(route: Route) {
+  if (!isTochomaeBranchBoard(route)) return toeiRouteStations(route);
+  if (!branchPositionOrders.has(route))
+    branchPositionOrders.set(route, orderedRouteStations(route, 'OuterLoop'));
+  return branchPositionOrders.get(route);
+}
+
+const departureVisits = new WeakMap<Route, number>();
+
+/** The two outward departures at Tochomae belong to distinct visits of the same run. */
+export function toeiDepartureVisit(route: Route) {
+  const cached = departureVisits.get(route);
+  if (cached !== undefined) return cached;
+  const order = toeiPositionStations(route);
+  const source = route.sourceStationId?.split('.').at(-1)?.toLowerCase();
+  const visits = order?.flatMap((s, i) => (s.id === source ? [i] : []));
+  const start = (isTochomaeBranchBoard(route) ? visits?.at(-1) : visits?.[0]) ?? -1;
+  departureVisits.set(route, start);
+  return start;
+}
+
+function orderedRouteStations(
+  route: Route,
+  direction = route.id.replace(`Toei.${route.railwayId}.`, ''),
+) {
   const railway = STATION_RAILWAYS.find((line) => line.id === route.railwayId);
   if (!railway || !route.sourceStationId?.startsWith(`odpt.Station:Toei.${railway.id}.`)) return;
-  const direction = route.id.replace(`Toei.${route.railwayId}.`, '');
   const ordered = railway.stations
     .map((station) => {
       const code = station.memberships!.find((member) => member.railwayId === railway.id)!.code;

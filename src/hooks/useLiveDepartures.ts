@@ -3,34 +3,17 @@ import type { Route } from '../types';
 import type { TrainPositionsSnapshot } from '../../shared/train-positions';
 import type { StationDepartureBoardDisplay } from '../../shared/departure-board';
 import { resolveLiveDepartures, type DepartureBoardDisplay } from '../lib/live-departures';
-import { APPROACH_END_LEAD_MS, resolveHybridDepartures } from '../lib/hybrid-departures';
+import {
+  APPROACH_END_LEAD_MS,
+  rememberServerDepartures,
+  resolveHybridDepartures,
+} from '../lib/hybrid-departures';
 import {
   departureDiagnosticsEnabled,
   earlyApproachEndEnabled,
   readDeparturePolicy,
 } from '../lib/departure-policy';
 import { departureIdentity } from '../lib/time';
-
-/** Keep terminal server decisions when the local board takes over after an expired plan. */
-function rememberClosedApproaches(
-  hybrid: ReturnType<typeof resolveHybridDepartures>,
-  display: StationDepartureBoardDisplay | undefined,
-  at: number,
-) {
-  const closures = display?.closedApproaches;
-  if (display?.board.kind !== 'active' || !closures) return hybrid;
-  const trains = new Map(hybrid.session.trains);
-  for (const [index, departure] of display.board.departures.entries()) {
-    const reason: (typeof closures)[number] = closures[index];
-    if (!reason) continue;
-    const key = departureIdentity(departure);
-    const state = hybrid.session.trains.get(key);
-    const field = reason === 'arrival' ? 'approachEndedAt' : 'noticeTimedOutAt';
-    if (!state || state[field] !== undefined) continue;
-    trains.set(key, { ...state, [field]: at });
-  }
-  return { ...hybrid, session: { ...hybrid.session, trains } };
-}
 
 export function useLiveDepartures(
   route: Route,
@@ -59,7 +42,7 @@ export function useLiveDepartures(
     serverDisplay,
     hybrid:
       policy === 'hybrid' || diagnostics
-        ? rememberClosedApproaches(
+        ? rememberServerDepartures(
             resolveHybridDepartures(
               route,
               now,

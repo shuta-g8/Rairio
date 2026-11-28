@@ -102,7 +102,13 @@ export function resolveLiveDepartures(
   for (const departure of liveDepartureCandidates(route, now, lookback)) {
     const key = departureIdentity(departure);
     let observation = observations.get(key);
-    const raw = observedToeiTrainGuidance(route, departure, positions, now);
+    const raw = observedToeiTrainGuidance(
+      route,
+      departure,
+      positions,
+      now,
+      observation?.conflicted ? undefined : observation,
+    );
     let guidance: Guidance | undefined;
     if (
       raw.observation &&

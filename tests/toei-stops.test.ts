@@ -41,6 +41,10 @@ test('大江戸線の環状部・支線・都庁前の3方向と途中止まり�
     assert.equal(guide.stations[0].name, '都庁前');
     assert.equal(guide.stations[1].name, next);
     assert.equal(guide.stations.at(-1)!.name, destination);
+    if (direction === 'Toei.Hikarigaoka') {
+      assert.deepEqual(guide.preceding, []);
+      assert.equal(guide.stations[0].routeStart, true);
+    }
   }
 });
 

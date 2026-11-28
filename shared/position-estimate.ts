@@ -1,5 +1,6 @@
 import {
   TRAIN_POSITION_MAX_AGE,
+  trainPositionIsFresh,
   type CollectedTrainPosition,
   type TrainPosition,
 } from './train-positions.ts';
@@ -10,6 +11,8 @@ export interface PositionEstimate {
   fromStation: string;
   toStation: string | null;
   delaySeconds: number;
+  /** Last collector observation behind this diagram, independent of the displayed visit. */
+  observation?: { at: number; visit: number; lowerDecileAt?: number };
   evidence?: {
     firstDirect: number;
     firstCollected: number;
@@ -56,6 +59,15 @@ export function estimatePosition(
   if (evidence && now - evidence.at >= TRAIN_POSITION_MAX_AGE) evidence = undefined;
   const rawAt = direct && Date.parse(direct.updatedAt);
   const collectedAt = Date.parse(p.updatedAt);
+  if (!prior && previous?.observation && collectedAt <= previous.observation.at) return;
+  const last = prior?.observation;
+  if (
+    last &&
+    (collectedAt < last.at ||
+      model.visit < last.visit ||
+      (collectedAt === last.at && model.visit !== last.visit))
+  )
+    return prior;
   const matchedDirect =
     direct &&
     rawAt !== undefined &&
@@ -100,18 +112,51 @@ export function estimatePosition(
   }
   const delaySeconds = Math.max(reported, Math.floor((confirmed?.lag ?? 0) / 1000));
   const advanceAt = positionAdvanceAt(p, { evidence, delaySeconds });
-  const advance = advanceAt !== undefined && now >= advanceAt;
+  // Only the moving segment's own station-entry distribution can constrain the diagram.
+  // Keep the notice clock independent of this bound and of the diagram's display lead.
+  const arrival = p.vicinityArrival;
+  const lowerDecileAt =
+    arrival &&
+    p.toStation === arrival.station &&
+    projection.fromStation === arrival.station &&
+    projection.toStation === null
+      ? arrival.lowerDecileAt
+      : undefined;
+  // Different transports may annotate the same observation at different times.
+  const diagramAt =
+    last?.at === collectedAt && last.lowerDecileAt !== undefined
+      ? Math.max(last.lowerDecileAt, lowerDecileAt ?? -Infinity)
+      : lowerDecileAt;
+  const advance = advanceAt !== undefined && now >= Math.max(advanceAt, diagramAt ?? -Infinity);
   const selected = advance ? projection : p;
   const visit = advance ? model.nextVisit : model.visit;
-  // A confirmed stall in the observed phase corrects an earlier one-step projection.
+  const refutedByArrivalBound =
+    last &&
+    diagramAt !== undefined &&
+    now < diagramAt &&
+    collectedAt > last.at &&
+    collectedAt <= now &&
+    trainPositionIsFresh(p, now) &&
+    !(matchedDirect && rawAt >= collectedAt && !observedInPhase);
   const correctProjection =
-    observedInPhase && confirmed?.stalled && prior?.visit === model.nextVisit;
+    prior?.visit === model.nextVisit &&
+    last?.visit === model.visit &&
+    ((observedInPhase && confirmed?.stalled) || refutedByArrivalBound);
   const floor = prior && prior.visit > visit && !correctProjection ? prior : undefined;
   return {
     runId: model.runId,
     visit: floor?.visit ?? visit,
     fromStation: floor ? floor.fromStation : selected.fromStation,
     toStation: floor ? floor.toStation : selected.toStation,
+    ...(floor && !last
+      ? {}
+      : {
+          observation: {
+            at: collectedAt,
+            visit: model.visit,
+            ...(diagramAt === undefined ? {} : { lowerDecileAt: diagramAt }),
+          },
+        }),
     evidence,
     delaySeconds,
   };

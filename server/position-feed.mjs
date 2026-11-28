@@ -24,12 +24,21 @@ export class PositionFeedEngine {
       const c = collected.get(id);
       const observed = c && trainPositionIsFresh(c, now) ? c : undefined;
       let raw;
-      for (const candidate of direct.get(id)?.values() ?? []) {
+      const directions = direct.get(id);
+      for (const candidate of directions?.values() ?? []) {
         if (!candidate || !trainPositionIsFresh(candidate, now)) continue;
         raw = candidate;
         // The stream carries one direct row per ID. Prefer the collector's direction.
         if (observed && directionKey(candidate) === directionKey(observed)) break;
       }
+      // This board accepts both outward labels for one visit. Preserve the HTTP ambiguity
+      // when the stream reduces the direct observations to one row for all boards.
+      if (
+        raw?.railwayId === 'Oedo' &&
+        directions.has('Oedo/OuterLoop') &&
+        directions.has('Oedo/Toei.Hikarigaoka')
+      )
+        raw = { ...raw, ambiguousTochomaeBranch: true };
       if (!raw && !observed) continue;
       const estimate =
         observed && estimatePosition(observed, raw, now, this.previous.get(id)?.estimate);

@@ -37,6 +37,7 @@ export function useToeiFirstPosition(
     train,
     snapshot,
     now,
+    prior?.conflict ? undefined : prior,
   );
   const stamp = Date.parse(observation?.updatedAt ?? '');
   let current = prior;

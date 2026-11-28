@@ -104,6 +104,14 @@ export class FeedReceiver {
         (!row.collected?.model ||
           e.runId !== row.collected.model.runId ||
           !Number.isFinite(e.visit) ||
+          (e.observation !== undefined &&
+            (!e.observation ||
+              !Number.isSafeInteger(e.observation.at) ||
+              !Number.isFinite(e.observation.visit) ||
+              e.observation.visit > e.visit ||
+              (e.observation.lowerDecileAt !== undefined &&
+                (!Number.isSafeInteger(e.observation.lowerDecileAt) ||
+                  e.observation.lowerDecileAt <= e.observation.at)))) ||
           !Number.isFinite(e.delaySeconds) ||
           e.delaySeconds < 0 ||
           typeof e.fromStation !== 'string' ||

@@ -1,5 +1,6 @@
 import type { DepartureBoardDisplay } from '../src/lib/live-departures.ts';
 import type { Route } from '../src/types.ts';
+import { TRAIN_POSITION_MAX_AGE } from './train-positions.ts';
 import {
   canonicalTimetable,
   editionServiceDate,
@@ -21,6 +22,14 @@ export type StationDepartureBoardDisplay = DepartureBoardDisplay & {
   estimatedDiagram?: DepartureBoardDisplay['position'];
   /** Terminal notice decisions, ordered like the active departure rows. */
   closedApproaches?: ('arrival' | 'limit' | null)[];
+  /** Original observation of the first train and its source lease. */
+  firstObservation?: {
+    progress: 'before' | 'approaching' | 'here';
+    sourceAt: number;
+    validUntil: number;
+  };
+  /** Completed departures within the timetable lookback, confirmed by observed movement. */
+  observedDepartures?: string[];
 };
 
 export interface DepartureBoardPlanFrame {
@@ -148,7 +157,28 @@ function isPosition(value: unknown) {
   );
 }
 
-function isDisplay(value: unknown) {
+function isFirstObservation(value: unknown, board: Record<string, unknown>, at: number) {
+  const rows = board.departures;
+  if (board.kind !== 'active' || !Array.isArray(rows) || !record(rows[0]) || !record(value))
+    return false;
+  const first = rows[0];
+  return (
+    typeof first.trainId === 'string' &&
+    first.trainId.startsWith('odpt.Train:Toei.') &&
+    !rows.slice(1).some((row) => record(row) && row.trainId === first.trainId) &&
+    (value.progress === 'before' ||
+      value.progress === 'approaching' ||
+      value.progress === 'here') &&
+    epoch(value.sourceAt) &&
+    epoch(value.validUntil) &&
+    value.sourceAt <= at &&
+    at < value.validUntil &&
+    value.validUntil - value.sourceAt <= TRAIN_POSITION_MAX_AGE &&
+    first.serviceDate === editionServiceDate(value.sourceAt)
+  );
+}
+
+function isDisplay(value: unknown, at: number) {
   if (!record(value) || !record(value.board)) return false;
   const {
     board,
@@ -159,6 +189,8 @@ function isDisplay(value: unknown) {
     livePhase,
     arrivalEstimate,
     closedApproaches,
+    firstObservation,
+    observedDepartures,
   } = value;
   return (
     (board.kind === 'empty' ||
@@ -177,6 +209,11 @@ function isDisplay(value: unknown) {
     (estimatedDiagram === undefined || isPosition(estimatedDiagram)) &&
     (livePhase === undefined || livePhase === 'approaching' || livePhase === 'holding') &&
     (arrivalEstimate === undefined || displayText(arrivalEstimate)) &&
+    (firstObservation === undefined || isFirstObservation(firstObservation, board, at)) &&
+    (observedDepartures === undefined ||
+      (Array.isArray(observedDepartures) &&
+        observedDepartures.length <= 64 &&
+        observedDepartures.every(displayText))) &&
     (closedApproaches === undefined ||
       (board.kind === 'active' &&
         Array.isArray(board.departures) &&
@@ -210,7 +247,7 @@ function isRoutePlan(value: unknown, serverNow: number) {
       (index === 0 && frame.at !== serverNow) ||
       frame.at <= lastAt ||
       frame.at >= validUntil ||
-      !isDisplay(frame.display)
+      !isDisplay(frame.display, frame.at)
     )
       return false;
     lastAt = frame.at;

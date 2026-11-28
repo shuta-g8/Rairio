@@ -1,4 +1,7 @@
-import { resolveHybridDepartures } from '../src/lib/hybrid-departures.ts';
+import {
+  resolveHybridDepartures,
+  turnoverAwaitsObservation,
+} from '../src/lib/hybrid-departures.ts';
 import { TRAIN_POSITION_MAX_AGE } from '../shared/train-positions.ts';
 
 const STEP_MS = 1000;
@@ -20,6 +23,7 @@ function displayFrom({
 export function departureBoardPlanner(route, startedAt, observe) {
   let replayedAt = startedAt - STEP_MS;
   let replayed;
+  let publishedDepartures = [];
 
   return (wallTime) => {
     const generatedAt = Math.max(wallTime, startedAt, replayedAt);
@@ -32,7 +36,21 @@ export function departureBoardPlanner(route, startedAt, observe) {
     // Advance the shared history on a fixed grid. Opening another browser
     // must not change which observations have already been applied.
     for (let at = replayedAt + STEP_MS; at <= generatedAt; at += STEP_MS) {
-      replayed = resolveHybridDepartures(route, new Date(at), observe(at), replayed?.session);
+      let session = replayed?.session;
+      const published = publishedDepartures.find(({ turnover }) => turnover.at === at);
+      const train = session?.trains.get(published?.turnover.train);
+      if (train && train.retirement?.reason !== 'observed') {
+        // The displayed switch took effect on this tick. A missing snapshot
+        // cannot revoke its observed departure. Recompute the other trains.
+        const trains = new Map(session.trains);
+        trains.set(published.turnover.train, {
+          ...train,
+          cleared: true,
+          retirement: published.retirement,
+        });
+        session = { ...session, trains, lastTurnover: published.turnover };
+      }
+      replayed = resolveHybridDepartures(route, new Date(at), observe(at), session);
       replayedAt = at;
     }
     const positions = observe(generatedAt);
@@ -46,7 +64,7 @@ export function departureBoardPlanner(route, startedAt, observe) {
     // projected clearance can change the lead train when a new sample arrives.
     const leaseEnd = generatedAt + FORECAST_MS;
     let forecastUntil = leaseEnd;
-    for (const p of [...positions.trains, ...(positions.collected?.trains ?? [])]) {
+    for (const p of [...(positions?.trains ?? []), ...(positions?.collected?.trains ?? [])]) {
       const sourceExpiry = Math.min(
         Date.parse(p.updatedAt) + TRAIN_POSITION_MAX_AGE,
         Date.parse(p.validUntil),
@@ -55,15 +73,16 @@ export function departureBoardPlanner(route, startedAt, observe) {
     }
     let forecast = current;
     let previousDisplay = JSON.stringify(frames[0].display);
+    publishedDepartures = [];
     // Use the same grid across refreshes so an upcoming frame's time does not
     // drift by a fraction of a second each time a client receives a new plan.
     for (let at = replayedAt + STEP_MS; at < forecastUntil; at += STEP_MS) {
       const next = resolveHybridDepartures(route, new Date(at), positions, forecast.session);
-      if (
-        next.session.lastTurnover !== forecast.session.lastTurnover &&
-        next.session.lastTurnover?.reason === 'estimate'
-      )
-        break;
+      if (turnoverAwaitsObservation(current.session, forecast.session, next.session)) break;
+      const turnover = next.session.lastTurnover;
+      const retirement = next.session.trains.get(turnover?.train)?.retirement;
+      if (turnover?.at === at && retirement?.reason === 'observed')
+        publishedDepartures.push({ turnover, retirement });
       forecast = next;
       const display = displayFrom(next);
       const serialized = JSON.stringify(display);

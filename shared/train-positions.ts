@@ -9,6 +9,8 @@ export interface TrainPosition {
   id: string;
   railwayId: string;
   direction: string;
+  /** The one-row SSE feed received both outward direction labels for this train ID. */
+  ambiguousTochomaeBranch?: true;
   fromStation: string;
   toStation: string | null;
   updatedAt: string;
@@ -18,7 +20,7 @@ export interface TrainPosition {
   destinationStation?: string;
 }
 export interface CollectedTrainPosition extends TrainPosition {
-  vicinityArrival?: { station: string; at: number };
+  vicinityArrival?: { station: string; at: number; lowerDecileAt?: number };
   projection?: { at: number; fromStation: string; toStation: string | null; advanceMs?: number };
   model?: {
     runId: string;
@@ -80,6 +82,7 @@ function validPositionRows(value: unknown): value is TrainPositionsSnapshot {
         train.id.startsWith('odpt.Train:Toei.') &&
         ['Asakusa', 'Mita', 'Shinjuku', 'Oedo'].includes(train.railwayId) &&
         typeof train.direction === 'string' &&
+        (train.ambiguousTochomaeBranch === undefined || train.ambiguousTochomaeBranch === true) &&
         typeof train.fromStation === 'string' &&
         (train.toStation === null || typeof train.toStation === 'string') &&
         Number.isFinite(Date.parse(train.updatedAt)) &&
@@ -103,12 +106,16 @@ export function validTrainPositions(value: unknown): value is TrainPositionsSnap
 export function validCollectedPositions(value: unknown): value is CollectedPositions {
   if (!validPositionRows(value) || 'collected' in value) return false;
   return (value.trains as CollectedTrainPosition[]).every(
-    ({ id, model, projection, vicinityArrival, toStation }) =>
+    ({ id, model, projection, vicinityArrival, toStation, updatedAt }) =>
       (vicinityArrival === undefined ||
         (vicinityArrival !== null &&
           typeof toStation === 'string' &&
           vicinityArrival.station === toStation &&
-          Number.isSafeInteger(vicinityArrival.at))) &&
+          Number.isSafeInteger(vicinityArrival.at) &&
+          (vicinityArrival.lowerDecileAt === undefined ||
+            (Number.isSafeInteger(vicinityArrival.lowerDecileAt) &&
+              vicinityArrival.lowerDecileAt > Date.parse(updatedAt) &&
+              vicinityArrival.lowerDecileAt <= vicinityArrival.at)))) &&
       (model === undefined ||
         (model != null &&
           projection != null &&

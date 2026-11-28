@@ -13,6 +13,13 @@ import {
 import type { PositionEstimate } from '../../shared/position-estimate.ts';
 import { departureIdentity, liveDepartureCandidates, serviceDate } from './time.ts';
 import type { DepartureBoardDisplay } from './live-departures.ts';
+import type { StationDepartureBoardDisplay } from '../../shared/departure-board.ts';
+import {
+  TRAIN_DELAY_LIMITS,
+  updateEstimatedDelay,
+  updateObservedDelay,
+  type TrainDelayState,
+} from './train-delay.ts';
 
 export const SWITCH_OFFSET_MS = 30_000;
 export const APPROACH_DURATION_MS = 50_000;
@@ -20,9 +27,7 @@ export const AFTER_APPROACH_HOLD_MS = 55_000;
 export const APPROACH_END_LEAD_MS = 10_000;
 const EARLIEST_NORMAL_PROJECTED_APPROACH_MS = 95_000;
 export const HYBRID_LIMITS = {
-  maxDelayMs: 10 * 60_000,
-  delayConfirmationMs: 20_000,
-  delayRetentionMs: 5 * 60_000,
+  ...TRAIN_DELAY_LIMITS,
   positionRetentionMs: 3 * 60_000,
   maxTrainHoldMs: 15 * 60_000,
   maxApproachNoticeMs: 90_000,
@@ -40,16 +45,14 @@ export function hybridTimeline(timestamp: number, delayMs = 0, endLeadMs = APPRO
   };
 }
 
-interface TrainState {
+interface TrainState extends TrainDelayState {
   seenAt: number;
   position?: TrainPosition;
   progress?: TrainStationProgress;
   coordinate?: number;
   conflicted?: boolean;
-  pendingDelay?: { value: number; firstAt: number };
-  delayMs: number;
-  delayUntil: number;
   positionUntil: number;
+  promotedUntil?: number;
   visited: boolean;
   cleared: boolean;
   fallbackWindow?: { start: number; end: number };
@@ -65,13 +68,13 @@ interface TrainState {
   expiredNoticeSourceAt?: number;
   approachHiddenAt?: number;
   approachEndedAt?: number;
-  retirement?: { sourceAt: number; reason: 'observed' | 'projected' | 'deadline' };
+  retirement?: { sourceAt: number; reason: 'observed' | 'projected' | 'deadline'; at?: number };
+  serverFirstObservation?: StationDepartureBoardDisplay['firstObservation'];
   skippedNextAt?: number;
   waitForObservedDeparture?: boolean;
   skippedBeforeFirstResponse?: boolean;
   estimate?: PositionEstimate;
   estimateHoldUntil?: number;
-  estimatedDelayMs?: number;
 }
 export interface HybridDepartureSession {
   scope: string;
@@ -98,6 +101,38 @@ export interface HybridDiagnostic {
   phase: 'waiting' | 'approaching' | 'holding';
   cleared: boolean;
 }
+
+/** Publish a future switch only when the current response already supports it. */
+export function turnoverAwaitsObservation(
+  current: HybridDepartureSession,
+  previous: HybridDepartureSession,
+  next: HybridDepartureSession,
+) {
+  if (
+    previous.next &&
+    previous.next !== next.next &&
+    previous.next !== next.active &&
+    next.trains.get(previous.next)?.retirement?.reason === 'projected'
+  )
+    return true;
+  const turnover = next.lastTurnover;
+  if (turnover?.reason !== 'estimate' || turnover === previous.lastTurnover) return false;
+  const observed = current.trains.get(turnover.train);
+  const retired = next.trains.get(turnover.train)?.retirement;
+  // The model also runs on segments already observed beyond the station. In that
+  // case only the post-notice timer is pending. Use evidence available at plan creation.
+  return !(
+    observed?.progress === 'departed' &&
+    !observed.conflicted &&
+    observed.position &&
+    observed.seenAt <= current.lastNow &&
+    trainPositionIsFresh(observed.position, current.lastNow) &&
+    retired?.reason === 'observed' &&
+    retired.sourceAt <= current.lastNow &&
+    turnover.train === current.active &&
+    next.active === current.next
+  );
+}
 const scopes = new WeakMap<Route, string>();
 function scopeFor(route: Route) {
   let scope = scopes.get(route);
@@ -123,8 +158,74 @@ const initialState = (): TrainState => ({
   fallbackClosed: false,
 });
 
+/** Carry observed server decisions into the local session without renewing their source leases. */
+export function rememberServerDepartures(
+  hybrid: ReturnType<typeof resolveHybridDepartures>,
+  display: StationDepartureBoardDisplay | undefined,
+  at: number,
+) {
+  if (!display) return hybrid;
+  const trains = new Map(hybrid.session.trains);
+  const rows = display.board.kind === 'active' ? display.board.departures : [];
+  const first = rows[0] && departureIdentity(rows[0]);
+  for (const [key, state] of trains) {
+    if (state.serverFirstObservation && key !== first)
+      trains.set(key, { ...state, serverFirstObservation: undefined });
+  }
+  for (const key of display.observedDepartures ?? []) {
+    const scheduled = Number(key.split('/')[1]);
+    if (!Number.isSafeInteger(scheduled) || scheduled > at || scheduled < at - LOOKBACK_MS)
+      continue;
+    const state = trains.get(key) ?? initialState();
+    if (state.retirement?.reason !== 'observed')
+      trains.set(key, {
+        ...state,
+        cleared: true,
+        retirement: { sourceAt: at, reason: 'observed' },
+      });
+  }
+  for (const [index, departure] of rows.entries()) {
+    const key = departureIdentity(departure);
+    const state = { ...(trains.get(key) ?? initialState()) };
+    const observed = index === 0 && display.firstObservation;
+    const priorObservation = state.serverFirstObservation;
+    if (
+      observed &&
+      at >= observed.sourceAt &&
+      at < observed.validUntil &&
+      !state.cleared &&
+      state.retirement?.reason !== 'observed' &&
+      (!state.conflicted || observed.sourceAt > state.seenAt) &&
+      (!priorObservation ||
+        observed.sourceAt > priorObservation.sourceAt ||
+        (observed.sourceAt === priorObservation.sourceAt &&
+          observed.progress === priorObservation.progress)) &&
+      observed.sourceAt >= state.seenAt &&
+      observed.sourceAt >= (state.retirement?.sourceAt ?? -Infinity) &&
+      (observed.sourceAt !== state.seenAt || state.progress !== 'departed')
+    ) {
+      state.serverFirstObservation =
+        priorObservation?.sourceAt === observed.sourceAt
+          ? { ...observed, validUntil: Math.min(observed.validUntil, priorObservation.validUntil) }
+          : observed;
+      if (observed.sourceAt > state.seenAt) state.conflicted = false;
+      if (observed.progress !== 'before') {
+        state.retirement = undefined;
+        state.skippedBeforeFirstResponse = false;
+        state.skippedNextAt = undefined;
+        state.visited = true;
+      }
+    }
+    const closed = display.closedApproaches?.[index];
+    if (closed === 'arrival') state.approachEndedAt ??= at;
+    if (closed === 'limit') state.noticeTimedOutAt ??= at;
+    trains.set(key, state);
+  }
+  return { ...hybrid, session: { ...hybrid.session, trains } };
+}
+
 function sameObservedPosition(a: TrainPosition, b: TrainPosition) {
-  return a.fromStation === b.fromStation && a.toStation === b.toStation && a.delay === b.delay;
+  return a.fromStation === b.fromStation && a.toStation === b.toStation;
 }
 
 function activeObservationCoordinate(
@@ -135,15 +236,32 @@ function activeObservationCoordinate(
 ) {
   if (!prior?.active || !prior.activeDeparture) return;
   const state = prior.trains.get(prior.active);
-  const raw = observedToeiTrainGuidance(route, prior.activeDeparture, positions, now);
+  const serverObservation = state?.serverFirstObservation;
+  const raw = observedToeiTrainGuidance(
+    route,
+    prior.activeDeparture,
+    positions,
+    now,
+    state?.conflicted ? undefined : state,
+  );
   const sourceAt = Date.parse(raw.observation?.updatedAt ?? '');
   if (
     raw.coordinate !== undefined &&
     sourceAt <= now.getTime() &&
-    sourceAt > (state?.seenAt ?? -Infinity) &&
+    sourceAt > Math.max(state?.seenAt ?? -Infinity, serverObservation?.sourceAt ?? -Infinity) &&
     (state?.coordinate === undefined || raw.coordinate >= state.coordinate)
   )
     return raw.coordinate;
+  if (
+    serverObservation &&
+    serverObservation.validUntil > now.getTime() &&
+    serverObservation.sourceAt >= (state?.seenAt ?? -Infinity)
+  )
+    return serverObservation.progress === 'before'
+      ? undefined
+      : serverObservation.progress === 'here'
+        ? 0
+        : -0.5;
   if (state?.position && !state.conflicted && trainPositionIsFresh(state.position, now.getTime()))
     return state.coordinate;
 }
@@ -160,16 +278,15 @@ export function resolveHybridDepartures(
   session: HybridDepartureSession;
   diagnostic?: HybridDiagnostic;
   estimatedDiagram?: DepartureBoardDisplay['position'];
+  firstObservation?: StationDepartureBoardDisplay['firstObservation'];
 } {
   const scope = scopeFor(route);
-  // Nov 21 LCD comparisons showed an early start on these two approaches.
-  // Shift the timetable-only window; a matched incoming train can still start earlier.
   const measuredApproach =
-    (route.sourceStationId === 'odpt.Station:Toei.Mita.Mita' &&
+    endLeadMs > 0 &&
+    ((route.sourceStationId === 'odpt.Station:Toei.Mita.Mita' &&
       route.id === 'Toei.Mita.Northbound') ||
-    (route.sourceStationId === 'odpt.Station:Toei.Shinjuku.Jimbocho' &&
-      route.id === 'Toei.Shinjuku.Eastbound');
-  const timetableStartOffset = measuredApproach && endLeadMs > 0 ? 5_000 : 0;
+      (route.sourceStationId === 'odpt.Station:Toei.Shinjuku.Jimbocho' &&
+        route.id === 'Toei.Shinjuku.Eastbound'));
   // Clock rollback must not resurrect trains or reopen an announcement.
   const timestamp = Math.max(
     now.getTime(),
@@ -195,6 +312,7 @@ export function resolveHybridDepartures(
   const presentations: NonNullable<DepartureBoardDisplay['presentations']> = [];
   let position: DepartureBoardDisplay['position'];
   let estimatedDiagram: DepartureBoardDisplay['position'];
+  let firstObservation: StationDepartureBoardDisplay['firstObservation'];
   const collectedMode =
     useEstimates && (positions ? positions.collected !== undefined : !!prior?.collectedMode);
   const collectedAt = Date.parse(positions?.collected?.fetchedAt ?? '');
@@ -213,15 +331,27 @@ export function resolveHybridDepartures(
     const skippedNextAt = state.skippedNextAt;
     const serverCanCorrect = useCollected && positions.serverEstimates;
     const retirement = state.retirement;
+    const reconsiderDirect =
+      retirement?.reason === 'deadline' &&
+      timestamp < hardStop &&
+      !!acceptedPositions?.trains.length;
     if (
       retirement &&
       (retirement.reason === 'observed' ||
         state.cleared ||
-        (!reconsiderSkipped && !serverCanCorrect && skippedNextAt === undefined))
+        (!reconsiderSkipped &&
+          !reconsiderDirect &&
+          !serverCanCorrect &&
+          skippedNextAt === undefined))
     )
       continue;
     const usesEstimate = collectedMode && !departure.gtfs;
-    const forecast =
+    const serverSourceAt = state.serverFirstObservation?.sourceAt ?? -Infinity;
+    const serverUpstream =
+      state.serverFirstObservation?.progress === 'before' &&
+      timestamp < state.serverFirstObservation.validUntil &&
+      state.seenAt <= serverSourceAt;
+    const candidateForecast =
       usesEstimate && useCollected
         ? collectedDiagramEstimate(
             route,
@@ -232,10 +362,27 @@ export function resolveHybridDepartures(
             state.estimate,
           )
         : undefined;
-    let raw = observedToeiTrainGuidance(route, departure, acceptedPositions, now);
-    if (usesEstimate && useCollected && !forecast?.progress) {
-      // A collector observation can still establish movement without a historical projection.
-      const collected = observedToeiTrainGuidance(route, departure, positions.collected, now);
+    const forecast =
+      candidateForecast &&
+      candidateForecast.sourceAt >= serverSourceAt &&
+      !(serverUpstream && candidateForecast.sourceAt === serverSourceAt)
+        ? candidateForecast
+        : undefined;
+    const priorObservation = state.conflicted ? undefined : state;
+    let raw = observedToeiTrainGuidance(route, departure, acceptedPositions, now, priorObservation);
+    if (
+      usesEstimate &&
+      useCollected &&
+      (!forecast?.progress || forecast.observedProgress === 'before')
+    ) {
+      // Keep upstream source evidence across a missing response, independently of its projection.
+      const collected = observedToeiTrainGuidance(
+        route,
+        departure,
+        positions.collected,
+        now,
+        priorObservation,
+      );
       const observed = collected.observation;
       const sourceAt = Date.parse(observed?.updatedAt ?? '');
       const directAt = Date.parse(raw.observation?.updatedAt ?? '');
@@ -253,18 +400,21 @@ export function resolveHybridDepartures(
     const observation = raw.observation;
     if (
       observation &&
+      Date.parse(observation.updatedAt) >= serverSourceAt &&
+      !(
+        serverUpstream &&
+        Date.parse(observation.updatedAt) === serverSourceAt &&
+        raw.progress !== 'before'
+      ) &&
       Date.parse(observation.updatedAt) <= now.getTime() &&
       raw.coordinate !== undefined &&
       raw.progress
     ) {
       const stamp = Date.parse(observation.updatedAt);
-      const sameStampConflict =
-        stamp === state.seenAt &&
-        state.position &&
-        !sameObservedPosition(observation, state.position);
-      if (sameStampConflict) {
-        state.conflicted = true;
-        state.pendingDelay = undefined;
+      if (stamp === state.seenAt && state.position) {
+        if (!sameObservedPosition(observation, state.position)) state.conflicted = true;
+        if (state.conflicted || observation.delay !== state.position.delay)
+          state.pendingDelay = undefined;
       }
       if (stamp > state.seenAt) {
         const regressed = state.coordinate !== undefined && raw.coordinate < state.coordinate;
@@ -274,9 +424,16 @@ export function resolveHybridDepartures(
           state.pendingDelay = undefined;
         } else {
           state.conflicted = false;
-          // A downstream segment after a local observation establishes clearance
-          // more conservatively than departure into the first outgoing segment.
-          if (state.visited && raw.coordinate >= 1.5 && observation.toStation !== null)
+          // Near the scheduled minute retain the conservative downstream check. After
+          // the timetable fallback, movement out of this stop also confirms departure.
+          if (
+            state.visited &&
+            observation.toStation !== null &&
+            (raw.coordinate >= 1.5 ||
+              (raw.coordinate === 0.5 &&
+                observation.fromStation === route.sourceStationId &&
+                stamp >= departure.timestamp + SWITCH_OFFSET_MS))
+          )
             state.cleared = true;
           if (raw.progress === 'approaching' || raw.progress === 'here') state.visited = true;
           state.coordinate = raw.coordinate;
@@ -284,32 +441,13 @@ export function resolveHybridDepartures(
           state.position = observation;
           const local =
             (raw.progress === 'approaching' && raw.coordinate === -0.5) || raw.progress === 'here';
-          const delay = observation.delay === undefined ? undefined : observation.delay * 1000;
-          if (
-            local &&
-            delay !== undefined &&
-            Number.isSafeInteger(delay) &&
-            delay > 0 &&
-            delay <= HYBRID_LIMITS.maxDelayMs
-          ) {
-            const pending = state.pendingDelay;
-            if (
-              pending?.value === delay &&
-              stamp - pending.firstAt >= HYBRID_LIMITS.delayConfirmationMs &&
-              stamp - pending.firstAt <= TRAIN_POSITION_MAX_AGE
-            ) {
-              state.delayMs = Math.max(state.delayMs, delay);
-              state.pendingDelay = { value: delay, firstAt: stamp };
-              state.delayUntil = Math.min(
-                departure.timestamp + HYBRID_LIMITS.maxTrainHoldMs,
-                Math.max(
-                  stamp + HYBRID_LIMITS.delayRetentionMs,
-                  hybridTimeline(departure.timestamp, state.delayMs).switchAt,
-                ),
-              );
-            } else if (pending?.value !== delay || stamp - pending.firstAt > TRAIN_POSITION_MAX_AGE)
-              state.pendingDelay = { value: delay, firstAt: stamp };
-          } else state.pendingDelay = undefined;
+          updateObservedDelay(
+            state,
+            local ? observation.delay : undefined,
+            stamp,
+            departure.timestamp + SWITCH_OFFSET_MS,
+            hardStop,
+          );
           // Do not shorten the displayed train's lease after one lost response.
           if (raw.progress !== 'departed')
             state.positionUntil = Math.min(
@@ -321,7 +459,11 @@ export function resolveHybridDepartures(
       }
     }
     const fresh =
-      !state.conflicted && state.position && trainPositionIsFresh(state.position, timestamp)
+      !state.conflicted &&
+      state.seenAt >= serverSourceAt &&
+      !(serverUpstream && state.seenAt === serverSourceAt && state.progress !== 'before') &&
+      state.position &&
+      trainPositionIsFresh(state.position, timestamp)
         ? state.position
         : undefined;
     const directFreshUntil = fresh
@@ -382,32 +524,42 @@ export function resolveHybridDepartures(
           : forecast;
     const progress =
       guidance?.progress ?? directProgress ?? (blockedProjection ? 'before' : undefined);
+    // A missing row cannot move an upstream train into the timetable notice window.
+    const lastUpstream =
+      (fresh && state.progress === 'before') || serverUpstream ? 'before' : undefined;
     const noticeProgress =
-      endLeadMs > 0 ? (guidance?.beforeProjectedArrival ?? progress) : progress;
+      endLeadMs > 0 ? (guidance?.beforeProjectedArrival ?? progress ?? lastUpstream) : progress;
     const retiredSourceAt = retirement?.sourceAt ?? -Infinity;
     const newerLocalObservation =
       currentObservation &&
       state.seenAt > retiredSourceAt &&
       (directProgress === 'approaching' || directProgress === 'here');
-    let restoreSkippedNext = false;
+    // On first load the source observation can predate the request. Once a displayed
+    // train has actually turned over, only movement sampled after that decision can correct it.
+    const skippedAt =
+      skippedNextAt ?? (state.skippedBeforeFirstResponse ? -Infinity : retirement?.at);
+    let restoreFromObservation = false;
     if (
       retirement &&
-      skippedNextAt !== undefined &&
+      retirement.reason === 'deadline' &&
+      skippedAt !== undefined &&
       timestamp < hardStop &&
       !followingFirst &&
-      !guidance?.progress &&
+      (!guidance?.progress ||
+        guidance.observedProgress === 'here' ||
+        guidance.observedProgress === 'approaching') &&
       newerLocalObservation &&
-      state.seenAt > skippedNextAt &&
+      state.seenAt > skippedAt &&
       (raw.coordinate === -0.5 || raw.coordinate === 0)
     ) {
       const activeCoordinate = activeObservationCoordinate(route, acceptedPositions, now, prior);
       // Keep the displayed first if direct observations place it at least as close to this stop.
-      restoreSkippedNext =
+      restoreFromObservation =
         activeCoordinate === undefined || activeCoordinate < raw.coordinate || activeCoordinate > 0;
     }
     if (
       retirement &&
-      !restoreSkippedNext &&
+      !restoreFromObservation &&
       !(reconsiderSkipped && (guidance || followingFirst)) &&
       !(
         serverCanCorrect &&
@@ -418,20 +570,17 @@ export function resolveHybridDepartures(
         timestamp < hardStop
       )
     ) {
-      state.skippedBeforeFirstResponse = false;
       trains.set(key, state);
       continue;
     }
-    if (restoreSkippedNext || retirement?.reason === 'projected')
+    if ((restoreFromObservation && !guidance?.progress) || retirement?.reason === 'projected')
       state.waitForObservedDeparture = true;
     state.retirement = undefined;
     state.skippedNextAt = undefined;
     state.skippedBeforeFirstResponse = false;
     if (forecast) {
-      if (forecast.estimate.runId !== state.estimate?.runId) state.estimatedDelayMs = 0;
+      updateEstimatedDelay(state, forecast, state.estimate?.runId, fresh);
       state.estimate = forecast.estimate;
-      if (forecast.estimate.delaySeconds > 0)
-        state.estimatedDelayMs = forecast.estimate.delaySeconds * 1000;
     }
     if (guidance?.progress) {
       state.estimateHoldUntil = noticeProgress !== 'departed' ? guidance.freshUntil : 0;
@@ -441,23 +590,59 @@ export function resolveHybridDepartures(
     const timeline = hybridTimeline(departure.timestamp, delayMs, endLeadMs);
     const turnoverDelayMs = usesEstimate ? Math.max(delayMs, state.estimatedDelayMs ?? 0) : delayMs;
     const correctedDeparture = departure.timestamp + turnoverDelayMs;
+    const serverObservation = state.serverFirstObservation;
+    if (
+      serverObservation &&
+      (timestamp >= serverObservation.validUntil ||
+        state.seenAt > serverObservation.sourceAt ||
+        (forecast && forecast.sourceAt > serverObservation.sourceAt) ||
+        state.conflicted ||
+        (state.seenAt === serverObservation.sourceAt && state.progress === 'departed'))
+    )
+      state.serverFirstObservation = undefined;
+    // A delayed predecessor and its incoming successor can otherwise both disappear
+    // between two position updates. Allow one poll for the newly promoted train.
+    if (
+      !followingFirst &&
+      prior?.next === key &&
+      lastTurnover?.train === prior.active &&
+      lastTurnover?.at === timestamp &&
+      trains.get(lastTurnover.train)?.retirement?.reason === 'observed' &&
+      !state.conflicted &&
+      state.progress === 'approaching' &&
+      state.seenAt + TRAIN_POSITION_MAX_AGE + TRAIN_POSITIONS_INTERVAL > timestamp
+    )
+      state.promotedUntil = timestamp + TRAIN_POSITIONS_INTERVAL;
     const holdUntil = Math.max(
       correctedDeparture + SWITCH_OFFSET_MS,
+      state.progress === 'departed' ? 0 : (state.promotedUntil ?? 0),
+      state.serverFirstObservation?.progress === 'before'
+        ? 0
+        : (state.serverFirstObservation?.validUntil ?? 0),
       usesEstimate ? (state.estimateHoldUntil ?? 0) : state.positionUntil,
     );
     // Clearance is deliberately not inferred from a null toStation, loss,
     // a stale observation or just the scheduled time passing.
     // Projection may lead the source clock. The published departure is a lower
     // bound for turnover; adding the estimated delay here would count it twice.
+    const observedLateExit =
+      fresh &&
+      state.cleared &&
+      state.progress === 'departed' &&
+      state.seenAt >= departure.timestamp + SWITCH_OFFSET_MS &&
+      (!guidance || state.seenAt >= guidance.sourceAt);
     const cleared =
-      usesEstimate && guidance?.progress
+      observedLateExit ||
+      (usesEstimate && guidance?.progress
         ? timestamp >= departure.timestamp && noticeProgress === 'departed'
-        : timestamp >= correctedDeparture && state.cleared && fresh;
+        : timestamp >= correctedDeparture && state.cleared && fresh);
     // Keep the timetable fallback on its original clock if the estimate expires.
     // After an observed arrival, loss of the feed must not restart this train's notice.
     if (noticeProgress === 'here') state.fallbackClosed = true;
-    const timetableStart = timeline.approachStart + timetableStartOffset;
-    const timetableEnd = timeline.approachEnd + timetableStartOffset;
+    // Nov 21 LCD starts were about 15 s and 9–10 s later. Use the smaller
+    // offset for timetable starts. Neither comparison measured an LCD end.
+    const timetableStart = timeline.approachStart + (measuredApproach ? 9_000 : 0);
+    const timetableEnd = timeline.approachEnd + (measuredApproach ? 5_000 : 0);
     const withinEarlyStart = timestamp >= timeline.approachStart - HYBRID_LIMITS.earlyApproachMs;
     if (!departure.gtfs && !state.fallbackClosed && !state.fallbackWindow) {
       const early =
@@ -554,6 +739,10 @@ export function resolveHybridDepartures(
     if (wasApproaching && !approaching)
       state.approachHiddenAt =
         timestamp - prior.lastNow < TRAIN_POSITIONS_INTERVAL ? timestamp : prior.lastNow;
+    // On a late, confirmed departure the source time already accounts for time in
+    // transit to the receiver. Do not add the same wait again on receipt.
+    if (observedLateExit && state.approachHiddenAt !== undefined)
+      state.approachHiddenAt = Math.min(state.approachHiddenAt, state.seenAt);
     const afterApproach = (state.approachHiddenAt ?? -Infinity) + TRAIN_POSITIONS_INTERVAL;
     const switchAt = Math.min(hardStop, Math.max(holdUntil, afterApproach));
     // While the first train is held, the timetable alone cannot retire its successor.
@@ -562,13 +751,18 @@ export function resolveHybridDepartures(
         lastTurnover = {
           train: key,
           at: timestamp,
-          reason: cleared ? (guidance?.progress ? 'estimate' : 'clearance') : 'deadline',
+          reason: cleared
+            ? guidance?.progress && !observedLateExit
+              ? 'estimate'
+              : 'clearance'
+            : 'deadline',
         };
       // HTTP and SSE can disagree about the same sample after reconnecting.
       state.retirement = {
+        at: timestamp,
         sourceAt: Math.max(state.seenAt, forecast?.sourceAt ?? -Infinity),
         reason: cleared
-          ? guidance?.beforeProjectedDeparture
+          ? guidance?.beforeProjectedDeparture && !observedLateExit
             ? 'projected'
             : 'observed'
           : 'deadline',
@@ -630,6 +824,22 @@ export function resolveHybridDepartures(
     state.lastShownApproachAt = showApproach ? timestamp : undefined;
     trains.set(key, state);
     if (selected.length === 0) {
+      if (!state.conflicted) {
+        if (guidance && (!fresh || guidance.sourceAt >= state.seenAt)) {
+          if (guidance.observedProgress && guidance.observedProgress !== 'departed')
+            firstObservation = {
+              progress: guidance.observedProgress,
+              sourceAt: guidance.sourceAt,
+              validUntil: guidance.freshUntil,
+            };
+        } else if (fresh && state.progress && state.progress !== 'departed') {
+          firstObservation = {
+            progress: state.progress,
+            sourceAt: state.seenAt,
+            validUntil: directFreshUntil,
+          };
+        }
+      }
       if (approaching) {
         if (endLeadMs > 0 && guidance?.projectedApproach && !directlyApproaching)
           state.projectedApproachSourceAt = guidance.sourceAt;
@@ -704,6 +914,7 @@ export function resolveHybridDepartures(
     presentation: presentations[0],
     position,
     estimatedDiagram,
+    firstObservation,
     livePhase: diagnostic?.phase === 'approaching' ? 'approaching' : 'holding',
     diagnostic,
     session: {
